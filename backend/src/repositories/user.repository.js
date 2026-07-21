@@ -264,24 +264,16 @@ class UserRepository {
     const updates = [];
     const values = [];
 
-    // Map flutter field names to DB columns
+    // Map flutter field names to DB columns (only columns that exist in real schema)
     const fieldMapping = {
-      gender: 'gender',
-      maritalStatus: 'marital_status',
-      isHeadOfHousehold: 'is_head_of_household',
-      isStudent: 'is_student',
-      familySize: 'family_size'
+      employmentStatus: 'employment_status',
+      monthlyIncome: 'monthly_income'
     };
 
     for (const [key, value] of Object.entries(updateData)) {
-      if (fieldMapping[key] !== undefined) {
+      if (fieldMapping[key] !== undefined && value !== undefined && value !== null) {
         updates.push(`${fieldMapping[key]} = ?`);
-        // Handle booleans mapped to tinyint
-        if (typeof value === 'boolean') {
-          values.push(value ? 1 : 0);
-        } else {
-          values.push(value);
-        }
+        values.push(value);
       }
     }
 
