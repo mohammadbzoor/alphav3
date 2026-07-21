@@ -730,6 +730,78 @@ class GoalProvider extends ChangeNotifier {
     return false;
   }
 
+  // ================= ADVANCED ACTIONS =================
+
+  Future<dynamic> planningPreview(Map<String, dynamic> data) async {
+    final response = await ApiService.post('/goals/planning-preview', body: data);
+    return _parseOrError(response);
+  }
+
+  Future<dynamic> getReadyGoals() async {
+    final response = await ApiService.get('/goals/ready');
+    return _parseOrError(response);
+  }
+
+  Future<bool> executeGoal(String id) async {
+    final response = await ApiService.post('/goals/$id/execute');
+    return _isSuccess(response);
+  }
+
+  Future<bool> deferGoal(String id) async {
+    final response = await ApiService.post('/goals/$id/defer');
+    return _isSuccess(response);
+  }
+
+  Future<bool> reallocateGoal(String id, Map<String, dynamic> body) async {
+    final response = await ApiService.post('/goals/$id/reallocate', body: body);
+    return _isSuccess(response);
+  }
+
+  Future<dynamic> getLedgerHistory(String id) async {
+    final response = await ApiService.get('/goals/$id/transactions');
+    return _parseOrError(response);
+  }
+
+  Future<bool> addContribution(String id, double amount, {String sourceType = 'manual'}) async {
+    final String idempotencyKey = DateTime.now().millisecondsSinceEpoch.toString();
+    final response = await ApiService.post('/goals/$id/contributions', body: {
+      'amount': amount,
+      'sourceType': sourceType,
+    }, headers: {'Idempotency-Key': idempotencyKey});
+    return _isSuccess(response);
+  }
+
+  Future<bool> pauseGoal(String id) async {
+    final response = await ApiService.post('/goals/$id/pause');
+    return _isSuccess(response);
+  }
+
+  Future<bool> resumeGoal(String id) async {
+    final response = await ApiService.post('/goals/$id/resume');
+    return _isSuccess(response);
+  }
+
+  Future<dynamic> _parseOrError(dynamic response) async {
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      final body = await ApiService.parseJson(response);
+      return body['data'];
+    } else {
+      _errorMessage = await ApiService.getErrorMessage(response);
+      notifyListeners();
+      return null;
+    }
+  }
+
+  Future<bool> _isSuccess(dynamic response) async {
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      return true;
+    } else {
+      _errorMessage = await ApiService.getErrorMessage(response);
+      notifyListeners();
+      return false;
+    }
+  }
+
   // ================= CLEAR FORM =================
 
   void clearForm({

@@ -755,9 +755,16 @@ final TextEditingController customCategoryController =
 
     notifyListeners();
 
-    final saved = await _saveExpenses();
+    bool allSaved = true;
+    for (var expense in _sessionExpenses) {
+      final success = await addExpense(expense);
+      if (!success) {
+        allSaved = false;
+        break;
+      }
+    }
 
-    if (!saved) {
+    if (!allSaved) {
       _expenses
         ..clear()
         ..addAll(backup);
