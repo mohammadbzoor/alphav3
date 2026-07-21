@@ -1,5 +1,6 @@
 
 import 'package:alpha_app/providers/profile_provider.dart';
+import 'package:alpha_app/providers/home_provider.dart';
 import 'package:alpha_app/screens/ai_assistant/chat_screen.dart';
 import 'package:alpha_app/screens/auth/otp_screen.dart';
 import 'package:alpha_app/screens/expenses/expenses_screen.dart';
@@ -45,9 +46,11 @@ class _MainNavigationScreenState
     _currentIndex =
         widget.initialIndex.clamp(0, 4);
 
-    // Load profile summary once after auth is confirmed
+    // Load profile and home data once after auth is confirmed
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final profileProvider = context.read<ProfileProvider>();
+      final homeProvider = context.read<HomeProvider>();
+      
       if (!profileProvider.hasProfile && !profileProvider.isLoading) {
         profileProvider.loadProfileSummary().then((_) {
           // Check if account not verified
@@ -55,6 +58,11 @@ class _MainNavigationScreenState
             _handleAccountNotVerified(context);
           }
         });
+      }
+      
+      // Load home data (dashboard) after profile is confirmed
+      if (!homeProvider.hasData && !homeProvider.isLoading) {
+        homeProvider.loadHomeData();
       }
     });
   }

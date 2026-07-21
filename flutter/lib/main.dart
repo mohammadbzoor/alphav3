@@ -80,7 +80,7 @@ create: (_) => ChatbotProvider(),
 ),
 
 ChangeNotifierProvider(
-  create: (_) => HomeProvider()..loadHomeData(),
+  create: (_) => HomeProvider(),
 ),
 ChangeNotifierProvider(
   create: (_) => ReceiptProvider(),
