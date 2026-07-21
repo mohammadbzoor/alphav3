@@ -1,0 +1,29 @@
+{
+  "email_label": "البريد الإلكتروني",
+  "email_hint": "You@example.com",
+  "password_label": "كلمة المرور",
+  "password_hint": "أكثر من 6 أحرف",
+  "remember_me": "تذكرني",
+  "sign_in": "تسجيل الدخول",
+  "forgot_password_title": "هل نسيت كلمة المرور؟",
+  "no_account": "ليس لديك حساب؟",
+  "sign_up": "إنشاء حساب",
+  "account_success": "تم تسجيل الدخول بنجاح",
+  "validation": {
+    "email_required": "البريد الإلكتروني مطلوب",
+    "invalid_email": "بريد إلكتروني غير صحيح",
+    "password_required": "كلمة المرور مطلوبة",
+    "password_short": "كلمة المرور قصيرة جداً"
+  },
+  "complete_profile": "أكمل ملفك المالي",
+  "completion_message": "ملفك الشخصي مكتمل بنسبة {percentage}%. أكمل المعلومات الناقصة للحصول على تحليل مالي أكثر دقة.",
+  "missing_personal_information": "معلومات شخصية ناقصة",
+  "missing_financial_information": "معلومات مالية ناقصة",
+  "missing_allocation_preference": "تفضيلات التوزيع ناقصة",
+  "improve_analysis_accuracy": "تحسين دقة التحليل",
+  "complete_now": "أكمل الآن",
+  "profile_complete": "الملف مكتمل",
+  "analysis_limited": "محدود",
+  "analysis_estimated": "مُقدَّر",
+  "analysis_reliable": "موثوق"
+}

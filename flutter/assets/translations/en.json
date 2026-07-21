@@ -1,0 +1,29 @@
+{
+  "email_label": "Email",
+  "email_hint": "You@example.com",
+  "password_label": "Password",
+  "password_hint": "+6 letters",
+  "remember_me": "remember me",
+  "sign_in": "sign in",
+  "forgot_password_title": "Forgot Password?",
+  "no_account": "Don't have an account?",
+  "sign_up": "sign up",
+  "account_success": "Logged in successfully",
+  "validation": {
+    "email_required": "email required",
+    "invalid_email": "invalid email",
+    "password_required": "password required",
+    "password_short": "password short"
+  },
+  "complete_profile": "Complete your financial profile",
+  "completion_message": "Your profile is {percentage}% complete. Complete the missing information to receive more accurate financial analysis.",
+  "missing_personal_information": "Missing Personal Information",
+  "missing_financial_information": "Missing Financial Information",
+  "missing_allocation_preference": "Missing Allocation Preference",
+  "improve_analysis_accuracy": "Improve analysis accuracy",
+  "complete_now": "Complete Now",
+  "profile_complete": "Profile Complete",
+  "analysis_limited": "Limited",
+  "analysis_estimated": "Estimated",
+  "analysis_reliable": "Reliable"
+}
