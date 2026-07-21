@@ -1,14 +1,31 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:alpha_app/core/constants/api_constant.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiService {
-  static String get baseUrl =>
-      ApiConstants.baseUrl;
+  static String get baseUrl {
+    String? url = dotenv.env['API_BASE_URL'];
+    if (url == null || url.isEmpty) {
+      throw Exception('API_BASE_URL is missing in environment variables.');
+    }
+    // Remove trailing slashes
+    while (url!.endsWith('/')) {
+      url = url.substring(0, url.length - 1);
+    }
+    return url;
+  }
+
+  static Uri _buildUri(String path) {
+    String p = path.startsWith('/') ? path : '/$path';
+    if (p.startsWith('/api/v1')) {
+      p = p.substring('/api/v1'.length);
+    }
+    return Uri.parse('$baseUrl$p');
+  }
 
   static const Duration _timeoutDuration =
       Duration(seconds: 90);
@@ -183,9 +200,7 @@ class ApiService {
       return false;
     }
 
-    final Uri uri = Uri.parse(
-      '$baseUrl/auth/refresh-token',
-    );
+    final Uri uri = _buildUri('/auth/refresh-token');
 
     debugPrint(
       'POST URL: $uri',
@@ -214,9 +229,7 @@ class ApiService {
       'STATUS CODE: ${response.statusCode}',
     );
 
-    debugPrint(
-      'RESPONSE BODY: ${response.body}',
-    );
+    // response body redacted
 
     if (response.statusCode < 200 ||
         response.statusCode >= 300) {
@@ -291,9 +304,7 @@ class ApiService {
   }) async {
     return _requestWithRetry(
       (String token) async {
-        final Uri uri = Uri.parse(
-          '$baseUrl$path',
-        ).replace(
+        final Uri uri = _buildUri(path).replace(
           queryParameters:
               queryParameters,
         );
@@ -333,9 +344,7 @@ class ApiService {
   }) async {
     return _requestWithRetry(
       (String token) async {
-        final Uri uri = Uri.parse(
-          '$baseUrl$path',
-        );
+        final Uri uri = _buildUri(path);
 
         final Map<String, dynamic>
             requestBody =
@@ -345,9 +354,7 @@ class ApiService {
           'POST URL: $uri',
         );
 
-        debugPrint(
-          'POST BODY: ${jsonEncode(requestBody)}',
-        );
+        debugPrint('POST BODY: [REDACTED]');
 
         final allHeaders = _headers(token);
         if (headers != null) {
@@ -386,9 +393,7 @@ class ApiService {
   }) async {
     return _requestWithRetry(
       (String token) async {
-        final Uri uri = Uri.parse(
-          '$baseUrl$path',
-        );
+        final Uri uri = _buildUri(path);
 
         final Map<String, dynamic>
             requestBody =
@@ -398,9 +403,7 @@ class ApiService {
           'PATCH URL: $uri',
         );
 
-        debugPrint(
-          'PATCH BODY: ${jsonEncode(requestBody)}',
-        );
+        debugPrint('PATCH BODY: [REDACTED]');
 
         final http.Response response =
             await http
@@ -435,9 +438,7 @@ class ApiService {
   }) async {
     return _requestWithRetry(
       (String token) async {
-        final Uri uri = Uri.parse(
-          '$baseUrl$path',
-        );
+        final Uri uri = _buildUri(path);
 
         final Map<String, dynamic>
             requestBody =
@@ -447,9 +448,7 @@ class ApiService {
           'PUT URL: $uri',
         );
 
-        debugPrint(
-          'PUT BODY: ${jsonEncode(requestBody)}',
-        );
+        debugPrint('PUT BODY: [REDACTED]');
 
         final http.Response response =
             await http
@@ -484,18 +483,14 @@ class ApiService {
   }) async {
     return _requestWithRetry(
       (String token) async {
-        final Uri uri = Uri.parse(
-          '$baseUrl$path',
-        );
+        final Uri uri = _buildUri(path);
 
         debugPrint(
           'DELETE URL: $uri',
         );
 
         if (body != null) {
-          debugPrint(
-            'DELETE BODY: ${jsonEncode(body)}',
-          );
+          debugPrint('DELETE BODY: [REDACTED]');
         }
 
         final http.Request request =
@@ -548,7 +543,7 @@ class ApiService {
   }) async {
     return _requestWithRetry(
       (String token) async {
-        final Uri uri = Uri.parse('$baseUrl$endpoint');
+        final Uri uri = _buildUri(endpoint);
         
         debugPrint('UPLOAD URL: $uri');
 
@@ -670,8 +665,6 @@ class ApiService {
       'STATUS CODE: ${response.statusCode}',
     );
 
-    debugPrint(
-      'RESPONSE BODY: ${response.body}',
-    );
+    // response body redacted
   }
 }
