@@ -49,9 +49,7 @@ class ProfileScreen extends StatelessWidget {
         profileProvider.displayName;
 
     final String email =
-        profileProvider.email.isEmpty
-            ? 'No email available'
-            : profileProvider.email;
+        profileProvider.email;
 
     final String? photoUrl =
         profileProvider.photoUrl;
@@ -80,6 +78,39 @@ class ProfileScreen extends StatelessWidget {
                       : AppColors.lightPrimary,
                 ),
               )
+            : profileProvider.errorMessage != null && !profileProvider.hasProfile
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.error_outline,
+                          size: 48,
+                          color: isDark ? AppColors.darkError : AppColors.lightError,
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'Could not load profile',
+                          style: GoogleFonts.ibmPlexSansArabic(
+                            color: isDark ? AppColors.darkText : AppColors.lightText,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        TextButton.icon(
+                          onPressed: () => profileProvider.refreshProfileSummary(),
+                          icon: const Icon(Icons.refresh),
+                          label: Text(
+                            'Retry',
+                            style: GoogleFonts.ibmPlexSansArabic(
+                              color: isDark ? AppColors.darkPrimary : AppColors.lightPrimary,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
             : SingleChildScrollView(
                 physics:
                     const BouncingScrollPhysics(),
@@ -413,9 +444,7 @@ class ProfileScreen extends StatelessWidget {
     DateTime? date,
   ) {
     if (date == null) {
-      return DateFormat('MMM yyyy').format(
-        DateTime.now(),
-      );
+      return 'N/A';
     }
 
     return DateFormat('MMM yyyy').format(date);
@@ -447,14 +476,16 @@ class ProfileScreen extends StatelessWidget {
   }) async {
     final nameController =
         TextEditingController(
-      text: profileProvider.displayName == 'User'
+      text: profileProvider.displayName == 'Not available'
           ? ''
           : profileProvider.displayName,
     );
 
     final emailController =
         TextEditingController(
-      text: profileProvider.email,
+      text: profileProvider.email == 'Not available'
+          ? ''
+          : profileProvider.email,
     );
 
     final phoneController =

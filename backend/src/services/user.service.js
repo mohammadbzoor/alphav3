@@ -140,7 +140,7 @@ class UserService {
     const percentage = Math.round((completedCriticalFields / totalCriticalFields) * 100);
 
     return {
-      isComplete: missingCount === 0,
+      isComplete: missingFields.length === 0,
       percentage,
       missingFields,
       missingSections,

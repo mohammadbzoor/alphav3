@@ -45,11 +45,11 @@ class ProfileProvider extends ChangeNotifier {
 
   String get displayName {
     final value = _profile?.name.trim() ?? '';
-    return value.isEmpty ? 'User' : value;
+    return value.isEmpty ? 'Not available' : value;
   }
 
   String get email {
-    return _profile?.email ?? '';
+    return (_profile?.email ?? '').isEmpty ? 'Not available' : _profile!.email;
   }
 
   String? get photoUrl {
@@ -66,7 +66,7 @@ class ProfileProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final response = await ApiService.get('api/v1/profile/summary');
+      final response = await ApiService.get('/users/profile/summary');
       if (response.statusCode >= 200 && response.statusCode < 300) {
         final body = jsonDecode(response.body);
         final data = body['data'];
@@ -112,20 +112,20 @@ class ProfileProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final response = await ApiService.get('api/v1/profile');
+      final response = await ApiService.get('/users/profile');
       if (response.statusCode >= 200 && response.statusCode < 300) {
         final body = jsonDecode(response.body);
         final data = body['data'];
-        final user = data['user'];
-        final profile = data['profile'];
-
+        // getProfile returns a flat object: { id, fullName, email, phoneNumber, birthDate, gender, ... }
         _profile = ProfileModel(
-          id: user['id']?.toString(),
-          name: user['full_name']?.toString() ?? '',
-          email: user['email']?.toString() ?? '',
-          phone: user['phone']?.toString(),
-          birthDate: user['birth_date'] != null ? DateTime.parse(user['birth_date']) : null,
-          gender: profile?['gender']?.toString(),
+          id: data['id']?.toString(),
+          name: data['fullName']?.toString() ?? '',
+          email: data['email']?.toString() ?? '',
+          phone: data['phoneNumber']?.toString(),
+          birthDate: data['birthDate'] != null
+              ? DateTime.tryParse(data['birthDate'].toString())
+              : null,
+          gender: data['gender']?.toString(),
         );
         _isLoading = false;
         notifyListeners();
@@ -162,11 +162,13 @@ class ProfileProvider extends ChangeNotifier {
       if (gender != null) updateData['gender'] = gender;
       if (birthDate != null) updateData['birthDate'] = birthDate.toIso8601String().split('T').first;
 
-      final response = await ApiService.patch('api/v1/profile', body: updateData);
+      final response = await ApiService.patch('/users/profile', body: updateData);
       
       if (response.statusCode >= 200 && response.statusCode < 300) {
-        // Success
-        await loadFullProfile(); // reload locally
+        // Success — reload both full profile and summary (for completion)
+        await loadFullProfile();
+        // Fire and forget summary refresh to update profileCompletion
+        loadProfileSummary();
         _isSaving = false;
         notifyListeners();
         return true;
@@ -193,7 +195,7 @@ class ProfileProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final response = await ApiService.post('api/v1/auth/change-password', body: {
+      final response = await ApiService.post('/auth/change-password', body: {
         'currentPassword': currentPassword,
         'newPassword': newPassword,
         'confirmPassword': confirmPassword,
@@ -218,7 +220,7 @@ class ProfileProvider extends ChangeNotifier {
 
   Future<void> logout() async {
     try {
-      await ApiService.post('api/v1/auth/logout', body: {});
+      await ApiService.post('/auth/logout', body: {});
     } catch (_) {}
 
     final prefs = await SharedPreferences.getInstance();
