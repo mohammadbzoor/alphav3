@@ -20,8 +20,45 @@ class ProfileCompletionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final completion = profileProvider.profileCompletion;
-    if (completion == null || completion.isComplete) {
+
+    if (completion != null && completion.isComplete) {
       return const SizedBox.shrink();
+    }
+
+    if (completion == null) {
+      return Container(
+        margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: isDark ? AppColors.darkBorder : Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: Colors.redAccent.withOpacity(0.5)),
+        ),
+        child: Column(
+          children: [
+            Icon(Icons.error_outline, color: Colors.redAccent),
+            const SizedBox(height: 8),
+            Text(
+              'Could not load profile completion data.',
+              style: GoogleFonts.ibmPlexSansArabic(
+                color: isDark ? AppColors.darkText : AppColors.lightText,
+                fontSize: 14,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            TextButton(
+              onPressed: () {
+                profileProvider.refreshProfileSummary();
+              },
+              child: Text(
+                'Retry',
+                style: GoogleFonts.ibmPlexSansArabic(color: isDark ? AppColors.darkPrimary : AppColors.lightPrimary),
+              ),
+            )
+          ],
+        ),
+      );
     }
 
     final double progress = completion.percentage / 100.0;

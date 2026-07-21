@@ -58,9 +58,21 @@ class UserService {
     }
     
     for (const f of profileFields) {
-      if (data.profile[f] === null || data.profile[f] === undefined || data.profile[f] === '') {
-        missingFields.push(f);
-        personalComplete = false;
+      if (f === 'is_student') {
+        if (data.profile[f] !== true && data.profile[f] !== false && data.profile[f] !== 1 && data.profile[f] !== 0) {
+          missingFields.push(f);
+          personalComplete = false;
+        }
+      } else if (f === 'family_size') {
+        if (data.profile[f] === null || data.profile[f] === undefined || data.profile[f] === '' || Number(data.profile[f]) < 1) {
+          missingFields.push(f);
+          personalComplete = false;
+        }
+      } else {
+        if (data.profile[f] === null || data.profile[f] === undefined || data.profile[f] === '') {
+          missingFields.push(f);
+          personalComplete = false;
+        }
       }
     }
 
@@ -71,11 +83,14 @@ class UserService {
 
     // Check financial information
     let financialComplete = true;
-    if (!data.financialProfile.expected_monthly_income || parseFloat(data.financialProfile.expected_monthly_income) <= 0) {
+    const income = parseFloat(data.financialProfile.expected_monthly_income);
+    if (isNaN(income) || income <= 0) { // onboarding rules typically require > 0 for active cycles
       missingFields.push('expected_monthly_income');
       financialComplete = false;
     }
-    if (data.financialProfile.payment_day === null || data.financialProfile.payment_day === undefined) {
+
+    const pDay = parseInt(data.financialProfile.payment_day, 10);
+    if (isNaN(pDay) || pDay < 1 || pDay > 31) {
       missingFields.push('payment_day');
       financialComplete = false;
     }
@@ -95,6 +110,12 @@ class UserService {
       if (needs_bps === undefined || wants_bps === undefined || savings_bps === undefined) {
         missingFields.push('allocation_preference');
         allocationComplete = false;
+      } else {
+        const totalBps = Number(needs_bps) + Number(wants_bps) + Number(savings_bps);
+        if (totalBps !== 10000) {
+          missingFields.push('allocation_preference');
+          allocationComplete = false;
+        }
       }
     }
 
@@ -113,9 +134,10 @@ class UserService {
       analysisReliability = 'reliable';
     }
 
-    const totalFields = personalFields.length + profileFields.length + 3; // 2 financial + 1 allocation
-    const missingCount = missingFields.length;
-    const percentage = Math.round(((totalFields - missingCount) / totalFields) * 100);
+    // Total critical fields exactly: 2 (personal) + 4 (profile) + 2 (financial) + 1 (allocation) = 9
+    const totalCriticalFields = 9;
+    const completedCriticalFields = totalCriticalFields - missingFields.length;
+    const percentage = Math.round((completedCriticalFields / totalCriticalFields) * 100);
 
     return {
       isComplete: missingCount === 0,
