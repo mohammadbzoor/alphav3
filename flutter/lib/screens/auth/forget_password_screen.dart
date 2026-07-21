@@ -97,6 +97,9 @@ class ForgetPasswordScreen extends StatelessWidget {
                       : () async {
                           final success = await authProvider.sendPasswordResetOtp();
                           if (success && context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('If the account exists, a verification code has been sent.')),
+                            );
                             Navigator.push(
                               context,
                               MaterialPageRoute(

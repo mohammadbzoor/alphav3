@@ -80,6 +80,7 @@ class ForgetPasswordOtpScreen extends StatelessWidget {
                   submittedPinTheme: defaultPinTheme,
                   showCursor: true,
                   onCompleted: (pin) async {
+                    if (authProvider.isLoading) return;
                     final success = await authProvider.verifyPasswordResetOtp(
                       otpCode: pin,
                     );

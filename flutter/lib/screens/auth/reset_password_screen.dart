@@ -23,6 +23,58 @@ class ResetPasswordScreen extends StatefulWidget {
 
 class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
   bool _obscureText = true;
+  bool _obscureConfirmText = true;
+  final TextEditingController _confirmPasswordController = TextEditingController();
+
+  @override
+  void dispose() {
+    _confirmPasswordController.dispose();
+    super.dispose();
+  }
+
+  void _submit(AuthProvider authProvider, BuildContext context) async {
+    if (authProvider.isLoading) return;
+
+    final newPass = authProvider.newPasswordController.text;
+    final confPass = _confirmPasswordController.text;
+
+    if (newPass.isEmpty || confPass.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Both password fields are required'), backgroundColor: Colors.red),
+      );
+      return;
+    }
+
+    if (newPass != confPass) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Passwords do not match'), backgroundColor: Colors.red),
+      );
+      return;
+    }
+
+    // Password policy validation (at least 8 chars, 1 uppercase, 1 lowercase, 1 number)
+    if (newPass.length < 8 || !RegExp(r'[A-Z]').hasMatch(newPass) || !RegExp(r'[a-z]').hasMatch(newPass) || !RegExp(r'\d').hasMatch(newPass)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Password must be at least 8 characters and contain uppercase, lowercase, and numbers'), backgroundColor: Colors.red),
+      );
+      return;
+    }
+
+    final success = await authProvider.resetPassword(
+      otpCode: widget.otpCode,
+      newPassword: newPass,
+    );
+    if (success && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Password reset successfully')),
+      );
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (context) => const Login()),
+        (route) => false,
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -42,7 +94,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
         ),
       ),
       body: SafeArea(
-        child: Padding(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 20.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -104,6 +156,46 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                   ),
                 ),
               ),
+              SizedBox(height: screenH * 0.02),
+              Container(
+                decoration: BoxDecoration(
+                  color: isDark ? AppColors.darkCard : Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+                  ),
+                ),
+                child: TextField(
+                  controller: _confirmPasswordController,
+                  obscureText: _obscureConfirmText,
+                  style: TextStyle(
+                    color: isDark ? AppColors.darkText : AppColors.lightText,
+                  ),
+                  decoration: InputDecoration(
+                    prefixIcon: Icon(
+                      Icons.lock_outline,
+                      color: isDark ? AppColors.darkSecondary : AppColors.lightSecondary,
+                    ),
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        _obscureConfirmText ? Icons.visibility_off : Icons.visibility,
+                        color: isDark ? AppColors.darkSecondary : AppColors.lightSecondary,
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          _obscureConfirmText = !_obscureConfirmText;
+                        });
+                      },
+                    ),
+                    hintText: 'Confirm New Password',
+                    hintStyle: GoogleFonts.ibmPlexSansArabic(
+                      color: isDark ? AppColors.darkSubText : AppColors.lightSubText,
+                    ),
+                    border: InputBorder.none,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+                  ),
+                ),
+              ),
               if (authProvider.errorMessage != null) ...[
                 const SizedBox(height: 10),
                 Text(
@@ -117,24 +209,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                 child: AppButton(
                   text: 'Reset Password',
                   isDark: isDark,
-                  onPressed: authProvider.isLoading
-                      ? () {}
-                      : () async {
-                          final success = await authProvider.resetPassword(
-                            otpCode: widget.otpCode,
-                            newPassword: authProvider.newPasswordController.text,
-                          );
-                          if (success && context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Password reset successfully')),
-                            );
-                            Navigator.pushAndRemoveUntil(
-                              context,
-                              MaterialPageRoute(builder: (context) => const Login()),
-                              (route) => false,
-                            );
-                          }
-                        },
+                  onPressed: () => _submit(authProvider, context),
                   isLoading: authProvider.isLoading,
                 ),
               ),
