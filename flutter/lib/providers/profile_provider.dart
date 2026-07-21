@@ -7,9 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ProfileProvider extends ChangeNotifier {
-  ProfileProvider() {
-    Future.microtask(_initialize);
-  }
+  ProfileProvider();
 
   final String? _storageKey = null; // Unused, we now use API
 
@@ -41,6 +39,9 @@ class ProfileProvider extends ChangeNotifier {
   String? _errorMessage;
   String? get errorMessage => _errorMessage;
 
+  String? _errorCode;
+  String? get errorCode => _errorCode;
+
   bool get hasProfile => _profile != null;
 
   String get displayName {
@@ -56,13 +57,17 @@ class ProfileProvider extends ChangeNotifier {
     return _profile?.photoUrl;
   }
 
-  Future<void> _initialize() async {
-    await loadProfileSummary();
-  }
-
+  /// Load profile summary once after auth is ready.
+  /// Only call this once, after AuthProvider confirms user is authenticated.
   Future<void> loadProfileSummary() async {
+    // Prevent concurrent duplicate requests
+    if (_isLoading) {
+      return;
+    }
+
     _isLoading = true;
     _errorMessage = null;
+    _errorCode = null;
     notifyListeners();
 
     try {
@@ -70,9 +75,9 @@ class ProfileProvider extends ChangeNotifier {
       if (response.statusCode >= 200 && response.statusCode < 300) {
         final body = jsonDecode(response.body);
         final data = body['data'];
-        final user = data['user'];
-        final financial = data['financialProfile'];
-        final stats = data['statistics'];
+        final user = data['user'] ?? {};
+        final financial = data['financialProfile'] ?? {};
+        final stats = data['statistics'] ?? {};
 
         _profile = ProfileModel(
           id: user['id']?.toString(),
@@ -90,10 +95,29 @@ class ProfileProvider extends ChangeNotifier {
         if (data['profileCompletion'] != null) {
           _profileCompletion = ProfileCompletionModel.fromJson(data['profileCompletion']);
         }
+
+        _errorMessage = null;
+        _errorCode = null;
+      } else if (response.statusCode == 403) {
+        // Account not verified
+        try {
+          final body = jsonDecode(response.body);
+          _errorCode = body['code'];
+          _errorMessage = body['message'] ?? 'Account not verified. Please verify your email.';
+        } catch (_) {
+          _errorCode = 'ACCOUNT_NOT_VERIFIED';
+          _errorMessage = 'Account not verified. Please verify your email.';
+        }
+      } else if (response.statusCode == 401) {
+        // Unauthorized - token invalid or expired
+        _errorCode = 'UNAUTHORIZED';
+        _errorMessage = 'Your session has expired. Please log in again.';
       } else {
-        _errorMessage = 'Failed to load profile summary';
+        _errorCode = 'LOAD_FAILED';
+        _errorMessage = 'Failed to load profile summary (${response.statusCode})';
       }
     } catch (e) {
+      _errorCode = 'NETWORK_ERROR';
       _errorMessage = 'Error loading profile: $e';
     } finally {
       _isLoading = false;

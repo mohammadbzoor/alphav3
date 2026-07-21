@@ -151,7 +151,7 @@ class UserRepository {
     );
 
     const [profileRows] = await db.execute(
-      `SELECT gender, marital_status, is_student, family_size FROM user_profiles WHERE user_id = ? LIMIT 1`,
+      `SELECT employment_status, monthly_income, has_dependents, financial_knowledge, primary_financial_goal FROM user_profiles WHERE user_id = ? LIMIT 1`,
       [userId]
     );
 
@@ -175,13 +175,61 @@ class UserRepository {
 
   static async getProfileSummary(userId) {
     const [userRows] = await db.execute(
-      `SELECT id, full_name, email, created_at FROM users WHERE id = ? LIMIT 1`,
+      `SELECT id, full_name, email, created_at, is_verified FROM users WHERE id = ? LIMIT 1`,
       [userId]
     );
     if (userRows.length === 0) return null;
 
+    const user = userRows[0];
+
+    // Canonical tier source (Priority A -> D)
+    let tierData = { tier: null, tierCode: null, source: null };
+
+    // A. Check for open cycle and immutable snapshot tier
+    const [cycleRows] = await db.execute(
+      `SELECT id FROM financial_cycles WHERE user_id = ? AND status = 'open' LIMIT 1`,
+      [userId]
+    );
+
+    if (cycleRows.length > 0) {
+      const cycleId = cycleRows[0].id;
+      const [snapshotRows] = await db.execute(
+        `SELECT tier_code FROM cycle_allocation_snapshots WHERE cycle_id = ? LIMIT 1`,
+        [cycleId]
+      );
+      if (snapshotRows.length > 0) {
+        tierData.tier = snapshotRows[0].tier_code;
+        tierData.source = 'cycle_snapshot';
+      }
+    }
+
+    // B. If no cycle tier, check allocation_preferences
+    if (!tierData.tier) {
+      const [allocRows] = await db.execute(
+        `SELECT needs_bps, wants_bps, savings_bps FROM allocation_preferences WHERE user_id = ? LIMIT 1`,
+        [userId]
+      );
+      if (allocRows.length > 0) {
+        tierData.tierCode = allocRows[0];
+        tierData.source = 'allocation_preference';
+      }
+    }
+
+    // C. If still no tier, try to calculate from expected_monthly_income
+    if (!tierData.tier) {
+      const [finRows] = await db.execute(
+        `SELECT expected_monthly_income FROM financial_profiles WHERE user_id = ? LIMIT 1`,
+        [userId]
+      );
+      if (finRows.length > 0 && finRows[0].expected_monthly_income) {
+        tierData.income = finRows[0].expected_monthly_income;
+        tierData.source = 'calculated_from_income';
+        // Tier will be calculated in service layer
+      }
+    }
+
     const [finRows] = await db.execute(
-      `SELECT tier FROM financial_profiles WHERE user_id = ? LIMIT 1`,
+      `SELECT expected_monthly_income FROM financial_profiles WHERE user_id = ? LIMIT 1`,
       [userId]
     );
 
@@ -190,18 +238,25 @@ class UserRepository {
       [userId]
     );
 
-    const [expenseRows] = await db.execute(
-      `SELECT count(*) as count FROM transactions t 
-       JOIN financial_cycles c ON t.cycle_id = c.id 
-       WHERE t.user_id = ? AND t.transaction_type = 'expense' AND t.status = 'confirmed' AND c.status = 'open'`,
-      [userId]
-    );
+    let confirmedCycleExpenses = 0;
+    let hasActiveCycle = cycleRows.length > 0;
+    if (hasActiveCycle) {
+      const [expenseRows] = await db.execute(
+        `SELECT count(*) as count FROM transactions
+         WHERE user_id = ? AND transaction_type = 'expense' AND status = 'confirmed' AND cycle_id = ?`,
+        [userId, cycleRows[0].id]
+      );
+      confirmedCycleExpenses = expenseRows[0].count;
+    }
 
     return {
-      user: userRows[0],
+      user,
       financialProfile: finRows.length > 0 ? finRows[0] : null,
+      tierData,
       activeGoals: goalRows[0].count,
-      confirmedCycleExpenses: expenseRows[0].count
+      confirmedCycleExpenses,
+      hasActiveCycle,
+      warnings: []
     };
   }
 

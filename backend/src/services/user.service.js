@@ -45,10 +45,9 @@ class UserService {
     let nextRequiredSection = null;
     let analysisReliability = 'limited';
     
-    // Check personal information
+    // Check personal information (actual columns in users table)
     let personalComplete = true;
     const personalFields = ['full_name', 'birth_date'];
-    const profileFields = ['gender', 'marital_status', 'is_student', 'family_size'];
     
     for (const f of personalFields) {
       if (data.user[f] === null || data.user[f] === undefined || data.user[f] === '') {
@@ -56,40 +55,22 @@ class UserService {
         personalComplete = false;
       }
     }
-    
-    for (const f of profileFields) {
-      if (f === 'is_student') {
-        if (data.profile[f] !== true && data.profile[f] !== false && data.profile[f] !== 1 && data.profile[f] !== 0) {
-          missingFields.push(f);
-          personalComplete = false;
-        }
-      } else if (f === 'family_size') {
-        if (data.profile[f] === null || data.profile[f] === undefined || data.profile[f] === '' || Number(data.profile[f]) < 1) {
-          missingFields.push(f);
-          personalComplete = false;
-        }
-      } else {
-        if (data.profile[f] === null || data.profile[f] === undefined || data.profile[f] === '') {
-          missingFields.push(f);
-          personalComplete = false;
-        }
-      }
-    }
 
+    // Check employment/financial basic info (actual columns in user_profiles)
     if (!personalComplete) {
       missingSections.push('personal_information');
       if (!nextRequiredSection) nextRequiredSection = 'personal_information';
     }
 
-    // Check financial information
+    // Check financial information (actual columns)
     let financialComplete = true;
-    const income = parseFloat(data.financialProfile.expected_monthly_income);
-    if (isNaN(income) || income <= 0) { // onboarding rules typically require > 0 for active cycles
+    const income = parseFloat(data.financialProfile?.expected_monthly_income);
+    if (isNaN(income) || income <= 0) {
       missingFields.push('expected_monthly_income');
       financialComplete = false;
     }
 
-    const pDay = parseInt(data.financialProfile.payment_day, 10);
+    const pDay = parseInt(data.financialProfile?.payment_day, 10);
     if (isNaN(pDay) || pDay < 1 || pDay > 31) {
       missingFields.push('payment_day');
       financialComplete = false;
@@ -124,9 +105,8 @@ class UserService {
       if (!nextRequiredSection) nextRequiredSection = 'allocation_preference';
     }
 
-    if (!personalComplete) {
-      analysisReliability = 'limited';
-    } else if (!financialComplete) {
+    // Calculate reliability
+    if (!personalComplete || !financialComplete) {
       analysisReliability = 'limited';
     } else if (!allocationComplete) {
       analysisReliability = 'estimated';
@@ -134,8 +114,8 @@ class UserService {
       analysisReliability = 'reliable';
     }
 
-    // Total critical fields exactly: 2 (personal) + 4 (profile) + 2 (financial) + 1 (allocation) = 9
-    const totalCriticalFields = 9;
+    // Total critical fields: 2 (personal) + 2 (financial) + 1 (allocation) = 5
+    const totalCriticalFields = 5;
     const completedCriticalFields = totalCriticalFields - missingFields.length;
     const percentage = Math.round((completedCriticalFields / totalCriticalFields) * 100);
 
@@ -157,36 +137,92 @@ class UserService {
       throw error;
     }
 
+    // Check account verification status
+    if (!data.user.is_verified) {
+      const error = new Error('Account not verified');
+      error.statusCode = 403;
+      error.code = 'ACCOUNT_NOT_VERIFIED';
+      throw error;
+    }
+
     const profileCompletion = await this.calculateProfileCompletion(userId);
 
-    // Transform level based on tier
+    // Resolve tier based on priority logic
+    let tier = null;
+    let level = null;
+
+    if (data.tierData.tier) {
+      // Use cycle snapshot or calculated tier
+      tier = data.tierData.tier;
+    } else if (data.tierData.tierCode) {
+      // Use tier code from allocation preferences (needs to map back to tier name)
+      // For now, we'll calculate from the bps values
+      tier = this._calculateTierFromBps(data.tierData.tierCode);
+    } else if (data.tierData.income) {
+      // Calculate from income
+      const calculatedTier = AllocationService.calculateTierAndBps(data.tierData.income);
+      tier = calculatedTier.tier;
+    }
+
+    // Map tier to level for frontend
     const levelMap = {
-      'lower_middle': 'Intermediate',
-      'low': 'Beginner',
-      'upper_middle': 'Advanced',
-      'high': 'Expert'
+      'Very Low': 'Beginner',
+      'Low': 'Beginner',
+      'Lower Middle': 'Intermediate',
+      'Middle': 'Intermediate',
+      'Upper Middle': 'Advanced',
+      'High': 'Advanced',
+      'Very High': 'Expert'
     };
-    
-    const tierStr = data.financialProfile?.tier || 'low';
+
+    if (tier) {
+      level = levelMap[tier] || 'Intermediate';
+    }
+
+    // Build warnings array
+    const warnings = [];
+    if (!data.hasActiveCycle) {
+      warnings.push('NO_ACTIVE_FINANCIAL_CYCLE');
+    }
+    if (!data.financialProfile) {
+      warnings.push('NO_FINANCIAL_PROFILE');
+    }
 
     return {
       user: {
         id: data.user.id,
         fullName: data.user.full_name,
         email: data.user.email,
-        avatarUrl: null, // explicitly null per requirements
+        avatarUrl: null,
         memberSince: data.user.created_at
       },
       financialProfile: {
-        level: levelMap[tierStr] || 'Intermediate',
-        tier: tierStr
+        level,
+        tier
       },
       statistics: {
         activeGoals: data.activeGoals || 0,
         confirmedCycleExpenses: data.confirmedCycleExpenses || 0
       },
-      profileCompletion
+      profileCompletion,
+      warnings
     };
+  }
+
+  static _calculateTierFromBps(bpsData) {
+    // Map basis point allocations back to tier names
+    const { needs_bps, wants_bps } = bpsData;
+    
+    if (!needs_bps || !wants_bps) return null;
+
+    // Based on AllocationService.calculateTierAndBps mapping
+    if (needs_bps >= 8000) return 'Very Low';
+    if (needs_bps >= 7000) return 'Low';
+    if (needs_bps >= 6000) return 'Lower Middle';
+    if (needs_bps >= 5000) return 'Middle';
+    if (needs_bps >= 4000) return 'Upper Middle';
+    if (needs_bps >= 3000) return 'High';
+    return 'Very High';
   }
 
   static async updateProfile(userId, updateData) {
