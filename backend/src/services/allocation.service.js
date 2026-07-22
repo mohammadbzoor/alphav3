@@ -1,25 +1,52 @@
+const { AppError } = require('../utils/app-error');
+
 class AllocationService {
   /**
+   * Normalize and validate income.
+   * @param {any} income
+   * @returns {number}
+   */
+  static normalizeIncome(income) {
+    if (income === null || income === undefined || income === '') {
+      throw new AppError('Income must be a positive number', 422, 'INVALID_INCOME');
+    }
+    const parsed = Number(income);
+    if (isNaN(parsed) || !isFinite(parsed) || parsed <= 0) {
+      throw new AppError('Income must be a positive number', 422, 'INVALID_INCOME');
+    }
+    const rounded = Math.round(parsed);
+    if (!Number.isSafeInteger(rounded) || rounded <= 0) {
+      throw new AppError('Income must be a positive safe integer', 422, 'INVALID_INCOME');
+    }
+    return rounded;
+  }
+
+  /**
    * Determine the tier and allocation basis points based on the expected monthly income.
-   * @param {number} income
+   * @param {number|string} income
    */
   static calculateTierAndBps(income) {
-    if (income < 300) {
+    const parsedIncome = Number(income);
+    if (!Number.isSafeInteger(parsedIncome) || parsedIncome <= 0) {
+      throw new AppError('Income must be a positive safe integer', 422, 'INVALID_INCOME');
+    }
+
+    if (parsedIncome < 300) {
       return { tier: 'Very Low', needs_bps: 8000, wants_bps: 1500, savings_bps: 500 };
     }
-    if (income < 450) {
+    if (parsedIncome < 450) {
       return { tier: 'Low', needs_bps: 7000, wants_bps: 2000, savings_bps: 1000 };
     }
-    if (income < 750) {
+    if (parsedIncome < 750) {
       return { tier: 'Lower Middle', needs_bps: 6000, wants_bps: 2500, savings_bps: 1500 };
     }
-    if (income < 1200) {
+    if (parsedIncome < 1200) {
       return { tier: 'Middle', needs_bps: 5000, wants_bps: 3000, savings_bps: 2000 };
     }
-    if (income < 2000) {
+    if (parsedIncome < 2000) {
       return { tier: 'Upper Middle', needs_bps: 4000, wants_bps: 3500, savings_bps: 2500 };
     }
-    if (income < 3000) {
+    if (parsedIncome < 3000) {
       return { tier: 'High', needs_bps: 3000, wants_bps: 4000, savings_bps: 3000 };
     }
 
@@ -28,16 +55,29 @@ class AllocationService {
 
   /**
    * Calculate exact allocation amounts for needs, wants, and savings using the Largest Remainder Method.
-   * @param {number} income
-   * @param {number} needsBps
-   * @param {number} wantsBps
-   * @param {number} savingsBps
    */
   static calculateAmounts(income, needsBps, wantsBps, savingsBps) {
+    const nIncome = Number(income);
+    const nNeeds = Number(needsBps);
+    const nWants = Number(wantsBps);
+    const nSavings = Number(savingsBps);
+
+    if (!Number.isSafeInteger(nIncome) || nIncome <= 0) {
+      throw new AppError('Income must be a positive safe integer', 422, 'INVALID_INCOME');
+    }
+    if (!Number.isSafeInteger(nNeeds) || nNeeds < 0 ||
+        !Number.isSafeInteger(nWants) || nWants < 0 ||
+        !Number.isSafeInteger(nSavings) || nSavings < 0) {
+      throw new AppError('BPS values must be non-negative safe integers', 422, 'INVALID_BPS');
+    }
+    if (nNeeds + nWants + nSavings !== 10000) {
+      throw new AppError(`BPS values must sum to 10000 (got ${nNeeds + nWants + nSavings})`, 422, 'INVALID_BPS_SUM');
+    }
+
     // Exact amounts
-    const needsExact = income * (needsBps / 10000);
-    const wantsExact = income * (wantsBps / 10000);
-    const savingsExact = income * (savingsBps / 10000);
+    const needsExact = nIncome * (nNeeds / 10000);
+    const wantsExact = nIncome * (nWants / 10000);
+    const savingsExact = nIncome * (nSavings / 10000);
 
     // Initial floor amounts
     let needsAmount = Math.floor(needsExact);
@@ -46,22 +86,28 @@ class AllocationService {
 
     // Calculate remainders
     const remainders = [
-      { type: 'needs', remainder: needsExact - needsAmount },
-      { type: 'wants', remainder: wantsExact - wantsAmount },
-      { type: 'savings', remainder: savingsExact - savingsAmount },
+      { type: 'needs', remainder: needsExact - needsAmount, originalOrder: 1 },
+      { type: 'wants', remainder: wantsExact - wantsAmount, originalOrder: 2 },
+      { type: 'savings', remainder: savingsExact - savingsAmount, originalOrder: 3 },
     ];
 
-    // Sort remainders descending
-    remainders.sort((a, b) => b.remainder - a.remainder);
+    // Sort remainders descending, with Tie-Breaker based on originalOrder
+    remainders.sort((a, b) => {
+      if (b.remainder !== a.remainder) {
+        return b.remainder - a.remainder;
+      }
+      return a.originalOrder - b.originalOrder;
+    });
 
     // How much is left to distribute
-    let difference = income - (needsAmount + wantsAmount + savingsAmount);
+    let difference = nIncome - (needsAmount + wantsAmount + savingsAmount);
 
-    // Distribute remainder
+    // Distribute remainder safely with modulo
     for (let i = 0; i < difference; i++) {
-      if (remainders[i].type === 'needs') needsAmount += 1;
-      if (remainders[i].type === 'wants') wantsAmount += 1;
-      if (remainders[i].type === 'savings') savingsAmount += 1;
+      const target = remainders[i % remainders.length];
+      if (target.type === 'needs') needsAmount += 1;
+      if (target.type === 'wants') wantsAmount += 1;
+      if (target.type === 'savings') savingsAmount += 1;
     }
 
     return {

@@ -32,8 +32,14 @@ router.post(
 router.post(
   '/first-goal',
   authenticate,
-  // we can skip validator for now or just use asyncHandler
   asyncHandler(OnboardingController.saveFirstGoal)
+);
+
+// New endpoint to approve allocation preferences after user adjusts BPS values
+router.post(
+  '/allocation/approve',
+  authenticate,
+  asyncHandler(OnboardingController.approveAllocation)
 );
 
 module.exports = router;

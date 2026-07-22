@@ -36,8 +36,8 @@ describe('Financial Goals Phase 2A: Planning & Creation', () => {
 
   describe('Goal Validation Boundaries', () => {
     it('rejects target amount <= 0', () => {
-      expect(() => FinanceService.validateGoalData({ targetAmount: 0 }))
-        .toThrow('Target amount must be greater than zero');
+      expect(() => FinanceService.validateGoalData({ targetAmount: 0, goalType: 'laptop' }))
+        .toThrow('Invalid targetAmount: must be greater than zero');
     });
 
     it('rejects target amount < current balance', () => {
@@ -57,7 +57,7 @@ describe('Financial Goals Phase 2A: Planning & Creation', () => {
 
     it('rejects priority out of bounds', () => {
       expect(() => FinanceService.validateGoalData({ targetAmount: 500, goalType: 'laptop', priority: 11 }))
-        .toThrow('Priority must be between 1 and 10');
+        .toThrow('Priority must be an integer between 1 and 10');
     });
 
     it('rejects past target dates for deadline_based', () => {

@@ -18,11 +18,13 @@ class UserRepository {
     return result.insertId;
   }
 
-  static async markOnboarded(userId) {
-    await db.execute(
+  static async markOnboarded(connOrNull, userId) {
+    const exec = connOrNull || db;
+    const [result] = await exec.execute(
       `UPDATE users SET is_onboarded = 1 WHERE id = ?`,
       [userId]
     );
+    return result.affectedRows;
   }
 
   static async findById(id) {

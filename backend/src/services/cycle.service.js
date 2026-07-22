@@ -1,29 +1,3 @@
-/**
- * CycleService – Phase 3A.1
- *
- * Implements:
- *   - createCycle()      POST /financial-cycles
- *   - getCurrentCycle()  GET  /financial-cycles/current
- *   - getCycleById()     GET  /financial-cycles/:id
- *
- * Cycle-date rule
- * ---------------
- * Given payment_day D and "today" (UTC date of the request):
- *
- *   cycleStart = the most recent occurrence of day-D that is ≤ today.
- *                If today IS day-D → start = today.
- *                If today is after day-D in the current month → start = day-D this month.
- *                If today is before day-D in the current month → start = day-D in the previous month.
- *                Months shorter than D clamp to the last day of that month.
- *
- *   cycleEnd   = the day immediately before the NEXT occurrence of day-D after cycleStart.
- *                i.e. nextPaymentDate - 1 day (both stored at 00:00:00 UTC).
- *
- * Invariants enforced before INSERT:
- *   needsBps + wantsBps + savingsBps === 10 000
- *   needsTarget + wantsTarget + savingsTarget === allocationBaseIncome
- */
-
 'use strict';
 
 const { db }              = require('../config/database');
@@ -32,48 +6,21 @@ const { AllocationService } = require('./allocation.service');
 const { CycleRepository }   = require('../repositories/cycle.repository');
 const { FinanceRepository } = require('../repositories/finance.repository');
 
-// Versions stamped into every snapshot row
 const POLICY_VERSION      = '1.0';
 const CALCULATION_VERSION = '1.0';
 
-// ─────────────────────────────────────────────────────────────────────────── //
-// Pure date helpers (no I/O, fully testable)                                  //
-// ─────────────────────────────────────────────────────────────────────────── //
-
-/**
- * Return the last valid calendar day for a given year/month (1-based).
- * e.g. lastDayOfMonth(2024, 2) → 29
- */
 function lastDayOfMonth(year, month) {
-  // Day 0 of month+1 = last day of month
   return new Date(Date.UTC(year, month, 0)).getUTCDate();
 }
 
-/**
- * Clamp a payment_day to the actual last day of the given month when the
- * month is shorter than the configured day (e.g. day=31 in February → 28/29).
- */
 function clampDay(day, year, month) {
   return Math.min(day, lastDayOfMonth(year, month));
 }
 
-/**
- * Given a payment_day (1–31) and a reference UTC Date ("today"), compute:
- *   { startDate, endDate }  – both as UTC Date objects at 00:00:00.
- *
- * Algorithm:
- *   1. Try placing day-D in the current month (clamped).
- *      - If that date ≤ today → cycleStart = that date.
- *      - Else → move one month back and place day-D there (clamped).
- *   2. Next payment date = one month after cycleStart, using the *original*
- *      payment_day (not the clamped one), clamped to that future month.
- *   3. cycleEnd = nextPaymentDate - 1 day.
- */
 function computeCycleDates(paymentDay, today) {
   const y = today.getUTCFullYear();
-  const m = today.getUTCMonth() + 1; // 1-based
+  const m = today.getUTCMonth() + 1;
 
-  // Candidate: day-D in the current month
   const candidateDay = clampDay(paymentDay, y, m);
   const candidate = new Date(Date.UTC(y, m - 1, candidateDay));
 
@@ -81,7 +28,6 @@ function computeCycleDates(paymentDay, today) {
   if (candidate <= today) {
     startDate = candidate;
   } else {
-    // Go back one calendar month
     let prevYear  = y;
     let prevMonth = m - 1;
     if (prevMonth === 0) { prevMonth = 12; prevYear -= 1; }
@@ -89,74 +35,145 @@ function computeCycleDates(paymentDay, today) {
     startDate = new Date(Date.UTC(prevYear, prevMonth - 1, prevDay));
   }
 
-  // Next occurrence: one calendar month after startDate, using original day
-  const nextYear  = startDate.getUTCMonth() === 11
-    ? startDate.getUTCFullYear() + 1
-    : startDate.getUTCFullYear();
-  const nextMonth = (startDate.getUTCMonth() + 1) % 12 + 1; // 1-based
+  const nextYear  = startDate.getUTCMonth() === 11 ? startDate.getUTCFullYear() + 1 : startDate.getUTCFullYear();
+  const nextMonth = (startDate.getUTCMonth() + 1) % 12 + 1;
   const nextDay   = clampDay(paymentDay, nextYear, nextMonth);
   const nextDate  = new Date(Date.UTC(nextYear, nextMonth - 1, nextDay));
 
-  // endDate = one day before next payment date
   const endDate = new Date(nextDate);
   endDate.setUTCDate(endDate.getUTCDate() - 1);
 
   return { startDate, endDate };
 }
 
-/**
- * Format a JS Date to MySQL DATETIME string 'YYYY-MM-DD HH:MM:SS'.
- */
-function toMySQLDatetime(date) {
-  return date.toISOString().replace('T', ' ').slice(0, 19);
+function toMySQLDate(date) {
+  return date.toISOString().split('T')[0];
 }
 
-// ─────────────────────────────────────────────────────────────────────────── //
-// Allocation helpers                                                           //
-// ─────────────────────────────────────────────────────────────────────────── //
-
-/**
- * Resolve the BPS split to use for a new cycle.
- *
- * Priority:
- *   1. If an approved allocation_preference row exists → user_adjusted (or
- *      transition_plan) source; use its bps directly.
- *   2. Otherwise derive tier defaults from income via AllocationService.
- *
- * Returns: { needsBps, wantsBps, savingsBps, source, tierCode, tierLabel }
- */
-function resolveAllocationBps(income, allocationPref) {
-  if (allocationPref) {
-    const { tier, needs_bps: tn, wants_bps: tw, savings_bps: ts } =
-      AllocationService.calculateTierAndBps(income);
-
-    return {
-      needsBps:  allocationPref.needs_bps,
-      wantsBps:  allocationPref.wants_bps,
-      savingsBps: allocationPref.savings_bps,
-      source:    allocationPref.source,       // 'user_adjusted' | 'transition_plan'
-      tierCode:  tier,
-      tierLabel: tier,
-    };
+function getTodayInTimezone(timezone, now = new Date()) {
+  if (!timezone || typeof timezone !== 'string' || timezone.trim() === '') {
+    throw new AppError('Timezone must be a non-empty string', 422, 'INVALID_TIMEZONE');
+  }
+  let formatter;
+  try {
+    formatter = new Intl.DateTimeFormat('en-US', {
+      timeZone: timezone,
+      year: 'numeric',
+      month: 'numeric',
+      day: 'numeric'
+    });
+  } catch (err) {
+    throw new AppError('Invalid timezone', 422, 'INVALID_TIMEZONE');
   }
 
-  // Derive from tier
-  const { tier, needs_bps, wants_bps, savings_bps } =
-    AllocationService.calculateTierAndBps(income);
+  const parts = formatter.formatToParts(now);
+  const year = parseInt(parts.find(p => p.type === 'year').value, 10);
+  const month = parseInt(parts.find(p => p.type === 'month').value, 10);
+  const day = parseInt(parts.find(p => p.type === 'day').value, 10);
 
-  return {
-    needsBps:  needs_bps,
-    wantsBps:  wants_bps,
-    savingsBps: savings_bps,
-    source:    'system_tier',
-    tierCode:  tier,
-    tierLabel: tier,
-  };
+  return new Date(Date.UTC(year, month - 1, day));
 }
 
-// ─────────────────────────────────────────────────────────────────────────── //
-// Response shaper                                                              //
-// ─────────────────────────────────────────────────────────────────────────── //
+function generateCommitmentDueDates({ nextDueDate, frequency, cycleStart, cycleEnd }) {
+  if (!nextDueDate) return [];
+  
+  const start = new Date(cycleStart);
+  const end = new Date(cycleEnd);
+  let current = new Date(nextDueDate);
+  if (isNaN(current.getTime())) {
+    throw new AppError('Invalid next_due_date', 500, 'COMMITMENT_DUE_DATE_MISSING');
+  }
+
+  const originalDay = current.getUTCDate();
+  let monthOffset = 0; 
+  const originalYear = current.getUTCFullYear();
+  const originalMonth = current.getUTCMonth();
+
+  const results = [];
+  let iterations = 0;
+
+  while (current <= end) {
+    if (iterations++ > 100) throw new AppError('Too many occurrences generated', 500, 'INTERNAL_ERROR');
+    
+    if (current >= start) {
+      results.push(current.toISOString().split('T')[0]);
+    }
+
+    if (frequency === 'weekly') {
+      current.setUTCDate(current.getUTCDate() + 7);
+    } else if (frequency === 'monthly') {
+      monthOffset += 1;
+      const targetMonth = originalMonth + monthOffset;
+      const targetYear = originalYear + Math.floor(targetMonth / 12);
+      const normalizedMonth = ((targetMonth % 12) + 12) % 12;
+      const clampedDay = clampDay(originalDay, targetYear, normalizedMonth + 1);
+      current = new Date(Date.UTC(targetYear, normalizedMonth, clampedDay));
+    } else if (frequency === 'quarterly') {
+      monthOffset += 3;
+      const targetMonth = originalMonth + monthOffset;
+      const targetYear = originalYear + Math.floor(targetMonth / 12);
+      const normalizedMonth = ((targetMonth % 12) + 12) % 12;
+      const clampedDay = clampDay(originalDay, targetYear, normalizedMonth + 1);
+      current = new Date(Date.UTC(targetYear, normalizedMonth, clampedDay));
+    } else if (frequency === 'yearly') {
+      monthOffset += 12;
+      const targetMonth = originalMonth + monthOffset;
+      const targetYear = originalYear + Math.floor(targetMonth / 12);
+      const normalizedMonth = ((targetMonth % 12) + 12) % 12;
+      const clampedDay = clampDay(originalDay, targetYear, normalizedMonth + 1);
+      current = new Date(Date.UTC(targetYear, normalizedMonth, clampedDay));
+    } else {
+      throw new AppError('Unsupported commitment frequency', 422, 'UNSUPPORTED_COMMITMENT_FREQUENCY');
+    }
+  }
+
+  return results;
+}
+
+function resolveAllocationBps(income, allocationPref) {
+  if (allocationPref) {
+    const nNeeds = Number(allocationPref.needs_bps);
+    const nWants = Number(allocationPref.wants_bps);
+    const nSavings = Number(allocationPref.savings_bps);
+    
+    if (!Number.isSafeInteger(nNeeds) || nNeeds < 0 ||
+        !Number.isSafeInteger(nWants) || nWants < 0 ||
+        !Number.isSafeInteger(nSavings) || nSavings < 0) {
+      throw new AppError('Allocation preference BPS must be non-negative integers', 500, 'INVALID_PREF_BPS');
+    }
+    if (nNeeds + nWants + nSavings !== 10000) {
+      throw new AppError('Allocation preference BPS must sum to 10000', 500, 'INVALID_PREF_BPS_SUM');
+    }
+
+    const { tier, tierCode } = AllocationService.calculateTierAndBps(income);
+    
+    const allowedSources = ['user_adjusted', 'transition_plan', 'system_tier'];
+    let source = allocationPref.source;
+    if (!allowedSources.includes(source)) {
+      source = 'user_adjusted';
+    }
+
+    return {
+      needsBps: nNeeds,
+      wantsBps: nWants,
+      savingsBps: nSavings,
+      source: source,
+      tierCode: tierCode || tier,
+      tierLabel: tier
+    };
+  }
+  
+  const { tier, needs_bps, wants_bps, savings_bps } = AllocationService.calculateTierAndBps(income);
+  
+  return {
+    needsBps: needs_bps,
+    wantsBps: wants_bps,
+    savingsBps: savings_bps,
+    source: 'system_tier',
+    tierCode: tier,
+    tierLabel: tier
+  };
+}
 
 function shapeCycleResponse(row) {
   if (!row) return null;
@@ -186,187 +203,147 @@ function shapeCycleResponse(row) {
   };
 }
 
-// ─────────────────────────────────────────────────────────────────────────── //
-// Service methods                                                              //
-// ─────────────────────────────────────────────────────────────────────────── //
-
 class CycleService {
-  /**
-   * POST /financial-cycles
-   *
-   * Creates one open cycle + one immutable snapshot in a single transaction.
-   * Idempotency: if idempotencyKey is supplied and a committed cycle already
-   * carries it for this user, the existing cycle is returned (HTTP 200 with
-   * replayed=true).
-   * Concurrency: the unique index uq_one_open_cycle_per_user (on generated
-   * column open_user_id) plus the FOR UPDATE lock on financial_profiles
-   * ensures at most one open cycle per user even under concurrent requests.
-   */
   static async createCycle(userId, { idempotencyKey } = {}) {
+    let finalIdempotencyKey = null;
+    if (idempotencyKey !== undefined && idempotencyKey !== null) {
+      if (typeof idempotencyKey !== 'string') {
+        throw new AppError('idempotencyKey must be a string', 400, 'INVALID_IDEMPOTENCY_KEY');
+      }
+      finalIdempotencyKey = idempotencyKey.trim();
+      if (finalIdempotencyKey.length < 8 || finalIdempotencyKey.length > 128) {
+        throw new AppError('idempotencyKey length must be between 8 and 128 characters', 400, 'INVALID_IDEMPOTENCY_KEY');
+      }
+    }
+
     const conn = await db.getConnection();
+    let transactionFinished = false;
     try {
       await conn.beginTransaction();
 
-      // ── Step 1: Idempotency pre-check ─────────────────────────────── //
-      if (idempotencyKey) {
+      if (finalIdempotencyKey) {
         const existing = await CycleRepository.findCycleByIdempotencyKey(
-          conn, userId, idempotencyKey
+          conn, userId, finalIdempotencyKey
         );
         if (existing) {
           await conn.rollback();
-          const full = await CycleRepository.findCycleById(userId, existing.id);
+          transactionFinished = true;
+          const full = await CycleRepository.findCycleById(null, userId, existing.id);
           return { cycle: shapeCycleResponse(full), replayed: true };
         }
       }
 
-      // ── Step 2: Lock financial_profile (serialises concurrent requests) //
       const profile = await CycleRepository.lockFinancialProfile(conn, userId);
       if (!profile) {
-        throw new AppError(
-          'Financial profile not found. Complete onboarding before creating a cycle.',
-          422,
-          'PROFILE_NOT_FOUND'
-        );
+        throw new AppError('Financial profile not found.', 422, 'PROFILE_NOT_FOUND');
       }
 
-      const income     = Number(profile.expected_monthly_income || 0);
-      const paymentDay = profile.payment_day;
-
-      if (!paymentDay || paymentDay < 1 || paymentDay > 31) {
-        throw new AppError(
-          'payment_day must be set on your financial profile (1–31) before creating a cycle.',
-          422,
-          'PAYMENT_DAY_NOT_SET'
-        );
+      const income = Number(profile.expected_monthly_income);
+      if (!Number.isSafeInteger(income) || income <= 0) {
+        throw new AppError('expected_monthly_income must be a positive integer', 422, 'INCOME_NOT_SET');
       }
 
-      if (income <= 0) {
-        throw new AppError(
-          'expected_monthly_income must be greater than zero before creating a cycle.',
-          422,
-          'INCOME_NOT_SET'
-        );
+      const paymentDay = Number(profile.payment_day);
+      if (!Number.isSafeInteger(paymentDay) || paymentDay < 1 || paymentDay > 31) {
+        throw new AppError('payment_day must be set between 1 and 31', 422, 'PAYMENT_DAY_NOT_SET');
       }
 
-      // ── Step 3: Reject if an open cycle already exists ────────────── //
+      let tz = profile.timezone;
+      if (!tz || typeof tz !== 'string' || tz.trim() === '') {
+        tz = 'Asia/Amman';
+      }
+
       const openCycle = await CycleRepository.findOpenCycle(conn, userId);
       if (openCycle) {
-        throw new AppError(
-          'An open cycle already exists. Close the current cycle before creating a new one.',
-          409,
-          'CYCLE_ALREADY_OPEN'
-        );
+        throw new AppError('An open cycle already exists.', 409, 'CYCLE_ALREADY_OPEN');
       }
 
-      // ── Step 4: Read allocation preference ────────────────────────── //
-      const allocationPref = await CycleRepository.getAllocationPreference(conn, userId);
+      const allocationPref = await CycleRepository.lockAllocationPreference(conn, userId);
 
-      // ── Step 5 & 6: Resolve BPS + calculate targets (Largest Remainder) //
       const { needsBps, wantsBps, savingsBps, source, tierCode, tierLabel } =
         resolveAllocationBps(income, allocationPref);
 
-      // Invariant guard (belt-and-suspenders; DB CHECK also enforces this)
       if (needsBps + wantsBps + savingsBps !== 10000) {
-        throw new AppError(
-          `BPS values do not sum to 10000 (got ${needsBps + wantsBps + savingsBps}).`,
-          500,
-          'BPS_INVARIANT_VIOLATED'
-        );
+        throw new AppError(`BPS values do not sum to 10000 (got ${needsBps + wantsBps + savingsBps}).`, 500, 'BPS_INVARIANT_VIOLATED');
       }
 
       const { needsAmount, wantsAmount, savingsAmount } =
         AllocationService.calculateAmounts(income, needsBps, wantsBps, savingsBps);
 
-      // Invariant guard for targets
       if (needsAmount + wantsAmount + savingsAmount !== income) {
-        throw new AppError(
-          `Target amounts do not sum to income (${needsAmount}+${wantsAmount}+${savingsAmount} ≠ ${income}).`,
-          500,
-          'TARGET_INVARIANT_VIOLATED'
-        );
+        throw new AppError(`Target amounts do not sum to income.`, 500, 'TARGET_INVARIANT_VIOLATED');
       }
 
-      // ── Step 7: Compute cycle dates ───────────────────────────────── //
-      const today = new Date();
-      // Strip time to midnight UTC for deterministic boundary
-      const todayMidnight = new Date(Date.UTC(
-        today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()
-      ));
+      const todayMidnight = getTodayInTimezone(tz, new Date());
       const { startDate, endDate } = computeCycleDates(paymentDay, todayMidnight);
 
-      // ── Step 8: Insert financial_cycle ────────────────────────────── //
       const cycleId = await CycleRepository.createCycle(conn, {
         userId,
-        startDate:      toMySQLDatetime(startDate),
-        endDate:        toMySQLDatetime(endDate),
+        startDate: toMySQLDate(startDate),
+        endDate: toMySQLDate(endDate),
         expectedIncome: income,
-        policyVersion:  POLICY_VERSION,
-        idempotencyKey: idempotencyKey || null,
+        policyVersion: POLICY_VERSION,
+        idempotencyKey: finalIdempotencyKey,
       });
 
-      // ── Step 9: Insert immutable snapshot ─────────────────────────── //
       await CycleRepository.createSnapshot(conn, {
         cycleId,
         allocationBaseIncome: income,
         tierCode,
         tierLabel,
-        allocationSource:    source,
+        allocationSource: source,
         needsBps,
         wantsBps,
         savingsBps,
-        needsTarget:   needsAmount,
-        wantsTarget:   wantsAmount,
+        needsTarget: needsAmount,
+        wantsTarget: wantsAmount,
         savingsTarget: savingsAmount,
-        policyVersion:      POLICY_VERSION,
+        policyVersion: POLICY_VERSION,
         calculationVersion: CALCULATION_VERSION,
       });
 
-      // ── Step 9.5: Generate commitment occurrences for this cycle ────── //
       const activeCommitments = await FinanceRepository.getActiveCommitmentsForUser(conn, userId);
       for (const commitment of activeCommitments) {
-        // Calculate due date based on cycle start date and commitment frequency
-        // For monthly commitments, use the cycle start date's day of month
-        const cycleStart = new Date(startDate);
-        const dueDate = new Date(cycleStart);
-        dueDate.setUTCDate(commitment.next_due_date ? new Date(commitment.next_due_date).getUTCDate() : 1);
-        // Format as YYYY-MM-DD
-        const dueDateStr = dueDate.toISOString().split('T')[0];
-
-        await FinanceRepository.createOccurrence(conn, {
-          commitmentId: commitment.id,
-          cycleId,
-          dueDate: dueDateStr,
-          amount: commitment.amount,
-          status: 'upcoming'
+        if (!commitment.next_due_date) {
+           throw new AppError('Commitment is missing next_due_date', 500, 'COMMITMENT_DUE_DATE_MISSING');
+        }
+        const dates = generateCommitmentDueDates({
+          nextDueDate: commitment.next_due_date,
+          frequency: commitment.frequency,
+          cycleStart: startDate,
+          cycleEnd: endDate
         });
+        
+        for (const dueDateStr of dates) {
+          await FinanceRepository.createOccurrence(conn, {
+            commitmentId: commitment.id,
+            cycleId,
+            dueDate: dueDateStr,
+            amount: commitment.amount,
+            status: 'upcoming'
+          });
+        }
       }
 
-      // ── Step 10: Commit ───────────────────────────────────────────── //
       await conn.commit();
-
-      const full = await CycleRepository.findCycleById(userId, cycleId);
+      transactionFinished = true;
+      
+      const full = await CycleRepository.findCycleById(null, userId, cycleId);
       return { cycle: shapeCycleResponse(full), replayed: false };
 
     } catch (err) {
-      await conn.rollback();
+      if (!transactionFinished) {
+        await conn.rollback();
+      }
 
-      // MySQL duplicate-key on uq_one_open_cycle_per_user (concurrent race)
       if (err.code === 'ER_DUP_ENTRY') {
         if (err.message.includes('uq_one_open_cycle_per_user')) {
-          throw new AppError(
-            'An open cycle already exists (concurrent creation detected).',
-            409,
-            'CYCLE_ALREADY_OPEN'
-          );
+          throw new AppError('An open cycle already exists (concurrent creation detected).', 409, 'CYCLE_ALREADY_OPEN');
         }
         if (err.message.includes('uq_cycles_user_idempotency')) {
-          // Another request committed the same idempotency key concurrently.
-          // Re-fetch and return the committed cycle as a replay.
-          const existing = await CycleRepository.findCycleByIdempotencyKey(
-            db, userId, idempotencyKey
-          );
+          const existing = await CycleRepository.findCycleByIdempotencyKey(db, userId, finalIdempotencyKey);
           if (existing) {
-            const full = await CycleRepository.findCycleById(userId, existing.id);
+            const full = await CycleRepository.findCycleById(null, userId, existing.id);
             return { cycle: shapeCycleResponse(full), replayed: true };
           }
         }
@@ -378,22 +355,16 @@ class CycleService {
     }
   }
 
-  /**
-   * GET /financial-cycles/current
-   */
   static async getCurrentCycle(userId) {
-    const row = await CycleRepository.findCurrentCycle(userId);
+    const row = await CycleRepository.findCurrentCycle(null, userId);
     if (!row) {
       throw new AppError('No open cycle found.', 404, 'CYCLE_NOT_FOUND');
     }
     return shapeCycleResponse(row);
   }
 
-  /**
-   * GET /financial-cycles/:id
-   */
   static async getCycleById(userId, cycleId) {
-    const row = await CycleRepository.findCycleById(userId, cycleId);
+    const row = await CycleRepository.findCycleById(null, userId, cycleId);
     if (!row) {
       throw new AppError('Cycle not found or access denied.', 404, 'CYCLE_NOT_FOUND');
     }
@@ -401,4 +372,4 @@ class CycleService {
   }
 }
 
-module.exports = { CycleService, computeCycleDates, resolveAllocationBps, POLICY_VERSION, CALCULATION_VERSION };
+module.exports = { CycleService, computeCycleDates, getTodayInTimezone, generateCommitmentDueDates, resolveAllocationBps, POLICY_VERSION, CALCULATION_VERSION };

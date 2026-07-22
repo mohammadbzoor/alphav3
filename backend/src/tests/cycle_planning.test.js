@@ -200,7 +200,7 @@ describe('Phase 3A.3 – Cycle Planning and Dashboard Integration (integration)'
         })
         .expect(404);
 
-      expect(res.body.code).toBe('GOAL_NOT_FOUND');
+      expect(res.body.code).toBe('GOAL_NOT_FOUND_OR_INELIGIBLE');
 
       await teardownUser(conn, otherUser);
     });
@@ -243,7 +243,7 @@ describe('Phase 3A.3 – Cycle Planning and Dashboard Integration (integration)'
         .set('Authorization', authHeader(userId))
         .send({
           goalAllocations: [
-            { goalId: goalId3, plannedAmount: 250, prioritySnapshot: 1 }
+            { goalId: goalId3, plannedAmount: 150, prioritySnapshot: 1 }
           ]
         })
         .expect(201);
@@ -274,9 +274,9 @@ describe('Phase 3A.3 – Cycle Planning and Dashboard Integration (integration)'
     it('enforces savings invariant', async () => {
       const savingsAmount = 200;
       const emergencyFundAmount = 50;
-      const totalGoalAllocations = 100;
-      const unallocatedSavingsAmount = 50;
-      // 50 + 100 + 50 = 200 ✓
+      const totalGoalAllocations = 0;
+      const unallocatedSavingsAmount = 150;
+      // 50 + 0 + 150 = 200 ✓
 
       const res = await request(app)
         .post(`/api/v1/financial-cycles/${cycleId}/savings-allocation`)
@@ -299,8 +299,44 @@ describe('Phase 3A.3 – Cycle Planning and Dashboard Integration (integration)'
 
       const savingsAmount = 200;
       const emergencyFundAmount = 50;
-      const totalGoalAllocations = 100;
-      const unallocatedSavingsAmount = 60; // 50 + 100 + 60 = 210 ≠ 200 ✗
+      const totalGoalAllocations = 0;
+      // 50 + 0 + 100 = 150 !== 200 (violates invariant)
+
+      const res = await request(app)
+        .post(`/api/v1/financial-cycles/${cycleId}/savings-allocation`)
+        .set('Authorization', authHeader(userId))
+        .send({
+          savingsAmount,
+          emergencyFundAmount,
+          emergencyFundRate: 10.0,
+          totalGoalAllocations,
+          unallocatedSavingsAmount: 100 // Deliberate mismatch
+        })
+        .expect(422);
+
+      expect(res.body.code).toBe('SAVINGS_INVARIANT_VIOLATION');
+
+      // Verify no allocation was created
+      const [rows] = await conn.execute(
+        `SELECT * FROM cycle_savings_allocations WHERE cycle_id = ?`,
+        [cycleId]
+      );
+      expect(rows.length).toBe(0);
+    });
+
+    it('rejects allocation when totalGoalAllocations mismatches actual planned allocations', async () => {
+      // 1. Create a goal and a goal_cycle_allocation for this cycle
+      const tempGoalId = await createGoal(conn, userId, { amount: 500, name: 'Temp Goal' });
+      await conn.execute(
+        `INSERT INTO goal_cycle_allocations (cycle_id, goal_id, planned_amount, priority_snapshot)
+         VALUES (?, ?, 100, 1)`,
+        [cycleId, tempGoalId]
+      );
+
+      const savingsAmount = 300;
+      const emergencyFundAmount = 50;
+      const totalGoalAllocations = 0; // Deliberate mismatch with 100
+      const unallocatedSavingsAmount = 150;
 
       const res = await request(app)
         .post(`/api/v1/financial-cycles/${cycleId}/savings-allocation`)
@@ -314,14 +350,46 @@ describe('Phase 3A.3 – Cycle Planning and Dashboard Integration (integration)'
         })
         .expect(422);
 
-      expect(res.body.code).toBe('SAVINGS_INVARIANT_VIOLATION');
+      expect(res.body.code).toBe('GOAL_ALLOCATION_TOTAL_MISMATCH');
+    });
 
-      // Verify no allocation was created
+    it('creates savings allocation successfully when all amounts match invariants', async () => {
+      // Use existing cycleId (already has 100 planned_amount from previous test)
+      // Add another 100, bringing actual total to 200
+      const goalId = await createGoal(conn, userId, { amount: 1000, name: 'Valid Goal' });
+      await conn.execute(
+        `INSERT INTO goal_cycle_allocations (cycle_id, goal_id, planned_amount, priority_snapshot)
+         VALUES (?, ?, 100, 1)`,
+        [cycleId, goalId]
+      );
+
+      const savingsAmount = 400; // 50 (emergency) + 200 (goals) + 150 (unallocated)
+      const emergencyFundAmount = 50;
+      const totalGoalAllocations = 200; // Matches the actual allocation (100 + 100)
+      const unallocatedSavingsAmount = 150;
+
+      const res = await request(app)
+        .post(`/api/v1/financial-cycles/${cycleId}/savings-allocation`)
+        .set('Authorization', authHeader(userId))
+        .send({
+          savingsAmount,
+          emergencyFundAmount,
+          emergencyFundRate: 12.5, // 50 / 400
+          totalGoalAllocations,
+          unallocatedSavingsAmount
+        })
+        .expect(201);
+
+      expect(res.body.success).toBe(true);
+      
       const [rows] = await conn.execute(
         `SELECT * FROM cycle_savings_allocations WHERE cycle_id = ?`,
         [cycleId]
       );
-      expect(rows.length).toBe(0);
+      expect(rows.length).toBe(1);
+      expect(Number(rows[0].emergency_fund_amount)).toBe(50);
+      expect(Number(rows[0].total_goal_allocations)).toBe(200);
+      expect(Number(rows[0].unallocated_savings_amount)).toBe(150);
     });
   });
 

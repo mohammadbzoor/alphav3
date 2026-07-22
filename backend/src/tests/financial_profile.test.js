@@ -73,7 +73,7 @@ describe('Financial Profile API', () => {
         .post('/api/v1/commitments')
         .set('Authorization', authHeader)
         .send({
-          type: 'house_rent',
+          name: 'House Rent',
           amount: 200,
           frequency: 'monthly',
           dueDay: 1
@@ -92,7 +92,7 @@ describe('Financial Profile API', () => {
           frequency: 'monthly',
           dueDay: 1
         })
-        .expect(400);
+        .expect(422);
     });
   });
 

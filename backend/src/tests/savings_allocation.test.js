@@ -164,6 +164,7 @@ describe('Phase 2C: Savings Allocation API', () => {
         .send({
           savingsAmount: 1000,
           emergencyFundRate: 10,
+          idempotencyKey: 'test-exceed-123',
           goals: [
             { goalId: goalId1, allocationAmount: 800 },
             { goalId: goalId2, allocationAmount: 200 } // Total 1000 > 900 available

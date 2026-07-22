@@ -25,11 +25,21 @@ describe('Phase 2B: Ready Goal Actions API', () => {
     );
     userId = userRes.insertId;
 
+    await dbConnection.execute(
+      `INSERT INTO financial_cycles (user_id, start_date, end_date, status, expected_income, policy_version) VALUES (?, CURDATE(), DATE_ADD(CURDATE(), INTERVAL 30 DAY), 'open', 1000, '1.0')`,
+      [userId]
+    );
+
     // Create other user
     const [otherUserRes] = await dbConnection.execute(
       `INSERT INTO users (full_name, email, password_hash) VALUES ('Other User', CONCAT(UUID(), '@example.com'), 'hash')`
     );
     otherUserId = otherUserRes.insertId;
+
+    await dbConnection.execute(
+      `INSERT INTO financial_cycles (user_id, start_date, end_date, status, expected_income, policy_version) VALUES (?, CURDATE(), DATE_ADD(CURDATE(), INTERVAL 30 DAY), 'open', 1000, '1.0')`,
+      [otherUserId]
+    );
 
     // Login (mocked via JWT generation since auth.test.js uses actual routes, we can just generate a token)
     const jwt = require('jsonwebtoken');
@@ -45,6 +55,7 @@ describe('Phase 2B: Ready Goal Actions API', () => {
       await dbConnection.execute('DELETE FROM transactions WHERE user_id IN (?, ?)', [userId, otherUserId]);
       await dbConnection.execute('DELETE FROM goal_transactions WHERE user_id IN (?, ?)', [userId, otherUserId]);
       await dbConnection.execute('DELETE FROM goals WHERE user_id IN (?, ?)', [userId, otherUserId]);
+      await dbConnection.execute('DELETE FROM financial_cycles WHERE user_id IN (?, ?)', [userId, otherUserId]);
       await dbConnection.execute('DELETE FROM users WHERE id IN (?, ?)', [userId, otherUserId]);
     }
     dbConnection.release();
@@ -178,9 +189,9 @@ describe('Phase 2B: Ready Goal Actions API', () => {
       const [goalTx] = await dbConnection.execute('SELECT * FROM goal_transactions WHERE goal_id = ? AND transaction_type = "execution"', [goalId]);
       expect(goalTx.length).toBe(0);
 
-      // Verify status is still ready
+      // Verify status changed to active
       const [goals] = await dbConnection.execute('SELECT status FROM goals WHERE id = ?', [goalId]);
-      expect(goals[0].status).toBe('ready');
+      expect(goals[0].status).toBe('active');
     });
   });
 
@@ -225,7 +236,7 @@ describe('Phase 2B: Ready Goal Actions API', () => {
       const res = await request(app)
         .post(`/api/v1/goals/${srcId}/reallocate`)
         .set('Authorization', authHeader)
-        .send({ destinationGoalId: srcId, amount: 100 });
+        .send({ destinationGoalId: srcId, amount: 100, idempotencyKey: 'reallocate_3.2' });
 
       expect(res.status).toBe(400);
       expect(res.body.message).toMatch(/differ/i);
@@ -238,7 +249,7 @@ describe('Phase 2B: Ready Goal Actions API', () => {
       const res = await request(app)
         .post(`/api/v1/goals/${srcId}/reallocate`)
         .set('Authorization', authHeader)
-        .send({ destinationGoalId: destId, amount: 1500 }); // More than source has
+        .send({ destinationGoalId: destId, amount: 1500, idempotencyKey: 'reallocate_3.3' }); // More than source has
 
       expect(res.status).toBe(400);
       expect(res.body.message).toMatch(/exceeds/i);
@@ -251,7 +262,7 @@ describe('Phase 2B: Ready Goal Actions API', () => {
       const res = await request(app)
         .post(`/api/v1/goals/${srcId}/reallocate`)
         .set('Authorization', authHeader)
-        .send({ destinationGoalId: destId, amount: 200 }); // Too much
+        .send({ destinationGoalId: destId, amount: 200, idempotencyKey: 'reallocate_3.4' }); // Too much
 
       expect(res.status).toBe(400);
       expect(res.body.message).toMatch(/overfunding/i);

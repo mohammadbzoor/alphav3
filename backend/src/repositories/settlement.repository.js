@@ -1,15 +1,3 @@
-/**
- * SettlementRepository – all DB access for cycle settlements and settlement actions
- *
- * Rules enforced here:
- *   - Every mutating method that must be atomic receives an open `connection`
- *     so the caller owns the transaction boundary.
- *   - Read-only helpers accept an optional connection; they fall back to the
- *     pool when none is supplied.
- *   - Settlement records are never deleted, only created and updated.
- *   - Settlement actions are never deleted (no cascade).
- */
-
 'use strict';
 
 const { db } = require('../config/database');
@@ -19,164 +7,192 @@ class SettlementRepository {
   // Settlement reads                                                     //
   // ------------------------------------------------------------------ //
 
-  /**
-   * Lock the user's open cycle for UPDATE inside a transaction.
-   * Returns the cycle row or null if not found.
-   */
+  static async findOpenCycle(connOrNull, userId) {
+    const exec = connOrNull || db;
+    const [rows] = await exec.execute(
+      `SELECT id, user_id, start_date, end_date, status, expected_income, closed_at
+         FROM financial_cycles
+        WHERE user_id = ? AND status = 'open'
+        ORDER BY start_date DESC, id DESC
+        LIMIT 1`,
+      [userId]
+    );
+    return rows[0] || null;
+  }
+
   static async lockOpenCycle(conn, userId) {
     const [rows] = await conn.execute(
       `SELECT id, user_id, start_date, end_date, status, expected_income, closed_at
          FROM financial_cycles
         WHERE user_id = ? AND status = 'open'
-          FOR UPDATE`,
+        ORDER BY start_date DESC, id DESC
+        LIMIT 1
+        FOR UPDATE`,
       [userId]
     );
     return rows[0] || null;
   }
 
-  /**
-   * Lock the user's current cycle (open or settlement_pending) for UPDATE.
-   * Used during close operation.
-   */
-  static async lockCurrentCycle(conn, userId) {
+  static async lockSettlementPendingCycle(conn, userId) {
     const [rows] = await conn.execute(
       `SELECT id, user_id, start_date, end_date, status, expected_income, closed_at
          FROM financial_cycles
-        WHERE user_id = ? AND status IN ('open', 'settlement_pending')
-          FOR UPDATE`,
+        WHERE user_id = ? AND status = 'settlement_pending'
+        ORDER BY start_date DESC, id DESC
+        LIMIT 1
+        FOR UPDATE`,
       [userId]
     );
     return rows[0] || null;
   }
 
-  /**
-   * Lock a cycle by ID for UPDATE inside a transaction.
-   * Used during settlement and closure.
-   */
-  static async lockCycleById(conn, userId, cycleId) {
-    const [rows] = await conn.execute(
-      `SELECT id, user_id, start_date, end_date, status, expected_income, closed_at
-         FROM financial_cycles
-        WHERE id = ? AND user_id = ?
-          FOR UPDATE`,
+  static async findSettlementByCycleId(connOrNull, userId, cycleId) {
+    const exec = connOrNull || db;
+    const [rows] = await exec.execute(
+      `SELECT cs.id, cs.cycle_id, cs.expected_income, cs.actual_recurring_income,
+              cs.unexpected_income, cs.planned_needs, cs.actual_needs,
+              cs.planned_wants, cs.actual_wants, cs.planned_savings, cs.actual_savings,
+              cs.total_actual_outflows, cs.surplus, cs.deficit, cs.status,
+              cs.approved_at, cs.closed_at
+         FROM cycle_settlements cs
+         JOIN financial_cycles fc ON fc.id = cs.cycle_id
+        WHERE cs.cycle_id = ? AND fc.user_id = ?
+        LIMIT 1`,
       [cycleId, userId]
     );
     return rows[0] || null;
   }
 
-  /**
-   * Find settlement by cycle ID.
-   */
-  static async findSettlementByCycleId(cycleId) {
-    const [rows] = await db.execute(
-      `SELECT * FROM cycle_settlements WHERE cycle_id = ?`,
-      [cycleId]
-    );
-    return rows[0] || null;
-  }
-
-  /**
-   * Lock settlement by cycle ID for UPDATE inside a transaction.
-   */
-  static async lockSettlementByCycleId(conn, cycleId) {
+  static async lockSettlementByCycleId(conn, userId, cycleId) {
+    // MySQL 8 supports locking joined tables, but to be safe we lock the specific rows.
+    // A nested select or just locking cycle_settlements is usually enough if we know cycleId is owned.
     const [rows] = await conn.execute(
-      `SELECT * FROM cycle_settlements WHERE cycle_id = ? FOR UPDATE`,
-      [cycleId]
+      `SELECT cs.id, cs.cycle_id, cs.expected_income, cs.actual_recurring_income,
+              cs.unexpected_income, cs.planned_needs, cs.actual_needs,
+              cs.planned_wants, cs.actual_wants, cs.planned_savings, cs.actual_savings,
+              cs.total_actual_outflows, cs.surplus, cs.deficit, cs.status,
+              cs.approved_at, cs.closed_at
+         FROM cycle_settlements cs
+         JOIN financial_cycles fc ON fc.id = cs.cycle_id
+        WHERE cs.cycle_id = ? AND fc.user_id = ?
+        LIMIT 1
+        FOR UPDATE`,
+      [cycleId, userId]
     );
     return rows[0] || null;
   }
 
-  /**
-   * Get cycle snapshot for settlement calculations.
-   */
-  static async getCycleSnapshot(cycleId) {
-    const [rows] = await db.execute(
-      `SELECT needs_target, wants_target, savings_target
-         FROM cycle_allocation_snapshots
-        WHERE cycle_id = ?`,
-      [cycleId]
+  static async getCycleSnapshot(connOrNull, userId, cycleId) {
+    const exec = connOrNull || db;
+    const [rows] = await exec.execute(
+      `SELECT cas.needs_target, cas.wants_target, cas.savings_target, cas.allocation_base_income,
+              cas.policy_version, cas.calculation_version
+         FROM cycle_allocation_snapshots cas
+         JOIN financial_cycles fc ON fc.id = cas.cycle_id
+        WHERE cas.cycle_id = ? AND fc.user_id = ?
+        LIMIT 1`,
+      [cycleId, userId]
     );
     return rows[0] || null;
   }
 
-  /**
-   * Get confirmed income transactions for a cycle.
-   */
-  static async getConfirmedIncomeByCycle(cycleId) {
-    const [rows] = await db.execute(
-      `SELECT income_kind, SUM(amount) as total
-         FROM transactions
-        WHERE cycle_id = ? AND transaction_type = 'income' AND status = 'confirmed'
-        GROUP BY income_kind`,
-      [cycleId]
+  static async getConfirmedIncomeByCycle(connOrNull, userId, cycleId) {
+    const exec = connOrNull || db;
+    const [rows] = await exec.execute(
+      `SELECT t.income_kind, COALESCE(SUM(t.amount), 0) as total
+         FROM transactions t
+         JOIN financial_cycles fc ON fc.id = t.cycle_id
+        WHERE t.cycle_id = ? AND t.user_id = ? AND fc.user_id = ?
+          AND t.transaction_type = 'income' AND t.direction = 'inflow' AND t.status = 'confirmed'
+        GROUP BY t.income_kind`,
+      [cycleId, userId, userId]
     );
     return rows;
   }
 
-  /**
-   * Get confirmed expense transactions by bucket for a cycle.
-   */
-  static async getConfirmedExpensesByCycle(cycleId) {
-    const [rows] = await db.execute(
-      `SELECT budget_bucket, SUM(amount) as total
-         FROM transactions
-        WHERE cycle_id = ? AND transaction_type = 'expense' AND status = 'confirmed'
-        GROUP BY budget_bucket`,
-      [cycleId]
+  static async getConfirmedExpensesByCycle(connOrNull, userId, cycleId) {
+    const exec = connOrNull || db;
+    const [rows] = await exec.execute(
+      `SELECT t.budget_bucket, COALESCE(SUM(t.amount), 0) as total
+         FROM transactions t
+         JOIN financial_cycles fc ON fc.id = t.cycle_id
+        WHERE t.cycle_id = ? AND t.user_id = ? AND fc.user_id = ?
+          AND t.transaction_type = 'expense' AND t.direction = 'outflow' AND t.status = 'confirmed'
+          AND t.budget_bucket IN ('needs', 'wants')
+        GROUP BY t.budget_bucket`,
+      [cycleId, userId, userId]
     );
     return rows;
   }
 
-  /**
-   * Get confirmed savings movements for a cycle.
-   */
-  static async getConfirmedSavingsByCycle(cycleId) {
-    const [rows] = await db.execute(
-      `SELECT SUM(amount) as total
-         FROM transactions
-        WHERE cycle_id = ? AND budget_bucket = 'savings' AND direction = 'outflow' AND status = 'confirmed'`,
-      [cycleId]
+  static async getConfirmedSavingsByCycle(connOrNull, userId, cycleId) {
+    const exec = connOrNull || db;
+    const [rows] = await exec.execute(
+      `SELECT COALESCE(SUM(t.amount), 0) as total
+         FROM transactions t
+         JOIN financial_cycles fc ON fc.id = t.cycle_id
+        WHERE t.cycle_id = ? AND t.user_id = ? AND fc.user_id = ?
+          AND t.transaction_type = 'saving' AND t.budget_bucket = 'savings' 
+          AND t.direction = 'outflow' AND t.status = 'confirmed'`,
+      [cycleId, userId, userId]
     );
     return rows[0]?.total || 0;
   }
 
-  /**
-   * Get total confirmed external outflows for a cycle.
-   * Excludes internal transfers, goal reallocations, and duplicate goal execution deductions.
-   */
-  static async getTotalConfirmedOutflowsByCycle(cycleId) {
-    const [rows] = await db.execute(
-      `SELECT SUM(amount) as total
-         FROM transactions
-        WHERE cycle_id = ? AND direction = 'outflow' AND status = 'confirmed'
-          AND transaction_type IN ('expense', 'capital_expense')`,
-      [cycleId]
+  static async getTotalConfirmedOutflowsByCycle(connOrNull, userId, cycleId) {
+    const exec = connOrNull || db;
+    // Includes saving since it reduces distributable cash
+    const [rows] = await exec.execute(
+      `SELECT COALESCE(SUM(t.amount), 0) as total
+         FROM transactions t
+         JOIN financial_cycles fc ON fc.id = t.cycle_id
+        WHERE t.cycle_id = ? AND t.user_id = ? AND fc.user_id = ?
+          AND t.direction = 'outflow' AND t.status = 'confirmed'
+          AND t.transaction_type IN ('expense', 'capital_expense', 'saving')`,
+      [cycleId, userId, userId]
     );
     return rows[0]?.total || 0;
   }
 
-  /**
-   * Get unpaid commitment occurrences for a cycle.
-   */
-  static async getUnpaidCommitmentsByCycle(userId, cycleId) {
-    const [rows] = await db.execute(
-      `SELECT co.id, co.amount, co.status, fc.name AS commitment_name
+  static async getUnpaidCommitmentsByCycle(connOrNull, userId, cycleId) {
+    const exec = connOrNull || db;
+    const [rows] = await exec.execute(
+      `SELECT co.id, co.commitment_id, co.amount, co.status, co.due_date, fcom.name AS commitment_name
          FROM commitment_occurrences co
-         JOIN financial_commitments fc ON fc.id = co.commitment_id
-        WHERE co.cycle_id = ? AND fc.user_id = ? AND co.status IN ('upcoming', 'due', 'overdue')
+         JOIN financial_commitments fcom ON fcom.id = co.commitment_id
+         JOIN financial_cycles fcyc ON fcyc.id = co.cycle_id
+        WHERE co.cycle_id = ? AND fcom.user_id = ? AND fcyc.user_id = ? 
+          AND co.status IN ('upcoming', 'due', 'overdue')
         ORDER BY co.due_date ASC`,
-      [cycleId, userId]
+      [cycleId, userId, userId]
     );
     return rows;
   }
 
-  /**
-   * Get settlement actions for a settlement.
-   */
-  static async getSettlementActions(settlementId) {
-    const [rows] = await db.execute(
-      `SELECT * FROM settlement_actions WHERE settlement_id = ? ORDER BY id ASC`,
-      [settlementId]
+  static async getSettlementActions(connOrNull, userId, settlementId) {
+    const exec = connOrNull || db;
+    const [rows] = await exec.execute(
+      `SELECT sa.id, sa.settlement_id, sa.action_type, sa.amount, sa.target_goal_id, sa.description, sa.created_at
+         FROM settlement_actions sa
+         JOIN cycle_settlements cs ON cs.id = sa.settlement_id
+         JOIN financial_cycles fc ON fc.id = cs.cycle_id
+        WHERE sa.settlement_id = ? AND fc.user_id = ?
+        ORDER BY sa.id ASC`,
+      [settlementId, userId]
+    );
+    return rows;
+  }
+
+  static async lockGoalsForSettlement(conn, userId, goalIds) {
+    if (!goalIds || goalIds.length === 0) return [];
+    const placeholders = goalIds.map(() => '?').join(',');
+    const [rows] = await conn.execute(
+      `SELECT id, user_id, name, target_amount, current_balance, status, ready_at
+         FROM goals
+        WHERE user_id = ? AND id IN (${placeholders})
+        ORDER BY id ASC
+        FOR UPDATE`,
+      [userId, ...goalIds]
     );
     return rows;
   }
@@ -185,10 +201,8 @@ class SettlementRepository {
   // Settlement writes                                                    //
   // ------------------------------------------------------------------ //
 
-  /**
-   * Create a pending settlement record.
-   */
   static async createSettlement(conn, data) {
+    // Only standard columns exist in cycle_settlements schema as per migration 017
     const [result] = await conn.execute(
       `INSERT INTO cycle_settlements
          (cycle_id, expected_income, actual_recurring_income, unexpected_income,
@@ -214,41 +228,37 @@ class SettlementRepository {
     return result.insertId;
   }
 
-  /**
-   * Update cycle status to settlement_pending.
-   */
-  static async updateCycleStatusToPending(conn, cycleId) {
-    await conn.execute(
-      `UPDATE financial_cycles SET status = 'settlement_pending' WHERE id = ?`,
-      [cycleId]
+  static async updateCycleStatusToPending(conn, userId, cycleId) {
+    const [result] = await conn.execute(
+      `UPDATE financial_cycles 
+          SET status = 'settlement_pending' 
+        WHERE id = ? AND user_id = ? AND status = 'open'`,
+      [cycleId, userId]
     );
+    return result.affectedRows;
   }
 
-  /**
-   * Update cycle status to closed and set closed_at.
-   */
-  static async updateCycleStatusToClosed(conn, cycleId) {
-    await conn.execute(
-      `UPDATE financial_cycles SET status = 'closed', closed_at = NOW() WHERE id = ?`,
-      [cycleId]
+  static async updateCycleStatusToClosed(conn, userId, cycleId) {
+    const [result] = await conn.execute(
+      `UPDATE financial_cycles 
+          SET status = 'closed', closed_at = NOW() 
+        WHERE id = ? AND user_id = ? AND status = 'settlement_pending'`,
+      [cycleId, userId]
     );
+    return result.affectedRows;
   }
 
-  /**
-   * Update settlement to approved status with timestamps.
-   */
-  static async approveSettlement(conn, settlementId) {
-    await conn.execute(
-      `UPDATE cycle_settlements
-       SET status = 'approved', approved_at = NOW(), closed_at = NOW()
-       WHERE id = ?`,
-      [settlementId]
+  static async approveSettlement(conn, userId, cycleId, settlementId) {
+    const [result] = await conn.execute(
+      `UPDATE cycle_settlements cs
+         JOIN financial_cycles fcyc ON fcyc.id = cs.cycle_id
+          SET cs.status = 'approved', cs.approved_at = NOW(), cs.closed_at = NOW()
+        WHERE cs.id = ? AND cs.cycle_id = ? AND cs.status = 'pending' AND fcyc.user_id = ?`,
+      [settlementId, cycleId, userId]
     );
+    return result.affectedRows;
   }
 
-  /**
-   * Create a settlement action.
-   */
   static async createSettlementAction(conn, data) {
     const [result] = await conn.execute(
       `INSERT INTO settlement_actions
@@ -265,50 +275,34 @@ class SettlementRepository {
     return result.insertId;
   }
 
-  /**
-   * Find goal for update to verify ownership and status.
-   */
-  static async findGoalForUpdate(conn, goalId, userId) {
-    const [rows] = await conn.execute(
-      `SELECT * FROM goals WHERE id = ? AND user_id = ? FOR UPDATE`,
-      [goalId, userId]
+  static async updateGoalBalanceAndStatus(conn, userId, goalId, newBalance, newStatus, readyAt) {
+    const [result] = await conn.execute(
+      `UPDATE goals 
+          SET current_balance = ?, status = ?, ready_at = ? 
+        WHERE id = ? AND user_id = ?`,
+      [newBalance, newStatus, readyAt, goalId, userId]
     );
-    return rows[0] || null;
+    return result.affectedRows;
   }
 
-  /**
-   * Update goal balance for settlement allocation.
-   */
-  static async updateGoalBalance(conn, goalId, newBalance) {
-    await conn.execute(
-      `UPDATE goals SET current_balance = ? WHERE id = ?`,
-      [newBalance, goalId]
-    );
-  }
-
-  /**
-   * Create a goal transaction for settlement allocation.
-   */
   static async createGoalTransaction(conn, data) {
+    // Based on goal_transactions schema in migration 009
     const [result] = await conn.execute(
       `INSERT INTO goal_transactions
          (user_id, goal_id, amount, transaction_type, description)
        VALUES (?, ?, ?, 'contribution', ?)`,
-      [data.userId, data.goalId, data.amount, data.description]
+      [data.userId, data.goalId, data.amount, data.description || null]
     );
     return result.insertId;
   }
 
-  /**
-   * Create a savings transaction for emergency fund or unallocated savings.
-   */
   static async createSavingsTransaction(conn, data) {
     const [result] = await conn.execute(
       `INSERT INTO transactions
          (user_id, cycle_id, amount, direction, transaction_type, budget_bucket,
           description, occurred_at, status, confirmed_at)
-       VALUES (?, ?, ?, 'outflow', 'savings', 'savings', ?, NOW(), 'confirmed', NOW())`,
-      [data.userId, data.cycleId, data.amount, data.description]
+       VALUES (?, ?, ?, 'outflow', 'saving', 'savings', ?, NOW(), 'confirmed', NOW())`,
+      [data.userId, data.cycleId, data.amount, data.description || null]
     );
     return result.insertId;
   }

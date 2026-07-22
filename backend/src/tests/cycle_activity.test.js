@@ -108,13 +108,25 @@ async function createCycleForUser(userId) {
   return res.body.data.id;
 }
 
+async function getCycleStartDate(conn, userId) {
+  const tempCycleId = await createCycleForUser(userId);
+  const [cycleRows] = await conn.execute('SELECT DATE_FORMAT(start_date, "%Y-%m-%d") as start_date FROM financial_cycles WHERE id = ?', [tempCycleId]);
+  const safeDate = cycleRows[0].start_date;
+  
+  await conn.execute('DELETE FROM commitment_occurrences WHERE cycle_id = ?', [tempCycleId]);
+  await conn.execute('DELETE FROM cycle_allocation_snapshots WHERE cycle_id = ?', [tempCycleId]);
+  await conn.execute('DELETE FROM transactions WHERE cycle_id = ?', [tempCycleId]);
+  await conn.execute('DELETE FROM financial_cycles WHERE id = ?', [tempCycleId]);
+  return safeDate;
+}
+
 /** Create an active commitment for a user */
-async function createCommitment(conn, userId, { amount = 200, name = 'Rent' } = {}) {
+async function createCommitment(conn, userId, { amount = 200, name = 'Rent', nextDueDate } = {}) {
   const [result] = await conn.execute(
     `INSERT INTO financial_commitments
        (user_id, name, amount, frequency, next_due_date, budget_bucket, flexibility, status)
-     VALUES (?, ?, ?, 'monthly', DATE_ADD(CURDATE(), INTERVAL 1 MONTH), 'needs', 'fixed', 'active')`,
-    [userId, name, amount]
+     VALUES (?, ?, ?, 'monthly', ?, 'needs', 'fixed', 'active')`,
+    [userId, name, amount, nextDueDate]
   );
   return result.insertId;
 }
@@ -191,28 +203,7 @@ describe('Phase 3A.2 – Cycle-Linked Financial Activity (integration)', () => {
       expect(res.body.code).toBe('NO_ACTIVE_FINANCIAL_CYCLE');
     });
 
-    it('rejects cross-user cycle_id', async () => {
-      const otherUser = await seedUser(conn, { income: 800, paymentDay: 10 });
-      const otherCycle = await createCycleForUser(otherUser);
-
-      const res = await request(app)
-        .post('/api/v1/expenses')
-        .set('Authorization', authHeader(userId))
-        .send({
-          amount: 50,
-          bucket: 'needs',
-          category: 'rent',
-          cycleId: otherCycle
-        })
-        .expect(404);
-
-      // The error may not have a code field in all cases, just check 404 status
-      expect(res.body.success).toBe(false);
-
-      await teardownUser(conn, otherUser);
-    });
-
-    it('rejects closed cycle_id', async () => {
+    it('rejects payload containing cycleId', async () => {
       const res = await request(app)
         .post('/api/v1/expenses')
         .set('Authorization', authHeader(userId))
@@ -222,9 +213,9 @@ describe('Phase 3A.2 – Cycle-Linked Financial Activity (integration)', () => {
           category: 'rent',
           cycleId: cycleId
         })
-        .expect(409);
+        .expect(400);
 
-      expect(res.body.code).toBe('CYCLE_CLOSED');
+      expect(res.body.code).toBe('INVALID_PAYLOAD');
     });
   });
 
@@ -278,38 +269,7 @@ describe('Phase 3A.2 – Cycle-Linked Financial Activity (integration)', () => {
       expect(res.body.code).toBe('NO_ACTIVE_FINANCIAL_CYCLE');
     });
 
-    it('rejects cross-user cycle_id', async () => {
-      const otherUser = await seedUser(conn, { income: 800, paymentDay: 10 });
-      const otherCycle = await createCycleForUser(otherUser);
-
-      // Re-open the cycle for this user first
-      await conn.execute(
-        `UPDATE financial_cycles SET status = 'open' WHERE id = ?`,
-        [cycleId]
-      );
-
-      const res = await request(app)
-        .post('/api/v1/incomes')
-        .set('Authorization', authHeader(userId))
-        .send({
-          amount: 1000,
-          source: 'salary',
-          cycleId: otherCycle
-        })
-        .expect(404);
-
-      expect(res.body.code).toBe('CYCLE_NOT_FOUND');
-
-      await teardownUser(conn, otherUser);
-    });
-
-    it('rejects closed cycle_id', async () => {
-      // Ensure cycle is closed (it may have been re-opened in previous test)
-      await conn.execute(
-        `UPDATE financial_cycles SET status = 'closed' WHERE id = ?`,
-        [cycleId]
-      );
-
+    it('rejects payload containing cycleId', async () => {
       const res = await request(app)
         .post('/api/v1/incomes')
         .set('Authorization', authHeader(userId))
@@ -318,9 +278,9 @@ describe('Phase 3A.2 – Cycle-Linked Financial Activity (integration)', () => {
           source: 'salary',
           cycleId: cycleId
         })
-        .expect(409);
+        .expect(400);
 
-      expect(res.body.code).toBe('CYCLE_CLOSED');
+      expect(res.body.code).toBe('INVALID_PAYLOAD');
     });
   });
 
@@ -397,8 +357,9 @@ describe('Phase 3A.2 – Cycle-Linked Financial Activity (integration)', () => {
     beforeAll(async () => {
       userId = await seedUser(conn, { income: 1000, paymentDay: 15 });
       // Create active commitments
-      await createCommitment(conn, userId, { amount: 200, name: 'Rent' });
-      await createCommitment(conn, userId, { amount: 100, name: 'Internet' });
+      const safeDate = await getCycleStartDate(conn, userId);
+      await createCommitment(conn, userId, { amount: 200, name: 'Rent', nextDueDate: safeDate });
+      await createCommitment(conn, userId, { amount: 100, name: 'Internet', nextDueDate: safeDate });
       cycleId = await createCycleForUser(userId);
     });
     afterAll(async () => { await teardownUser(conn, userId); });
@@ -436,7 +397,8 @@ describe('Phase 3A.2 – Cycle-Linked Financial Activity (integration)', () => {
 
     beforeAll(async () => {
       userId = await seedUser(conn, { income: 1000, paymentDay: 15 });
-      commitmentId = await createCommitment(conn, userId, { amount: 200, name: 'Rent' });
+      const safeDate = await getCycleStartDate(conn, userId);
+      commitmentId = await createCommitment(conn, userId, { amount: 200, name: 'Rent', nextDueDate: safeDate });
       cycleId = await createCycleForUser(userId);
 
       const [rows] = await conn.execute(

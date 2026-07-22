@@ -227,6 +227,7 @@ describe('Phase 3B – Settlement and Closure (integration)', () => {
       const res = await request(app)
         .post('/api/v1/financial-cycles/current/settlement')
         .set('Authorization', authHeader(userId))
+        .send({ idempotencyKey: 'test-settlement-1' })
         .expect(201);
 
       expect(res.body.success).toBe(true);
@@ -246,6 +247,7 @@ describe('Phase 3B – Settlement and Closure (integration)', () => {
       const res = await request(app)
         .post('/api/v1/financial-cycles/current/settlement')
         .set('Authorization', authHeader(userId))
+        .send({ idempotencyKey: 'test-settlement-1' })
         .expect(200);
 
       expect(res.body.data.replayed).toBe(true);
@@ -274,6 +276,7 @@ describe('Phase 3B – Settlement and Closure (integration)', () => {
       await request(app)
         .post('/api/v1/financial-cycles/current/settlement')
         .set('Authorization', authHeader(userId))
+        .send({ idempotencyKey: 'test-settlement-3' })
         .expect(201);
 
       // Close with actions
@@ -284,8 +287,9 @@ describe('Phase 3B – Settlement and Closure (integration)', () => {
           actions: [
             { actionType: 'emergency_fund', amount: 50 },
             { actionType: 'goal_allocation', goalId: goalId, amount: 40 },
-            { actionType: 'carry_forward', amount: 10 }
-          ]
+            { actionType: 'unallocated_savings', amount: 710 }
+          ],
+          idempotencyKey: 'test-close-1'
         })
         .expect(200);
 
@@ -298,7 +302,7 @@ describe('Phase 3B – Settlement and Closure (integration)', () => {
       expect(cycles[0].closed_at).not.toBeNull();
 
       // Verify settlement status
-      const [settlements] = await conn.execute('SELECT status FROM cycle_settlements WHERE cycle_id = ?', [cycleId]);
+      const [settlements] = await conn.execute('SELECT id, status FROM cycle_settlements WHERE cycle_id = ?', [cycleId]);
       expect(settlements[0].status).toBe('approved');
 
       // Verify settlement actions
@@ -319,6 +323,7 @@ describe('Phase 3B – Settlement and Closure (integration)', () => {
       await request(app)
         .post('/api/v1/financial-cycles/current/settlement')
         .set('Authorization', authHeader(userId))
+        .send({ idempotencyKey: 'test-settlement-4' })
         .expect(201);
 
       const res = await request(app)
@@ -327,7 +332,8 @@ describe('Phase 3B – Settlement and Closure (integration)', () => {
         .send({
           actions: [
             { actionType: 'emergency_fund', amount: 100 } // Wrong amount
-          ]
+          ],
+          idempotencyKey: 'test-close-error'
         })
         .expect(422);
 
@@ -336,19 +342,24 @@ describe('Phase 3B – Settlement and Closure (integration)', () => {
 
     it('closes cycle with deficit without surplus actions', async () => {
       const newCycleId = await createCycle(conn, userId);
-      await createTransaction(conn, userId, newCycleId, { amount: 800, type: 'income', incomeKind: 'recurring' });
-      await createTransaction(conn, userId, newCycleId, { amount: 500, type: 'expense', bucket: 'needs' });
+      await createTransaction(conn, userId, newCycleId, { amount: 500, type: 'income', incomeKind: 'recurring' });
+      await createTransaction(conn, userId, newCycleId, { amount: 800, type: 'expense', bucket: 'needs' });
 
       await request(app)
         .post('/api/v1/financial-cycles/current/settlement')
         .set('Authorization', authHeader(userId))
+        .send({ idempotencyKey: 'test-settlement-5' })
         .expect(201);
 
       const res = await request(app)
         .post('/api/v1/financial-cycles/current/close')
         .set('Authorization', authHeader(userId))
-        .send({})
-        .expect(200);
+        .send({ idempotencyKey: 'test-close-2' });
+
+      if (res.status !== 200) {
+        console.error('Deficit Close Failed:', res.body);
+      }
+      expect(res.status).toBe(200);
 
       expect(res.body.success).toBe(true);
       expect(res.body.data.deficit).toBeGreaterThan(0);
@@ -358,10 +369,145 @@ describe('Phase 3B – Settlement and Closure (integration)', () => {
       const res = await request(app)
         .post('/api/v1/financial-cycles/current/close')
         .set('Authorization', authHeader(userId))
-        .send({})
+        .send({ idempotencyKey: 'test-close-3' })
         .expect(409);
 
       expect(res.body.code).toBe('INVALID_CYCLE_STATUS');
+    });
+  describe('Action Validation and Retry', () => {
+      let testCycleId;
+      beforeEach(async () => {
+        testCycleId = await createCycle(conn, userId);
+        await createTransaction(conn, userId, testCycleId, { amount: 1000, type: 'income', incomeKind: 'recurring' });
+        await request(app)
+          .post('/api/v1/financial-cycles/current/settlement')
+          .set('Authorization', authHeader(userId))
+          .send({ idempotencyKey: `setup-settlement-${Date.now()}` })
+          .expect(201);
+      });
+
+      it('rejects injected userId, cycleId, settlementId in actions', async () => {
+        const res = await request(app)
+          .post('/api/v1/financial-cycles/current/close')
+          .set('Authorization', authHeader(userId))
+          .send({
+            actions: [{ actionType: 'unallocated_savings', amount: 1000, userId: 999 }],
+            idempotencyKey: `val1-${Date.now()}`
+          })
+          .expect(400);
+        expect(res.body.code).toBe('INVALID_PAYLOAD');
+      });
+
+      it('rejects non-integer BIGINT format for goalId', async () => {
+        const res = await request(app)
+          .post('/api/v1/financial-cycles/current/close')
+          .set('Authorization', authHeader(userId))
+          .send({
+            actions: [{ actionType: 'goal_allocation', amount: 1000, goalId: 'abc' }],
+            idempotencyKey: `val2-${Date.now()}`
+          })
+          .expect(422);
+        expect(res.body.code).toBe('INVALID_GOAL_ID');
+      });
+
+      it('rejects allocation to draft goal', async () => {
+        const gId = await createGoal(conn, userId, { amount: 500, name: 'Draft Goal' });
+        await conn.execute('UPDATE goals SET status = "draft" WHERE id = ?', [gId]);
+        
+        const res = await request(app)
+          .post('/api/v1/financial-cycles/current/close')
+          .set('Authorization', authHeader(userId))
+          .send({
+            actions: [{ actionType: 'goal_allocation', amount: 1000, goalId: gId }],
+            idempotencyKey: `val-draft-${Date.now()}`
+          })
+          .expect(422);
+        expect(res.body.code).toBe('INVALID_GOAL_STATUS');
+      });
+
+      it('rejects allocation to paused goal', async () => {
+        const pausedGoalId = await createGoal(conn, userId, { amount: 500, name: 'Paused Goal' });
+        await conn.execute('UPDATE goals SET status = "paused" WHERE id = ?', [pausedGoalId]);
+        
+        const res = await request(app)
+          .post('/api/v1/financial-cycles/current/close')
+          .set('Authorization', authHeader(userId))
+          .send({
+            actions: [{ actionType: 'goal_allocation', amount: 1000, goalId: pausedGoalId }],
+            idempotencyKey: `val-paused-${Date.now()}`
+          })
+          .expect(422);
+        expect(res.body.code).toBe('INVALID_GOAL_STATUS');
+      });
+
+      it('rejects allocation to ready goal', async () => {
+        const gId = await createGoal(conn, userId, { amount: 500, name: 'Ready Goal' });
+        await conn.execute('UPDATE goals SET status = "ready" WHERE id = ?', [gId]);
+        
+        const res = await request(app)
+          .post('/api/v1/financial-cycles/current/close')
+          .set('Authorization', authHeader(userId))
+          .send({
+            actions: [{ actionType: 'goal_allocation', amount: 1000, goalId: gId }],
+            idempotencyKey: `val-ready-${Date.now()}`
+          })
+          .expect(422);
+        expect(res.body.code).toBe('INVALID_GOAL_STATUS');
+      });
+
+      it('rejects allocation to executed goal', async () => {
+        const gId = await createGoal(conn, userId, { amount: 500, name: 'Executed Goal' });
+        await conn.execute('UPDATE goals SET status = "executed" WHERE id = ?', [gId]);
+        
+        const res = await request(app)
+          .post('/api/v1/financial-cycles/current/close')
+          .set('Authorization', authHeader(userId))
+          .send({
+            actions: [{ actionType: 'goal_allocation', amount: 1000, goalId: gId }],
+            idempotencyKey: `val-executed-${Date.now()}`
+          })
+          .expect(422);
+        expect(res.body.code).toBe('INVALID_GOAL_STATUS');
+      });
+
+      it('rejects allocation to cancelled goal', async () => {
+        const gId = await createGoal(conn, userId, { amount: 500, name: 'Cancelled Goal' });
+        await conn.execute('UPDATE goals SET status = "cancelled" WHERE id = ?', [gId]);
+        
+        const res = await request(app)
+          .post('/api/v1/financial-cycles/current/close')
+          .set('Authorization', authHeader(userId))
+          .send({
+            actions: [{ actionType: 'goal_allocation', amount: 1000, goalId: gId }],
+            idempotencyKey: `val-cancelled-${Date.now()}`
+          })
+          .expect(422);
+        expect(res.body.code).toBe('INVALID_GOAL_STATUS');
+      });
+
+      it('retry close after successful close documents current incomplete idempotency by throwing INVALID_CYCLE_STATUS', async () => {
+        // First successful close
+        await request(app)
+          .post('/api/v1/financial-cycles/current/close')
+          .set('Authorization', authHeader(userId))
+          .send({
+            actions: [{ actionType: 'unallocated_savings', amount: 1000 }],
+            idempotencyKey: 'test-retry-close'
+          })
+          .expect(200);
+
+        // Retry with same key
+        const res = await request(app)
+          .post('/api/v1/financial-cycles/current/close')
+          .set('Authorization', authHeader(userId))
+          .send({
+            actions: [{ actionType: 'unallocated_savings', amount: 1000 }],
+            idempotencyKey: 'test-retry-close'
+          })
+          .expect(409);
+        
+        expect(res.body.code).toBe('INVALID_CYCLE_STATUS');
+      });
     });
   });
 
@@ -376,32 +522,27 @@ describe('Phase 3B – Settlement and Closure (integration)', () => {
 
     afterAll(async () => { await teardownUser(conn, userId); });
 
-    it('rejects expense creation for closed cycle', async () => {
+    it('rejects expense deletion for closed cycle', async () => {
+      // Create an expense first
+      const expenseId = await createTransaction(conn, userId, cycleId, { amount: 50, type: 'expense', bucket: 'needs' });
       await conn.execute('UPDATE financial_cycles SET status = "closed" WHERE id = ?', [cycleId]);
 
       const res = await request(app)
-        .post('/api/v1/expenses')
+        .delete(`/api/v1/expenses/${expenseId}`)
         .set('Authorization', authHeader(userId))
-        .send({
-          amount: 50,
-          bucket: 'needs',
-          category: 'other',
-          cycleId: cycleId
-        })
         .expect(409);
 
       expect(res.body.code).toBe('CLOSED_CYCLE_IMMUTABLE');
     });
 
-    it('rejects income creation for closed cycle', async () => {
+    it('rejects income deletion for closed cycle', async () => {
+      // Create an income first
+      const incomeId = await createTransaction(conn, userId, cycleId, { amount: 100, type: 'income', incomeKind: 'recurring' });
+      await conn.execute('UPDATE financial_cycles SET status = "closed" WHERE id = ?', [cycleId]);
+
       const res = await request(app)
-        .post('/api/v1/incomes')
+        .delete(`/api/v1/incomes/${incomeId}`)
         .set('Authorization', authHeader(userId))
-        .send({
-          amount: 100,
-          source: 'salary',
-          cycleId: cycleId
-        })
         .expect(409);
 
       expect(res.body.code).toBe('CLOSED_CYCLE_IMMUTABLE');

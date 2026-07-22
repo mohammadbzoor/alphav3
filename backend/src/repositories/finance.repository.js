@@ -1,4 +1,5 @@
 const { db } = require('../config/database');
+const { AppError } = require('../utils/app-error');
 
 class FinanceRepository {
   // ---------------------------------------------------------
@@ -15,33 +16,21 @@ class FinanceRepository {
     return rows;
   }
 
-  static async createExpense(userId, data) {
-    const amount = Math.round(data.amount || 0);
-    const category = data.category || 'other';
-    const bucket = data.bucket || 'needs';
-    const description = data.description || null;
-    const occurredAt = data.expenseDate ? new Date(data.expenseDate) : new Date();
-    const sourceType = data.sourceType || 'manual';
-    const paymentMethod = data.paymentMethod || 'cash';
-    const originalImageUrl = data.originalImageUrl || null;
-    const originalTranscript = data.originalTranscript || null;
-    // cycle_id is required for new transactions (resolved by service layer)
-    const cycleId = data.cycleId || null;
-
-    const [result] = await db.execute(
+  static async createExpense(conn, userId, data) {
+    const { amount, category, bucket, description, expenseDate, sourceType, paymentMethod, cycleId, originalImageUrl, originalTranscript } = data;
+    const [result] = await conn.execute(
       `INSERT INTO transactions
        (user_id, cycle_id, amount, direction, transaction_type, budget_bucket, category,
         description, occurred_at, status, confirmed_at,
         source_type, payment_method, original_image_url, original_transcript)
        VALUES (?, ?, ?, 'outflow', 'expense', ?, ?, ?, ?, 'confirmed', NOW(), ?, ?, ?, ?)`,
-      [userId, cycleId, amount, bucket, category, description, occurredAt,
-       sourceType, paymentMethod, originalImageUrl, originalTranscript]
+      [userId, cycleId, amount, bucket, category, description || null, expenseDate, sourceType, paymentMethod, originalImageUrl || null, originalTranscript || null]
     );
     return result.insertId;
   }
 
-  static async deleteExpense(userId, expenseId) {
-    const [result] = await db.execute(
+  static async deleteExpense(conn, userId, expenseId) {
+    const [result] = await conn.execute(
       `DELETE FROM transactions
        WHERE id = ? AND user_id = ? AND transaction_type = 'expense'`,
       [expenseId, userId]
@@ -49,12 +38,26 @@ class FinanceRepository {
     return result.affectedRows > 0;
   }
 
+  static async lockTransactionForMutation(conn, userId, transactionId, transactionType) {
+    const [rows] = await conn.execute(
+      `SELECT t.id, t.cycle_id, c.status as cycle_status
+       FROM transactions t
+       JOIN financial_cycles c ON t.cycle_id = c.id
+       WHERE t.id = ? AND t.user_id = ? AND t.transaction_type = ?
+       FOR UPDATE`,
+      [transactionId, userId, transactionType]
+    );
+    return rows[0] || null;
+  }
+
   // ---------------------------------------------------------
   // INCOMES
   // ---------------------------------------------------------
   static async getIncomes(userId) {
     const [rows] = await db.execute(
-      `SELECT * FROM transactions
+      `SELECT id, amount, category as source, description, occurred_at as incomeDate,
+              income_kind AS incomeKind, created_at as createdAt
+       FROM transactions
        WHERE user_id = ? AND transaction_type = 'income'
        ORDER BY occurred_at DESC`,
       [userId]
@@ -62,32 +65,23 @@ class FinanceRepository {
     return rows;
   }
 
-  static async createIncome(userId, data) {
-    const amount = Math.round(data.amount || 0);
-    const category = data.source || 'uncategorized';
-    const description = data.description || null;
-    const occurredAt = data.incomeDate ? new Date(data.incomeDate) : new Date();
-    const incomeKind = data.isRecurring ? 'recurring' : 'unexpected';
-    const sourceType = data.sourceType || 'manual';
-    const originalImageUrl = data.originalImageUrl || null;
-    const originalTranscript = data.originalTranscript || null;
-    // cycle_id is required for new transactions (resolved by service layer)
-    const cycleId = data.cycleId || null;
-
-    const [result] = await db.execute(
+  static async createIncome(conn, userId, data) {
+    const { amount, source, description, incomeDate, isRecurring, sourceType, cycleId, originalImageUrl, originalTranscript } = data;
+    const incomeKind = isRecurring ? 'recurring' : 'unexpected';
+    
+    const [result] = await conn.execute(
       `INSERT INTO transactions
        (user_id, cycle_id, amount, direction, transaction_type, category, description,
         occurred_at, income_kind, status, confirmed_at,
         source_type, original_image_url, original_transcript)
        VALUES (?, ?, ?, 'inflow', 'income', ?, ?, ?, ?, 'confirmed', NOW(), ?, ?, ?)`,
-      [userId, cycleId, amount, category, description, occurredAt, incomeKind,
-       sourceType, originalImageUrl, originalTranscript]
+      [userId, cycleId, amount, source, description || null, incomeDate, incomeKind, sourceType, originalImageUrl || null, originalTranscript || null]
     );
     return result.insertId;
   }
 
-  static async deleteIncome(userId, incomeId) {
-    const [result] = await db.execute(
+  static async deleteIncome(conn, userId, incomeId) {
+    const [result] = await conn.execute(
       `DELETE FROM transactions
        WHERE id = ? AND user_id = ? AND transaction_type = 'income'`,
       [incomeId, userId]
@@ -100,44 +94,39 @@ class FinanceRepository {
   // ---------------------------------------------------------
   static async getGoals(userId) {
     const [rows] = await db.execute(
-      `SELECT * FROM goals WHERE user_id = ? ORDER BY created_at DESC`,
+      `SELECT id, name, target_amount, current_balance, cycle_allocation,
+              planned_contribution, priority, status, target_date, custom_name, goal_type, created_at, ready_at, executed_at
+       FROM goals WHERE user_id = ? ORDER BY created_at DESC`,
       [userId]
     );
     return rows;
   }
 
   static async createGoal(userId, data) {
-    const targetAmount = Math.round(data.targetAmount || 0);
-    const plannedContribution = Math.round(data.plannedContribution || 0);
-    const targetDate = data.targetDate ? new Date(data.targetDate) : null;
-    const priority = data.priority || 5;
-
+    const { goalType, customName, targetAmount, plannedContribution, targetDate, planningMode, priority } = data;
     const [result] = await db.execute(
       `INSERT INTO goals
        (user_id, goal_type, name, custom_name, target_amount, planned_contribution, target_date, planning_mode, priority, status)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'active')`,
-      [userId, data.goalType, data.goalType, data.customName || null, targetAmount, plannedContribution, targetDate, data.planningMode, priority]
+      [userId, goalType, goalType, customName || null, targetAmount, plannedContribution, targetDate || null, planningMode, priority]
     );
     return result.insertId;
   }
 
   static async updateGoal(userId, goalId, data) {
-    const targetAmount = Math.round(data.targetAmount || 0);
-    const plannedContribution = Math.round(data.plannedContribution || 0);
-    const targetDate = data.targetDate ? new Date(data.targetDate) : null;
-    const priority = data.priority || 5;
-
-    await db.execute(
+    const { goalType, customName, targetAmount, plannedContribution, targetDate, planningMode, priority } = data;
+    const [result] = await db.execute(
       `UPDATE goals SET
         goal_type = ?, name = ?, custom_name = ?, target_amount = ?, planned_contribution = ?, target_date = ?, planning_mode = ?, priority = ?
        WHERE id = ? AND user_id = ?`,
-      [data.goalType, data.goalType, data.customName || null, targetAmount, plannedContribution, targetDate, data.planningMode, priority, goalId, userId]
+      [goalType, goalType, customName || null, targetAmount, plannedContribution, targetDate || null, planningMode, priority, goalId, userId]
     );
+    return result.affectedRows;
   }
 
   static async findGoalForUpdate(connection, goalId, userId) {
     const [rows] = await connection.execute(
-      `SELECT * FROM goals WHERE id = ? AND user_id = ? FOR UPDATE`,
+      `SELECT id, user_id, status, target_amount, current_balance, planned_contribution, ready_at, name FROM goals WHERE id = ? AND user_id = ? FOR UPDATE`,
       [goalId, userId]
     );
     return rows[0] || null;
@@ -145,47 +134,40 @@ class FinanceRepository {
 
   static async findIdempotencyRecord(connection, userId, idempotencyKey) {
     const [rows] = await connection.execute(
-      `SELECT * FROM goal_transactions WHERE user_id = ? AND idempotency_key = ?`,
+      `SELECT id, user_id, request_hash, idempotency_key FROM goal_transactions WHERE user_id = ? AND idempotency_key = ?`,
       [userId, idempotencyKey]
     );
     return rows[0] || null;
   }
 
   static async createGoalTransaction(connection, data) {
-    const { userId, goalId, amount, transactionType, idempotencyKey, requestHash, description } = data;
+    const { userId, goalId, amount, transactionType, relatedGoalId, idempotencyKey, requestHash, description } = data;
     try {
       const [result] = await connection.execute(
         `INSERT INTO goal_transactions
-         (user_id, goal_id, amount, transaction_type, idempotency_key, request_hash, description)
-         VALUES (?, ?, ?, ?, ?, ?, ?)`,
-        [userId, goalId, amount, transactionType, idempotencyKey || null, requestHash || null, description || null]
+         (user_id, goal_id, amount, transaction_type, related_goal_id, idempotency_key, request_hash, description)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        [userId, goalId, amount, transactionType, relatedGoalId || null, idempotencyKey || null, requestHash || null, description || null]
       );
-
       const [rows] = await connection.execute(
-        `SELECT * FROM goal_transactions WHERE id = ?`,
+        `SELECT id, goal_id, amount, transaction_type FROM goal_transactions WHERE id = ?`,
         [result.insertId]
       );
       return rows[0];
     } catch (e) {
-      if (e.code === 'ER_DUP_ENTRY' && e.message.includes('uq_user_idempotency')) {
-        // Fetch the existing transaction that caused the conflict (use FOR SHARE to bypass repeatable read snapshot)
+      if (e.code === 'ER_DUP_ENTRY') {
         const [existing] = await connection.execute(
-          `SELECT * FROM goal_transactions WHERE user_id = ? AND idempotency_key = ? FOR SHARE`,
+          `SELECT id, user_id, request_hash, idempotency_key FROM goal_transactions WHERE user_id = ? AND idempotency_key = ? FOR SHARE`,
           [userId, idempotencyKey]
         );
-
         if (existing.length > 0) {
           if (existing[0].request_hash === requestHash) {
-            // It's the exact same payload, return a special marker for the service
             const err = new Error('Concurrent idempotent replay');
             err.code = 'CONCURRENT_IDEMPOTENT_REPLAY';
             err.existingTransaction = existing[0];
             throw err;
           } else {
-            const err = new Error('Idempotency key reused with different payload concurrently');
-            err.statusCode = 409;
-            err.code = 'IDEMPOTENCY_KEY_REUSED';
-            throw err;
+            throw new AppError('Idempotency key reused with different payload concurrently', 409, 'IDEMPOTENCY_KEY_REUSED');
           }
         }
       }
@@ -194,357 +176,74 @@ class FinanceRepository {
   }
 
   static async updateGoalBalanceAndStatus(connection, data) {
-    const { goalId, userId, newBalance, newStatus, readyAt } = data;
-    await connection.execute(
+    const { goalId, userId, newBalance, newStatus, readyAt, executedAt } = data;
+    const updates = ['current_balance = ?', 'status = ?'];
+    const values = [newBalance, newStatus];
+    if (readyAt !== undefined) { updates.push('ready_at = ?'); values.push(readyAt); }
+    if (executedAt !== undefined) { updates.push('executed_at = ?'); values.push(executedAt); }
+    
+    values.push(goalId, userId);
+    
+    const [result] = await connection.execute(
       `UPDATE goals
-       SET current_balance = ?, status = ?, ready_at = ?
+       SET ${updates.join(', ')}
        WHERE id = ? AND user_id = ?`,
-      [newBalance, newStatus, readyAt, goalId, userId]
+      values
     );
+    return result.affectedRows;
   }
 
-  static async getGoalTransactions(userId, goalId, limit = 50, offset = 0) {
+  static async getGoalTransactions(userId, goalId, limit, offset) {
     const [rows] = await db.execute(
-      `SELECT * FROM goal_transactions
+      `SELECT id, goal_id, amount, transaction_type, created_at, description
+       FROM goal_transactions
        WHERE user_id = ? AND goal_id = ?
        ORDER BY created_at DESC, id DESC
        LIMIT ? OFFSET ?`,
-      [userId, goalId, limit.toString(), offset.toString()]
+      [userId, goalId, limit, offset]
     );
     return rows;
   }
 
   static async getReadyGoals(userId) {
     const [rows] = await db.execute(
-      `SELECT * FROM goals WHERE user_id = ? AND status = 'ready' ORDER BY ready_at ASC`,
+      `SELECT id, name, target_amount, current_balance, ready_at
+       FROM goals WHERE user_id = ? AND status = 'ready' ORDER BY ready_at ASC`,
       [userId]
     );
     return rows;
   }
 
-  static async reconcileGoalBalance(userId, goalId) {
-    const [goalRows] = await db.execute(
-      `SELECT current_balance FROM goals WHERE id = ? AND user_id = ?`,
+  static async getLedgerBalance(connection, goalId, userId) {
+    const [ledgerRows] = await connection.execute(
+      `SELECT
+         COALESCE(SUM(CASE WHEN transaction_type IN ('contribution', 'adjustment', 'reallocation_in') THEN amount ELSE 0 END), 0) -
+         COALESCE(SUM(CASE WHEN transaction_type IN ('withdrawal', 'reallocation_out', 'execution') THEN amount ELSE 0 END), 0) AS actual_balance
+       FROM goal_transactions
+       WHERE goal_id = ? AND user_id = ?`,
       [goalId, userId]
     );
-    if (goalRows.length === 0) return null;
+    return Number(ledgerRows[0].actual_balance || 0);
+  }
 
-    const storedBalance = parseFloat(goalRows[0].current_balance || 0);
-
-    const [txRows] = await db.execute(
-      `SELECT amount, transaction_type FROM goal_transactions WHERE goal_id = ? AND user_id = ?`,
-      [goalId, userId]
+  static async createCapitalExpense(connection, userId, amount, description, cycleId) {
+    const [res] = await connection.execute(
+      `INSERT INTO transactions
+       (user_id, cycle_id, amount, direction, transaction_type, budget_bucket, status, occurred_at, confirmed_at, description)
+       VALUES (?, ?, ?, 'outflow', 'capital_expense', 'capital_expense', 'confirmed', NOW(), NOW(), CONCAT('Goal executed: ', ?))`,
+      [userId, cycleId, amount, description]
     );
-
-    let ledgerBalance = 0;
-    for (const tx of txRows) {
-      const amt = parseFloat(tx.amount);
-      switch (tx.transaction_type) {
-        case 'contribution':
-        case 'reallocation_in':
-        case 'adjustment':
-          ledgerBalance += amt;
-          break;
-        case 'withdrawal':
-        case 'reallocation_out':
-        case 'execution':
-          ledgerBalance -= amt;
-          break;
-      }
-    }
-
-    const difference = storedBalance - ledgerBalance;
-    return {
-      storedBalance,
-      ledgerBalance,
-      difference,
-      reconciled: Math.abs(difference) < 0.01
-    };
-  }
-
-
-
-  static async executeGoal(userId, goalId, idempotencyKey) {
-    const { AppError } = require('../utils/app-error');
-    const connection = await db.getConnection();
-    try {
-      await connection.beginTransaction();
-
-      // Lock goal
-      const [goalRows] = await connection.execute(
-        'SELECT * FROM goals WHERE id = ? FOR UPDATE',
-        [goalId]
-      );
-      if (goalRows.length === 0) {
-        throw new AppError('Goal not found', 404, 'NOT_FOUND');
-      }
-      const goal = goalRows[0];
-
-      if (goal.user_id.toString() !== userId.toString()) {
-        throw new AppError('Unauthorized', 404, 'NOT_FOUND');
-      }
-
-      const requestHash = require('crypto').createHash('sha256')
-        .update(JSON.stringify({ operation: 'execute', userId, goalId }))
-        .digest('hex');
-
-      // Idempotency pre-check FIRST
-      if (idempotencyKey) {
-        const [existing] = await connection.execute(
-          'SELECT request_hash FROM goal_transactions WHERE user_id = ? AND idempotency_key = ?',
-          [userId, idempotencyKey]
-        );
-        if (existing.length > 0) {
-          if (existing[0].request_hash === requestHash) {
-            await connection.rollback();
-            return { success: true, message: 'Goal executed successfully (idempotent)' };
-          } else {
-            throw new AppError('Idempotency key reused for a different request', 409, 'IDEMPOTENCY_KEY_REUSED');
-          }
-        }
-      }
-
-      if (goal.status !== 'ready') {
-        throw new AppError('Goal is not in ready status', 400, 'BAD_REQUEST');
-      }
-
-      // Reconcile balance
-      const [ledgerRows] = await connection.execute(
-        `SELECT
-           COALESCE(SUM(CASE WHEN transaction_type IN ('contribution', 'adjustment', 'reallocation_in') THEN amount ELSE 0 END), 0) -
-           COALESCE(SUM(CASE WHEN transaction_type IN ('withdrawal', 'reallocation_out', 'execution') THEN amount ELSE 0 END), 0) AS actual_balance
-         FROM goal_transactions
-         WHERE goal_id = ?`,
-        [goalId]
-      );
-
-      const actualBalance = Number(ledgerRows[0].actual_balance || 0);
-
-      if (actualBalance < Number(goal.target_amount)) {
-        throw new AppError('Goal balance is less than target amount', 400, 'BAD_REQUEST');
-      }
-
-      // Create goal transaction
-      await connection.execute(
-        `INSERT INTO goal_transactions
-         (user_id, goal_id, amount, transaction_type, idempotency_key, request_hash, description)
-         VALUES (?, ?, ?, 'execution', ?, ?, 'Goal execution')`,
-        [userId, goalId, Number(goal.target_amount), idempotencyKey || null, requestHash || null]
-      );
-
-      // Create transaction
-      await connection.execute(
-        `INSERT INTO transactions
-         (user_id, amount, direction, transaction_type, budget_bucket, status, occurred_at, confirmed_at, description)
-         VALUES (?, ?, 'outflow', 'capital_expense', 'capital_expense', 'confirmed', NOW(), NOW(), CONCAT('Goal executed: ', ?))`,
-        [userId, Number(goal.target_amount), goal.name]
-      );
-
-      // Update goal status
-      const newBalance = actualBalance - Number(goal.target_amount);
-      await connection.execute(
-        'UPDATE goals SET status = ?, executed_at = NOW(), current_balance = ? WHERE id = ?',
-        ['executed', newBalance, goalId]
-      );
-
-      await connection.commit();
-      return { success: true, message: 'Goal executed successfully' };
-    } catch (error) {
-      await connection.rollback();
-      throw error;
-    } finally {
-      connection.release();
-    }
-  }
-
-  static async deferGoal(userId, goalId) {
-    const { AppError } = require('../utils/app-error');
-    const connection = await db.getConnection();
-    try {
-      await connection.beginTransaction();
-
-      const [goalRows] = await connection.execute(
-        'SELECT user_id, status FROM goals WHERE id = ? FOR UPDATE',
-        [goalId]
-      );
-      if (goalRows.length === 0 || goalRows[0].user_id.toString() !== userId.toString()) {
-        throw new AppError('Goal not found or unauthorized', 404, 'NOT_FOUND');
-      }
-      if (goalRows[0].status !== 'ready') {
-        throw new AppError('Goal is not in ready status', 400, 'BAD_REQUEST');
-      }
-
-      await connection.commit();
-      return { success: true, message: 'Goal deferred successfully' };
-    } catch (error) {
-      await connection.rollback();
-      throw error;
-    } finally {
-      connection.release();
-    }
-  }
-
-  static async reallocateGoal(userId, sourceGoalId, destinationGoalId, amount, idempotencyKey) {
-    const { AppError } = require('../utils/app-error');
-    const amountVal = Number(amount);
-    if (!amountVal || amountVal <= 0) {
-      throw new AppError('Invalid reallocation amount', 400, 'BAD_REQUEST');
-    }
-
-    if (sourceGoalId.toString() === destinationGoalId.toString()) {
-      throw new AppError('Source and destination goals must differ', 400, 'BAD_REQUEST');
-    }
-
-    const connection = await db.getConnection();
-    try {
-      await connection.beginTransaction();
-
-      // Lock both goals in ascending ID order to prevent deadlocks
-      const sourceBigInt = BigInt(sourceGoalId);
-      const destBigInt = BigInt(destinationGoalId);
-
-      const firstId = sourceBigInt < destBigInt ? sourceGoalId : destinationGoalId;
-      const secondId = sourceBigInt < destBigInt ? destinationGoalId : sourceGoalId;
-
-      const [firstRows] = await connection.execute('SELECT * FROM goals WHERE id = ? FOR UPDATE', [firstId.toString()]);
-      const [secondRows] = await connection.execute('SELECT * FROM goals WHERE id = ? FOR UPDATE', [secondId.toString()]);
-
-      if (firstRows.length === 0 || secondRows.length === 0) {
-        throw new AppError('Goal not found', 404, 'NOT_FOUND');
-      }
-
-      const sourceGoal = firstId.toString() === sourceGoalId.toString() ? firstRows[0] : secondRows[0];
-      const destGoal = firstId.toString() === destinationGoalId.toString() ? firstRows[0] : secondRows[0];
-
-      if (sourceGoal.user_id.toString() !== userId.toString() || destGoal.user_id.toString() !== userId.toString()) {
-        throw new AppError('Unauthorized', 404, 'NOT_FOUND');
-      }
-
-      const requestHash = require('crypto').createHash('sha256')
-        .update(JSON.stringify({ operation: 'reallocate', userId, sourceGoalId, destinationGoalId, amount: amountVal }))
-        .digest('hex');
-
-      // Idempotency pre-check FIRST
-      if (idempotencyKey) {
-        const [existing] = await connection.execute(
-          'SELECT request_hash FROM goal_transactions WHERE user_id = ? AND idempotency_key = ?',
-          [userId, idempotencyKey]
-        );
-        if (existing.length > 0) {
-          if (existing[0].request_hash === requestHash) {
-            await connection.rollback();
-            return { success: true, message: 'Goal reallocated successfully (idempotent)' };
-          } else {
-            throw new AppError('Idempotency key reused for a different request', 409, 'IDEMPOTENCY_KEY_REUSED');
-          }
-        }
-      }
-
-      if (sourceGoal.status !== 'ready') {
-        throw new AppError('Source goal must be in ready status', 400, 'BAD_REQUEST');
-      }
-
-      if (destGoal.status !== 'active' && destGoal.status !== 'paused') {
-        throw new AppError('Destination goal must be active or paused', 400, 'BAD_REQUEST');
-      }
-
-      // Check source balance
-      const [sourceLedger] = await connection.execute(
-        `SELECT
-           COALESCE(SUM(CASE WHEN transaction_type IN ('contribution', 'adjustment', 'reallocation_in') THEN amount ELSE 0 END), 0) -
-           COALESCE(SUM(CASE WHEN transaction_type IN ('withdrawal', 'reallocation_out', 'execution') THEN amount ELSE 0 END), 0) AS actual_balance
-         FROM goal_transactions
-         WHERE goal_id = ?`,
-        [sourceGoal.id]
-      );
-      const sourceBalance = Number(sourceLedger[0].actual_balance || 0);
-
-      if (amountVal > sourceBalance) {
-        throw new AppError('Amount exceeds source goal balance', 400, 'BAD_REQUEST');
-      }
-
-      // Check destination balance
-      const [destLedger] = await connection.execute(
-        `SELECT
-           COALESCE(SUM(CASE WHEN transaction_type IN ('contribution', 'adjustment', 'reallocation_in') THEN amount ELSE 0 END), 0) -
-           COALESCE(SUM(CASE WHEN transaction_type IN ('withdrawal', 'reallocation_out', 'execution') THEN amount ELSE 0 END), 0) AS actual_balance
-         FROM goal_transactions
-         WHERE goal_id = ?`,
-        [destGoal.id]
-      );
-      const destBalance = Number(destLedger[0].actual_balance || 0);
-      const destTarget = Number(destGoal.target_amount);
-
-      if (destBalance + amountVal > destTarget) {
-        throw new AppError('Reallocation amount causes destination overfunding', 400, 'BAD_REQUEST');
-      }
-
-      // Reallocation out
-      await connection.execute(
-        `INSERT INTO goal_transactions
-         (user_id, goal_id, amount, transaction_type, related_goal_id, idempotency_key, request_hash, description)
-         VALUES (?, ?, ?, 'reallocation_out', ?, ?, ?, CONCAT('Reallocated to ', ?))`,
-        [userId, sourceGoal.id, amountVal, destGoal.id, idempotencyKey || null, requestHash || null, destGoal.name]
-      );
-
-      // Reallocation in
-      await connection.execute(
-        `INSERT INTO goal_transactions
-         (user_id, goal_id, amount, transaction_type, related_goal_id, description)
-         VALUES (?, ?, ?, 'reallocation_in', ?, CONCAT('Reallocated from ', ?))`,
-        [userId, destGoal.id, amountVal, sourceGoal.id, sourceGoal.name]
-      );
-
-      const newSourceBalance = sourceBalance - amountVal;
-      const newSourceStatus = newSourceBalance < Number(sourceGoal.target_amount) ? 'active' : 'ready';
-      await connection.execute(
-        'UPDATE goals SET current_balance = ?, status = ? WHERE id = ?',
-        [newSourceBalance, newSourceStatus, sourceGoal.id]
-      );
-
-      const newDestBalance = destBalance + amountVal;
-      let newDestStatus = destGoal.status;
-      let readyAt = destGoal.ready_at;
-      if (newDestBalance === destTarget) {
-        newDestStatus = 'ready';
-        readyAt = new Date();
-      }
-
-      if (newDestStatus === 'ready') {
-         await connection.execute(
-           'UPDATE goals SET current_balance = ?, status = ?, ready_at = ? WHERE id = ?',
-           [newDestBalance, newDestStatus, readyAt, destGoal.id]
-         );
-      } else {
-         await connection.execute(
-           'UPDATE goals SET current_balance = ?, status = ? WHERE id = ?',
-           [newDestBalance, newDestStatus, destGoal.id]
-         );
-      }
-
-      await connection.commit();
-      return { success: true, message: 'Goal reallocated successfully' };
-    } catch (error) {
-      await connection.rollback();
-      throw error;
-    } finally {
-      connection.release();
-    }
+    return res.insertId;
   }
 
   static async deleteGoal(userId, goalId) {
     const [txRows] = await db.execute(
-      'SELECT id FROM goal_transactions WHERE goal_id = ? LIMIT 1',
-      [goalId]
+      'SELECT id FROM goal_transactions WHERE goal_id = ? AND user_id = ? LIMIT 1',
+      [goalId, userId]
     );
-
     if (txRows.length > 0) {
-      const err = new Error('Cannot hard-delete a goal with financial ledger history. Please soft-delete or cancel the goal instead.');
-      err.statusCode = 409;
-      err.code = 'GOAL_HAS_LEDGER_HISTORY';
-      throw err;
+      throw new AppError('Cannot hard-delete a goal with financial ledger history. Please soft-delete or cancel the goal instead.', 409, 'GOAL_HAS_LEDGER_HISTORY');
     }
-
     const [result] = await db.execute(
       `DELETE FROM goals WHERE id = ? AND user_id = ?`,
       [goalId, userId]
@@ -557,44 +256,21 @@ class FinanceRepository {
   // ---------------------------------------------------------
   static async getCommitments(userId) {
     const [rows] = await db.execute(
-      `SELECT * FROM financial_commitments WHERE user_id = ? AND status != 'cancelled' ORDER BY next_due_date ASC`,
+      `SELECT id, name, amount, frequency, next_due_date, status, flexibility
+       FROM financial_commitments
+       WHERE user_id = ? AND status != 'cancelled' ORDER BY next_due_date ASC`,
       [userId]
     );
     return rows;
   }
 
   static async createCommitment(userId, data) {
-    const amount = Math.round(data.amount || 0);
-    const name = data.name || data.type; // fallback to type if name not provided
-    const frequency = data.frequency || 'monthly';
-    let nextDueDate = data.nextDueDate ? new Date(data.nextDueDate) : null;
-    
-    // If dueDay is provided, calculate the next due date
-    if (data.dueDay && !nextDueDate) {
-       const today = new Date();
-       let month = today.getMonth();
-       let year = today.getFullYear();
-       if (today.getDate() > data.dueDay) {
-           month++;
-           if (month > 11) {
-               month = 0;
-               year++;
-           }
-       }
-       nextDueDate = new Date(year, month, data.dueDay);
-    }
-
-    const flexibility = data.flexibility || 'fixed';
-
-    const sourceType = data.sourceType || 'manual';
-    const originalImageUrl = data.originalImageUrl || null;
-    const originalTranscript = data.originalTranscript || null;
-
+    const { amount, name, frequency, nextDueDate, flexibility, sourceType } = data;
     const [result] = await db.execute(
       `INSERT INTO financial_commitments
-       (user_id, name, amount, frequency, next_due_date, budget_bucket, flexibility, status, source_type, original_image_url, original_transcript)
-       VALUES (?, ?, ?, ?, ?, 'needs', ?, 'active', ?, ?, ?)`,
-      [userId, name, amount, frequency, nextDueDate, flexibility, sourceType, originalImageUrl, originalTranscript]
+       (user_id, name, amount, frequency, next_due_date, budget_bucket, flexibility, status, source_type)
+       VALUES (?, ?, ?, ?, ?, 'needs', ?, 'active', ?)`,
+      [userId, name, amount, frequency, nextDueDate, flexibility, sourceType]
     );
     return result.insertId;
   }
@@ -604,16 +280,15 @@ class FinanceRepository {
     const values = [];
 
     if (data.name !== undefined) { updates.push('name = ?'); values.push(data.name); }
-    if (data.amount !== undefined) { updates.push('amount = ?'); values.push(Math.round(data.amount)); }
+    if (data.amount !== undefined) { updates.push('amount = ?'); values.push(data.amount); }
     if (data.frequency !== undefined) { updates.push('frequency = ?'); values.push(data.frequency); }
-    if (data.nextDueDate !== undefined) { updates.push('next_due_date = ?'); values.push(new Date(data.nextDueDate)); }
+    if (data.nextDueDate !== undefined) { updates.push('next_due_date = ?'); values.push(data.nextDueDate); }
     if (data.flexibility !== undefined) { updates.push('flexibility = ?'); values.push(data.flexibility); }
     if (data.status !== undefined) { updates.push('status = ?'); values.push(data.status); }
 
     if (updates.length === 0) return true;
-
     values.push(commitmentId, userId);
-
+    
     const [result] = await db.execute(
       `UPDATE financial_commitments SET ${updates.join(', ')} WHERE id = ? AND user_id = ?`,
       values
@@ -622,7 +297,6 @@ class FinanceRepository {
   }
 
   static async deleteCommitment(userId, commitmentId) {
-    // Soft delete per user instructions
     const [result] = await db.execute(
       `UPDATE financial_commitments SET status = 'cancelled' WHERE id = ? AND user_id = ?`,
       [commitmentId, userId]
@@ -630,16 +304,7 @@ class FinanceRepository {
     return result.affectedRows > 0;
   }
 
-  static async getActiveCommitmentsTotal(userId) {
-    const [rows] = await db.execute(
-      `SELECT SUM(amount) as total FROM financial_commitments WHERE user_id = ? AND status = 'active'`,
-      [userId]
-    );
-    return parseInt(rows[0].total || 0);
-  }
-
   static async getConfirmedNeedsExpenses(userId) {
-    // Only confirmed transactions affect metrics, exclude capital_expense from needs/wants
     const [rows] = await db.execute(
       `SELECT SUM(amount) as total FROM transactions
        WHERE user_id = ?
@@ -648,7 +313,7 @@ class FinanceRepository {
          AND status = 'confirmed'`,
       [userId]
     );
-    return parseInt(rows[0].total || 0);
+    return Number(rows[0].total || 0);
   }
 
   static async getDashboardTotals(userId) {
@@ -657,7 +322,7 @@ class FinanceRepository {
         SUM(CASE WHEN transaction_type = 'income' THEN amount ELSE 0 END) as totalIncome,
         SUM(CASE WHEN transaction_type = 'expense' THEN amount ELSE 0 END) as totalExpenses
        FROM transactions
-       WHERE user_id = ?`,
+       WHERE user_id = ? AND status = 'confirmed'`,
       [userId]
     );
 
@@ -666,38 +331,18 @@ class FinanceRepository {
       [userId]
     );
 
-    const totalIncome = parseInt(rows[0].totalIncome || 0);
-    const totalExpenses = parseInt(rows[0].totalExpenses || 0);
-    const activeGoals = parseInt(goalRows[0].activeGoals || 0);
+    const totalIncome = Number(rows[0].totalIncome || 0);
+    const totalExpenses = Number(rows[0].totalExpenses || 0);
+    const activeGoals = Number(goalRows[0].activeGoals || 0);
 
     return { totalIncome, totalExpenses, activeGoals };
   }
 
-  static async getAllocation(userId) {
-    const [profileRows] = await db.execute(
-      `SELECT expected_monthly_income, detected_tier FROM financial_profiles WHERE user_id = ?`,
-      [userId]
-    );
-    const [prefRows] = await db.execute(
-      `SELECT needs_bps, wants_bps, savings_bps FROM allocation_preferences WHERE user_id = ?`,
-      [userId]
-    );
-
-    if (profileRows.length === 0 || prefRows.length === 0) {
-      return null;
-    }
-
-    return {
-      income: parseInt(profileRows[0].expected_monthly_income || 0),
-      tier: profileRows[0].detected_tier,
-      needsBps: parseInt(prefRows[0].needs_bps || 0),
-      wantsBps: parseInt(prefRows[0].wants_bps || 0),
-      savingsBps: parseInt(prefRows[0].savings_bps || 0)
-    };
-  }
-
   static async getSavingsAllocation(userId) {
-    const [rows] = await db.execute("SELECT * FROM savings_allocations WHERE user_id = ? AND status = 'provisional' ORDER BY id DESC LIMIT 1", [userId]);
+    const [rows] = await db.execute(
+      "SELECT id, savings_amount, emergency_fund_rate, emergency_fund_amount, total_goal_allocations, unallocated_savings_amount, status FROM savings_allocations WHERE user_id = ? AND status = 'provisional' ORDER BY id DESC LIMIT 1",
+      [userId]
+    );
     if (rows.length === 0) return null;
     const allocation = rows[0];
 
@@ -705,24 +350,32 @@ class FinanceRepository {
 
     return {
       id: allocation.id,
-      savingsAmount: parseInt(allocation.savings_amount),
-      emergencyFundRate: parseFloat(allocation.emergency_fund_rate),
-      emergencyFundAmount: parseInt(allocation.emergency_fund_amount),
-      totalGoalAllocations: parseInt(allocation.total_goal_allocations),
-      unallocatedSavingsAmount: parseInt(allocation.unallocated_savings_amount),
+      savingsAmount: Number(allocation.savings_amount),
+      emergencyFundRate: Number(allocation.emergency_fund_rate),
+      emergencyFundAmount: Number(allocation.emergency_fund_amount),
+      totalGoalAllocations: Number(allocation.total_goal_allocations),
+      unallocatedSavingsAmount: Number(allocation.unallocated_savings_amount),
       status: allocation.status,
-      goals: goalRows.map(r => ({ goalId: r.goal_id, plannedAmount: parseInt(r.planned_amount) }))
+      goals: goalRows.map(r => ({ goalId: r.goal_id, plannedAmount: Number(r.planned_amount) }))
     };
   }
 
   // ---------------------------------------------------------
   // CYCLE-ACTIVITY: open-cycle lookup
   // ---------------------------------------------------------
+  static async lockOpenCycleForUser(conn, userId) {
+    const [rows] = await conn.execute(
+      `SELECT id, user_id, status, start_date, end_date
+       FROM financial_cycles
+       WHERE user_id = ? AND status = 'open'
+       ORDER BY start_date DESC, id DESC
+       LIMIT 1
+       FOR UPDATE`,
+      [userId]
+    );
+    return rows[0] || null;
+  }
 
-  /**
-   * Find the user's open cycle. connOrNull: pass an open connection to run
-   * inside a transaction, or null to use the pool.
-   */
   static async findOpenCycleForUser(connOrNull, userId) {
     const exec = connOrNull || db;
     const [rows] = await exec.execute(
@@ -738,12 +391,6 @@ class FinanceRepository {
   // ---------------------------------------------------------
   // COMMITMENT OCCURRENCES
   // ---------------------------------------------------------
-
-  /**
-   * Return active commitments for the user (used when generating occurrences
-   * at cycle-open time). Accepts an open connection so it runs inside the
-   * same transaction as cycle creation.
-   */
   static async getActiveCommitmentsForUser(conn, userId) {
     const [rows] = await conn.execute(
       `SELECT id, name, amount, frequency, next_due_date, budget_bucket
@@ -754,11 +401,6 @@ class FinanceRepository {
     return rows;
   }
 
-  /**
-   * Insert one occurrence row. Uses INSERT IGNORE so the unique constraint
-   * (commitment_id, cycle_id, due_date) acts as the idempotency guard —
-   * calling this twice for the same key is a silent no-op.
-   */
   static async createOccurrence(conn, { commitmentId, cycleId, dueDate, amount, status }) {
     const [result] = await conn.execute(
       `INSERT IGNORE INTO commitment_occurrences
@@ -766,13 +408,9 @@ class FinanceRepository {
        VALUES (?, ?, ?, ?, ?)`,
       [commitmentId, cycleId, dueDate, amount, status || 'upcoming']
     );
-    return result.insertId; // 0 when ignored (duplicate)
+    return result.insertId;
   }
 
-  /**
-   * Fetch all occurrences for a cycle, scoped to the authenticated user via
-   * the commitment's user_id join.
-   */
   static async getOccurrencesByCycle(userId, cycleId) {
     const [rows] = await db.execute(
       `SELECT co.id, co.commitment_id, co.cycle_id, co.due_date,
@@ -787,20 +425,9 @@ class FinanceRepository {
     return rows;
   }
 
-  /**
-   * Mark an occurrence as paid by linking it to a confirmed transaction.
-   * Enforces:
-   *   - occurrence belongs to a cycle owned by userId
-   *   - transaction is confirmed and owned by userId
-   *   - occurrence is not already paid/waived
-   * Returns the updated occurrence id, or throws AppError.
-   */
   static async markOccurrencePaid(conn, userId, occurrenceId, transactionId) {
-    const { AppError } = require('../utils/app-error');
-
-    // Lock occurrence + verify ownership via cycle
     const [occRows] = await conn.execute(
-      `SELECT co.id, co.status, co.cycle_id, fc.user_id AS commitment_user_id
+      `SELECT co.id, co.status, co.cycle_id, co.amount, fc.user_id AS commitment_user_id
          FROM commitment_occurrences co
          JOIN financial_commitments fc ON fc.id = co.commitment_id
         WHERE co.id = ? AND fc.user_id = ?
@@ -818,18 +445,32 @@ class FinanceRepository {
       throw new AppError('Cannot pay a waived occurrence.', 409, 'OCCURRENCE_WAIVED');
     }
 
-    // Verify transaction: must be confirmed and owned by same user
     const [txRows] = await conn.execute(
-      `SELECT id, status, user_id FROM transactions
+      `SELECT id, status, user_id, amount, transaction_type, direction, cycle_id FROM transactions
         WHERE id = ? AND user_id = ? AND status = 'confirmed'`,
       [transactionId, userId]
     );
     if (txRows.length === 0) {
-      throw new AppError(
-        'Transaction not found, not confirmed, or access denied.',
-        422,
-        'TRANSACTION_NOT_CONFIRMED'
-      );
+      throw new AppError('Transaction not found, not confirmed, or access denied.', 422, 'TRANSACTION_NOT_CONFIRMED');
+    }
+    
+    const tx = txRows[0];
+    if (tx.transaction_type !== 'expense' || tx.direction !== 'outflow') {
+      throw new AppError('Transaction must be a confirmed expense outflow.', 400, 'INVALID_TRANSACTION_TYPE');
+    }
+    if (String(tx.cycle_id) !== String(occ.cycle_id)) {
+      throw new AppError('Transaction cycle does not match occurrence cycle.', 400, 'CYCLE_MISMATCH');
+    }
+    if (Number(tx.amount) !== Number(occ.amount)) {
+      throw new AppError('Transaction amount must match occurrence amount exactly.', 400, 'AMOUNT_MISMATCH');
+    }
+
+    const [checkUsage] = await conn.execute(
+      `SELECT id FROM commitment_occurrences WHERE paid_transaction_id = ? AND id != ? LIMIT 1`,
+      [transactionId, occurrenceId]
+    );
+    if (checkUsage.length > 0) {
+      throw new AppError('Transaction already linked to another occurrence.', 409, 'TRANSACTION_ALREADY_USED');
     }
 
     await conn.execute(
@@ -842,42 +483,26 @@ class FinanceRepository {
     return occurrenceId;
   }
 
-  /**
-   * Return confirmed totals per bucket for a cycle (used in tests and future
-   * dashboard queries). Excludes capital_expense from needs/wants.
-   */
   static async getConfirmedTotalsByCycle(userId, cycleId) {
     const [rows] = await db.execute(
-      `SELECT
-         budget_bucket,
-         SUM(amount) AS total
+      `SELECT budget_bucket, SUM(amount) AS total
          FROM transactions
-        WHERE user_id    = ?
-          AND cycle_id   = ?
-          AND status     = 'confirmed'
-          AND transaction_type = 'expense'
-          AND budget_bucket IN ('needs','wants')
+        WHERE user_id = ? AND cycle_id = ? AND status = 'confirmed'
+          AND transaction_type = 'expense' AND budget_bucket IN ('needs','wants')
         GROUP BY budget_bucket`,
       [userId, cycleId]
     );
     const totals = { needs: 0, wants: 0 };
-    for (const r of rows) {
-      totals[r.budget_bucket] = Number(r.total || 0);
-    }
+    for (const r of rows) { totals[r.budget_bucket] = Number(r.total || 0); }
     return totals;
   }
 
-  /**
-   * Return total of unpaid occurrence amounts for a cycle (reserves Needs).
-   */
   static async getUnpaidOccurrencesTotal(userId, cycleId) {
     const [rows] = await db.execute(
       `SELECT COALESCE(SUM(co.amount), 0) AS total
          FROM commitment_occurrences co
          JOIN financial_commitments fc ON fc.id = co.commitment_id
-        WHERE co.cycle_id = ?
-          AND fc.user_id  = ?
-          AND co.status IN ('upcoming','due','overdue')`,
+        WHERE co.cycle_id = ? AND fc.user_id  = ? AND co.status IN ('upcoming','due','overdue')`,
       [cycleId, userId]
     );
     return Number(rows[0].total || 0);
