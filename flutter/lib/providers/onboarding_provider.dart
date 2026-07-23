@@ -29,7 +29,7 @@ class OnboardingProvider extends ChangeNotifier {
     try {
       final response = await ApiService.get('/onboarding/status');
 
-      if (response.statusCode == 401 || response.statusCode == 403) {
+      if (response.statusCode == 401 || response.statusCode == 403 || response.statusCode == 404) {
         _errorMessage = 'UNAUTHORIZED';
         return false;
       }
