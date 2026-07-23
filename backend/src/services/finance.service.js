@@ -871,11 +871,11 @@ class FinanceService {
       throw new AppError('Emergency fund rate must be between 0 and 100', 400, 'BAD_REQUEST');
     }
 
-    const goals = await FinanceRepository.getGoals(userId);
-    const legacyGoal = goals.find(g => g.goal_type === 'emergency_fund' && Number(g.is_system_managed) === 0);
+    const legacyGoal = await FinanceRepository.findLegacyEmergencyFundGoalByUserId(null, userId);
     if (legacyGoal) {
       throw new AppError('Legacy Emergency Fund goal requires reconciliation', 400, 'LEGACY_EMERGENCY_FUND_RECONCILIATION_REQUIRED');
     }
+    const goals = await FinanceRepository.getGoals(userId);
     const activeGoals = goals.filter(g => g.status === 'active' && Number(g.is_system_managed) === 0 && g.goal_type !== 'emergency_fund');
 
     const emergencyFundAmount = Math.round(savingsAmount * (emergencyFundRate / 100));
@@ -947,8 +947,7 @@ class FinanceService {
     const idempotencyKey = this.normalizeIdempotencyKey(data.idempotencyKey, true);
 
     
-    const allUserGoals = await FinanceRepository.getGoals(userId);
-    const legacyGoal = allUserGoals.find(g => g.goal_type === 'emergency_fund' && Number(g.is_system_managed) === 0);
+    const legacyGoal = await FinanceRepository.findLegacyEmergencyFundGoalByUserId(null, userId);
     if (legacyGoal) {
       throw new AppError('Legacy Emergency Fund goal requires reconciliation', 400, 'LEGACY_EMERGENCY_FUND_RECONCILIATION_REQUIRED');
     }

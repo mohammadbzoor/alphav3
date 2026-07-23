@@ -40,7 +40,7 @@ class CyclePlanningRepository {
          FROM goal_cycle_allocations gca
          JOIN financial_cycles fc ON fc.id = gca.cycle_id
          JOIN goals g ON g.id = gca.goal_id
-        WHERE gca.cycle_id = ? AND fc.user_id = ? AND g.user_id = ?`,
+        WHERE gca.cycle_id = ? AND fc.user_id = ? AND g.user_id = ? AND g.is_system_managed = FALSE AND g.goal_type != 'emergency_fund'`,
       [cycleId, userId, userId]
     );
     return Number(rows[0].total);

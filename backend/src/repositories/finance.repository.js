@@ -97,6 +97,14 @@ class FinanceRepository {
     return rows[0] || null;
   }
 
+  static async findLegacyEmergencyFundGoalByUserId(executor, userId) {
+    const [rows] = await (executor || db).execute(
+      `SELECT id, goal_type, is_system_managed FROM goals WHERE user_id = ? AND goal_type = 'emergency_fund' AND is_system_managed = FALSE LIMIT 1`,
+      [userId]
+    );
+    return rows[0] || null;
+  }
+
   static async getGoals(userId) {
     const [rows] = await db.execute(
       `SELECT id, name, target_amount, current_balance, cycle_allocation,
