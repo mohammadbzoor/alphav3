@@ -559,6 +559,8 @@ class FinanceService {
         throw new AppError('Idempotency key reused with different payload', 409, 'IDEMPOTENCY_KEY_REUSED');
       }
 
+      const openCycle = await FinanceRepository.lockOpenCycleForUser(connection, userId);
+
       const goal = await FinanceRepository.findGoalForUpdate(connection, goalId, userId);
       if (!goal) {
         throw new AppError('Goal not found or unauthorized', 404, 'NOT_FOUND');
@@ -585,7 +587,9 @@ class FinanceService {
       let transaction;
       try {
         transaction = await FinanceRepository.createGoalTransaction(connection, {
-          userId, goalId, amount, transactionType: 'contribution', idempotencyKey, requestHash, description
+          userId, goalId, amount, transactionType: 'contribution', idempotencyKey, requestHash, description,
+          cycleId: openCycle ? openCycle.id : null,
+          sourceType: 'user_contribution'
         });
       } catch (err) {
         if (err.code === 'CONCURRENT_IDEMPOTENT_REPLAY') {
