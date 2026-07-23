@@ -403,7 +403,7 @@ class FinanceService {
   static async createGoal(userId, data) {
     const normalizedData = this.validateGoalData(data, 0);
     const id = await FinanceRepository.createGoal(userId, normalizedData);
-    return { success: true, goalId: id };
+    return { goalId: id };
   }
 
   static async updateGoal(userId, goalId, data) {

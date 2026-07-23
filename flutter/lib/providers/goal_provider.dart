@@ -313,19 +313,18 @@ class GoalProvider extends ChangeNotifier {
   // ================= SAVE CURRENT GOAL =================
 
   Future<bool> saveCurrentGoal() async {
+    if (_isSaving) return false;
+
     if (!isValid) {
       _errorMessage = validationMessage;
-
       notifyListeners();
-
       return false;
     }
 
-    final newGoal = currentGoal;
-
-    _goals.add(newGoal);
-
+    _isSaving = true;
     notifyListeners();
+
+    final newGoal = currentGoal;
 
     try {
       final response = await ApiService.post('/goals', body: {
@@ -345,14 +344,19 @@ class GoalProvider extends ChangeNotifier {
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
         final body = await ApiService.parseJson(response);
-        final newId = body['data']?['goalId']?.toString() ?? newGoal.id;
+        final newId = body['data']?['goalId']?.toString();
 
-        final idx = _goals.indexWhere((g) => g.id == newGoal.id);
-        if (idx != -1) {
-          _goals[idx] = newGoal.copyWith(id: newId);
+        if (newId == null || newId.isEmpty) {
+          _errorMessage = 'Failed to create goal: Invalid server response';
+          _isSaving = false;
+          notifyListeners();
+          return false;
         }
 
+        _goals.add(newGoal.copyWith(id: newId));
+
         clearForm(notify: false);
+        _isSaving = false;
         notifyListeners();
         return true;
       }
@@ -362,17 +366,9 @@ class GoalProvider extends ChangeNotifier {
       _errorMessage = _cleanError(e);
     }
 
-    _goals.removeWhere((goal) => goal.id == newGoal.id);
+    _isSaving = false;
     notifyListeners();
     return false;
-
-    clearForm(
-      notify: false,
-    );
-
-    notifyListeners();
-
-    return true;
   }
 
   // ================= SET / ADD DATA =================
@@ -398,8 +394,9 @@ class GoalProvider extends ChangeNotifier {
   Future<bool> addGoal(
     Goal goal,
   ) async {
-    _goals.add(goal);
+    if (_isSaving) return false;
 
+    _isSaving = true;
     notifyListeners();
 
     try {
@@ -418,23 +415,27 @@ class GoalProvider extends ChangeNotifier {
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
         final body = await ApiService.parseJson(response);
-        final newId = body['data']?['goalId']?.toString() ?? goal.id;
+        final newId = body['data']?['goalId']?.toString();
 
-        final idx = _goals.indexWhere((g) => g.id == goal.id);
-        if (idx != -1) {
-          _goals[idx] = goal.copyWith(id: newId);
+        if (newId == null || newId.isEmpty) {
+          _errorMessage = 'Failed to create goal: Invalid server response';
+          _isSaving = false;
+          notifyListeners();
+          return false;
         }
+
+        _goals.add(goal.copyWith(id: newId));
+        _isSaving = false;
+        notifyListeners();
         return true;
       }
     } catch (e) {
       _errorMessage = _cleanError(e);
     }
 
-    _goals.removeWhere((item) => item.id == goal.id);
+    _isSaving = false;
     notifyListeners();
     return false;
-
-    return true;
   }
 
   Future<bool> addGoals(

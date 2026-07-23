@@ -29,4 +29,29 @@ describe('Finance Routes Validation', () => {
     expect(res.body.success).toBe(true);
     expect(Array.isArray(res.body.data)).toBe(true);
   });
+
+  test('POST /api/v1/goals creates a goal and returns canonical format', async () => {
+    // We mock FinanceService.createGoal to avoid DB writes during this simple route test
+    const { FinanceService } = require('../services/finance.service');
+    const originalCreateGoal = FinanceService.createGoal;
+    FinanceService.createGoal = async () => ({ goalId: 999 });
+
+    const res = await request(app)
+      .post('/api/v1/goals')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        goalType: 'laptop',
+        targetAmount: 5000,
+        planningMode: 'contribution_based',
+        plannedContribution: 500,
+        priority: 5
+      });
+
+    FinanceService.createGoal = originalCreateGoal;
+
+    expect(res.status).toBe(201);
+    expect(res.body.success).toBe(true);
+    expect(res.body.data).toBeDefined();
+    expect(res.body.data.goalId).toBe(999);
+  });
 });

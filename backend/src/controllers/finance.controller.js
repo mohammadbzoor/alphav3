@@ -96,7 +96,12 @@ class FinanceController {
 
   static async createGoal(req, res) {
     const result = await FinanceService.createGoal(req.user.id, req.body);
-    res.status(201).json(result);
+    res.status(201).json({
+      success: true,
+      message: 'Goal created successfully',
+      data: result,
+      meta: null
+    });
   }
 
   static async updateGoal(req, res) {
