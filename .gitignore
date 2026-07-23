@@ -20,3 +20,4 @@ schema.sql
 run_011.js
 run_all_migrations.js
 coverage/
+payload_examples.json
