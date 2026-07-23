@@ -409,17 +409,22 @@ class FinanceService {
   }
 
   static async createGoal(userId, data) {
+    if (data.goalType === 'emergency_fund') {
+      throw new AppError('Cannot manually create system-managed goal type', 403, 'SYSTEM_MANAGED_GOAL_REQUIRED');
+    }
     const normalizedData = this.validateGoalData(data, 0);
     const id = await FinanceRepository.createGoal(userId, normalizedData);
     return { goalId: id };
   }
 
   static async updateGoal(userId, goalId, data) {
-    const goals = await FinanceRepository.getGoals(userId);
-    const goal = goals.find(g => String(g.id) === String(goalId));
+    const goal = await FinanceRepository.findGoalIdentityByIdAndUserId(null, goalId, userId);
 
     if (!goal) {
       throw new AppError('Goal not found', 404, 'NOT_FOUND');
+    }
+    if (Number(goal.is_system_managed) === 1) {
+      throw new AppError('Cannot modify system-managed goals', 403, 'SYSTEM_MANAGED_GOAL_PROTECTED');
     }
     if (goal.status === 'executed') {
       throw new AppError('Executed goals cannot be edited', 400, 'GOAL_ALREADY_EXECUTED');
@@ -463,6 +468,9 @@ class FinanceService {
       const goal = await FinanceRepository.findGoalForUpdate(connection, goalId, userId);
       if (!goal) {
         throw new AppError('Goal not found or unauthorized', 404, 'NOT_FOUND');
+      }
+      if (Number(goal.is_system_managed) === 1) {
+        throw new AppError('Cannot modify system-managed goals', 403, 'SYSTEM_MANAGED_GOAL_PROTECTED');
       }
       if (goal.status !== 'active') {
         throw new AppError(`Cannot contribute to a ${goal.status} goal`, 400, 'INVALID_GOAL_STATUS');
@@ -542,8 +550,8 @@ class FinanceService {
     if (!Number.isSafeInteger(l) || l < 1 || l > 100) throw new AppError('Invalid limit', 400, 'INVALID_PAGINATION');
     if (!Number.isSafeInteger(o) || o < 0) throw new AppError('Invalid offset', 400, 'INVALID_PAGINATION');
 
-    const goal = await FinanceRepository.getGoals(userId);
-    if (!goal.some(g => String(g.id) === String(goalId))) {
+    const goal = await FinanceRepository.findGoalIdentityByIdAndUserId(null, goalId, userId);
+    if (!goal) {
       throw new AppError('Goal not found or unauthorized', 404, 'NOT_FOUND');
     }
     return await FinanceRepository.getGoalTransactions(userId, goalId, l, o);
@@ -558,6 +566,9 @@ class FinanceService {
       const goal = await FinanceRepository.findGoalForUpdate(connection, goalId, userId);
       if (!goal) {
         throw new AppError('Goal not found or unauthorized', 404, 'NOT_FOUND');
+      }
+      if (Number(goal.is_system_managed) === 1) {
+        throw new AppError('Cannot modify system-managed goals', 403, 'SYSTEM_MANAGED_GOAL_PROTECTED');
       }
 
       if (newStatus === 'paused') {
@@ -587,6 +598,14 @@ class FinanceService {
   }
 
   static async deleteGoal(userId, goalId) {
+    const goal = await FinanceRepository.findGoalIdentityByIdAndUserId(null, goalId, userId);
+    if (!goal) {
+      throw new AppError('Goal not found or unauthorized', 404, 'NOT_FOUND');
+    }
+    if (Number(goal.is_system_managed) === 1) {
+      throw new AppError('Cannot modify system-managed goals', 403, 'SYSTEM_MANAGED_GOAL_PROTECTED');
+    }
+
     const success = await FinanceRepository.deleteGoal(userId, goalId);
     if (!success) {
       throw new AppError('Goal not found or unauthorized', 404, 'NOT_FOUND');
@@ -625,6 +644,9 @@ class FinanceService {
       const goal = await FinanceRepository.findGoalForUpdate(connection, goalId, userId);
       if (!goal) {
         throw new AppError('Goal not found or unauthorized', 404, 'NOT_FOUND');
+      }
+      if (Number(goal.is_system_managed) === 1) {
+        throw new AppError('Cannot modify system-managed goals', 403, 'SYSTEM_MANAGED_GOAL_PROTECTED');
       }
       if (goal.status !== 'ready') {
         throw new AppError('Goal is not in ready status', 400, 'BAD_REQUEST');
@@ -688,6 +710,9 @@ class FinanceService {
       if (!goal) {
         throw new AppError('Goal not found or unauthorized', 404, 'NOT_FOUND');
       }
+      if (Number(goal.is_system_managed) === 1) {
+        throw new AppError('Cannot modify system-managed goals', 403, 'SYSTEM_MANAGED_GOAL_PROTECTED');
+      }
       if (goal.status !== 'ready') {
         throw new AppError('Goal is not in ready status', 400, 'BAD_REQUEST');
       }
@@ -749,6 +774,9 @@ class FinanceService {
 
       if (!firstGoal || !secondGoal) {
         throw new AppError('Goal not found or unauthorized', 404, 'NOT_FOUND');
+      }
+      if (Number(firstGoal.is_system_managed) === 1 || Number(secondGoal.is_system_managed) === 1) {
+        throw new AppError('Cannot modify system-managed goals', 403, 'SYSTEM_MANAGED_GOAL_PROTECTED');
       }
 
       const sourceGoal = String(firstId) === String(sourceGoalId) ? firstGoal : secondGoal;
@@ -844,7 +872,11 @@ class FinanceService {
     }
 
     const goals = await FinanceRepository.getGoals(userId);
-    const activeGoals = goals.filter(g => g.status === 'active');
+    const legacyGoal = goals.find(g => g.goal_type === 'emergency_fund' && Number(g.is_system_managed) === 0);
+    if (legacyGoal) {
+      throw new AppError('Legacy Emergency Fund goal requires reconciliation', 400, 'LEGACY_EMERGENCY_FUND_RECONCILIATION_REQUIRED');
+    }
+    const activeGoals = goals.filter(g => g.status === 'active' && Number(g.is_system_managed) === 0 && g.goal_type !== 'emergency_fund');
 
     const emergencyFundAmount = Math.round(savingsAmount * (emergencyFundRate / 100));
 
@@ -914,6 +946,13 @@ class FinanceService {
     }
     const idempotencyKey = this.normalizeIdempotencyKey(data.idempotencyKey, true);
 
+    
+    const allUserGoals = await FinanceRepository.getGoals(userId);
+    const legacyGoal = allUserGoals.find(g => g.goal_type === 'emergency_fund' && Number(g.is_system_managed) === 0);
+    if (legacyGoal) {
+      throw new AppError('Legacy Emergency Fund goal requires reconciliation', 400, 'LEGACY_EMERGENCY_FUND_RECONCILIATION_REQUIRED');
+    }
+
     const savingsAmount = this.normalizeMoney(data.savingsAmount, 'savingsAmount', { allowZero: true });
     const emergencyFundRate = Number(data.emergencyFundRate !== undefined ? data.emergencyFundRate : 10.0);
     if (!Number.isFinite(emergencyFundRate) || emergencyFundRate < 0 || emergencyFundRate > 100) {
@@ -968,6 +1007,7 @@ class FinanceService {
       for (const gid of requestedGoalIds) {
         const goal = await FinanceRepository.findGoalForUpdate(connection, gid, userId);
         if (!goal) throw new AppError(`Goal ${gid} not found`, 404, 'NOT_FOUND');
+        if (Number(goal.is_system_managed) === 1) throw new AppError('Cannot allocate to system-managed goal', 403, 'SYSTEM_MANAGED_GOAL_PROTECTED');
         if (goal.status !== 'active') throw new AppError(`Cannot allocate to ${goal.status} goal`, 400, 'INVALID_GOAL_STATUS');
 
         const remaining = Number(goal.target_amount) - Number(goal.current_balance);

@@ -92,10 +92,15 @@ class FinanceRepository {
   // ---------------------------------------------------------
   // GOALS
   // ---------------------------------------------------------
+  static async findGoalIdentityByIdAndUserId(executor, goalId, userId) {
+    const [rows] = await (executor || db).execute(`SELECT id, user_id, goal_type, is_system_managed, status FROM goals WHERE id = ? AND user_id = ? LIMIT 1`, [goalId, userId]);
+    return rows[0] || null;
+  }
+
   static async getGoals(userId) {
     const [rows] = await db.execute(
       `SELECT id, name, target_amount, current_balance, cycle_allocation,
-              planned_contribution, priority, status, target_date, custom_name, goal_type, created_at, ready_at, executed_at
+              planned_contribution, priority, status, target_date, custom_name, goal_type, created_at, ready_at, executed_at, is_system_managed
        FROM goals WHERE user_id = ? ORDER BY created_at DESC`,
       [userId]
     );
@@ -126,7 +131,7 @@ class FinanceRepository {
 
   static async findGoalForUpdate(connection, goalId, userId) {
     const [rows] = await connection.execute(
-      `SELECT id, user_id, status, target_amount, current_balance, planned_contribution, ready_at, name FROM goals WHERE id = ? AND user_id = ? FOR UPDATE`,
+      `SELECT id, user_id, status, target_amount, current_balance, planned_contribution, ready_at, name, is_system_managed FROM goals WHERE id = ? AND user_id = ? FOR UPDATE`,
       [goalId, userId]
     );
     return rows[0] || null;
