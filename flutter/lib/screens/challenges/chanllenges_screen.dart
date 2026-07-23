@@ -144,22 +144,38 @@ class _ChallengesScreenState extends State<ChallengesScreen> {
     );
   }
 
-  void _acceptChallenge(
+  Future<void> _acceptChallenge(
     ChallengeModel challenge,
-  ) {
-    context.read<ChallengeProvider>().acceptChallenge(challenge.id);
+  ) async {
+    try {
+      await context.read<ChallengeProvider>().acceptChallenge(challenge.templateId ?? challenge.id);
 
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        SnackBar(
-          content: Text(
-            "Challenge accepted successfully",
-            style: GoogleFonts.ibmPlexSansArabic(),
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            content: Text(
+              "Challenge accepted successfully",
+              style: GoogleFonts.ibmPlexSansArabic(),
+            ),
+            backgroundColor: const Color(0xFF0F766E),
           ),
-          backgroundColor: const Color(0xFF0F766E),
-        ),
-      );
+        );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            content: Text(
+              "Failed to accept challenge",
+              style: GoogleFonts.ibmPlexSansArabic(),
+            ),
+            backgroundColor: Colors.red,
+          ),
+        );
+    }
   }
 
   void _showChallengeDetails(

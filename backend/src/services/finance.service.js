@@ -133,12 +133,91 @@ class FinanceService {
 
       await conn.commit();
       transactionActive = false;
+      
+      // Async budget threshold check
+      FinanceService._checkBudgetThresholdAsync(userId, openCycle.id, bucket).catch(err => {
+        console.error('Async budget threshold check failed:', err.message);
+      });
+
+      const { ChallengeEngineService } = require('./challenge-engine.service');
+      ChallengeEngineService.evaluateForExpense(userId, normalizedData).catch(err => {
+        console.error('Async challenge evaluation failed (expense):', err.message);
+      });
+
       return { id, ...normalizedData };
     } catch (err) {
       if (transactionActive) await conn.rollback();
       throw err;
     } finally {
       conn.release();
+    }
+  }
+
+  static async _checkBudgetThresholdAsync(userId, cycleId, bucket) {
+    if (bucket !== 'needs' && bucket !== 'wants') return;
+
+    // Require dependencies here to avoid circular requires at file level
+    const { DashboardQueryService } = require('./dashboard.query.service');
+    const { NotificationService } = require('./notification.service');
+    const { NotificationRepository } = require('../repositories/notification.repository');
+
+    try {
+      const summary = await DashboardQueryService.getSummary(userId);
+      const cycle = summary.cycle;
+      if (!cycle || !cycle.id) return;
+
+      const bucketData = summary.buckets[bucket];
+      if (!bucketData) return;
+
+      const target = Number(bucketData.target || 0);
+      const actual = Number(bucketData.actual || 0);
+
+      if (target <= 0) return;
+
+      const usageRatio = actual / target;
+      const usagePercentage = usageRatio * 100;
+
+      let threshold = null;
+      let type = null;
+      let title = null;
+      let message = null;
+
+      const bucketAr = bucket === 'needs' ? 'الاحتياجات' : 'الرغبات';
+
+      if (usagePercentage >= 100) {
+        threshold = 100;
+        type = 'critical';
+        title = 'تم تجاوز الميزانية';
+        message = `لقد تجاوزت الحد المخصص لميزانية ${bucketAr}.`;
+      } else if (usagePercentage >= 80) {
+        threshold = 80;
+        type = 'warning';
+        title = 'تنبيه الميزانية';
+        message = `لقد استهلكت 80٪ من ميزانية ${bucketAr}.`;
+      }
+
+      if (threshold) {
+        const isDuplicate = await NotificationRepository.checkDuplicateBudgetAlert(userId, cycleId, bucket, threshold);
+        if (!isDuplicate) {
+          const actionData = { cycleId, bucket, threshold, screen: 'dashboard' };
+          
+          await NotificationService.createNotification(userId, {
+            type,
+            category: 'budget',
+            title,
+            message,
+            action_data: actionData
+          });
+
+          await NotificationService.forwardEventToN8n(userId, 'budget_alert', {
+            type, bucket, threshold, usagePercentage, actual, target
+          });
+
+          console.log(`[Budget Alert] User ${userId} exceeded ${threshold}% for ${bucket}. Notification created.`);
+        }
+      }
+    } catch (error) {
+      console.error(`_checkBudgetThresholdAsync error for User ${userId}:`, error.message);
     }
   }
 
@@ -163,6 +242,12 @@ class FinanceService {
       }
       await conn.commit();
       transactionActive = false;
+      
+      const { ChallengeEngineService } = require('./challenge-engine.service');
+      ChallengeEngineService.evaluateForExpenseDelete(userId, txLock.cycle_id).catch(err => {
+        console.error('Async challenge evaluation failed (deleteExpense):', err.message);
+      });
+
       return { success: true };
     } catch (err) {
       if (transactionActive) await conn.rollback();
@@ -526,6 +611,11 @@ class FinanceService {
 
       await connection.commit();
       transactionActive = false;
+
+      const { ChallengeEngineService } = require('./challenge-engine.service');
+      ChallengeEngineService.evaluateForGoalContribution(userId, { goalId, amount, transactionId: transaction.id }).catch(err => {
+        console.error('Async challenge evaluation failed (goalContribution):', err.message);
+      });
 
       return {
         success: true,

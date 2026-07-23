@@ -12,6 +12,9 @@ import 'package:alpha_app/screens/expenses/new_expense_screen.dart';
 import 'package:alpha_app/screens/goals/goal_history.dart';
 import 'package:alpha_app/screens/incomes/incomes_screen.dart';
 import 'package:alpha_app/screens/receipts/receipt_input_screen.dart';
+import 'package:alpha_app/screens/notifications/notifications_screen.dart';
+import 'package:alpha_app/providers/notification_provider.dart';
+import 'package:alpha_app/providers/challenge_provider.dart';
 import 'package:alpha_app/widgets/Home/progress_card.dart';
 import 'package:alpha_app/widgets/Home/quick_actions_grid.dart';
 import 'package:alpha_app/providers/cycle_provider.dart';
@@ -93,6 +96,12 @@ class _HomeScreenState extends State<HomeScreen> {
     if (!homeProvider.hasData && !homeProvider.isLoading) {
       await homeProvider.loadHomeData();
     }
+    
+    // 4. Fetch Notifications Unread Count
+    if (mounted) {
+      context.read<NotificationProvider>().fetchUnreadCount();
+      context.read<ChallengeProvider>().loadChallenges();
+    }
   }
 
   @override
@@ -166,7 +175,7 @@ class _HomeScreenState extends State<HomeScreen> {
             _HomeHeader(
                 userName: profileProvider.displayName,
                 isDark: isDark,
-                onNotificationTap: () {}),
+                onNotificationTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const NotificationsScreen()))),
             _BirthdayGreetingCard(
               isDark: isDark,
               profileProvider: profileProvider,
@@ -191,7 +200,7 @@ class _HomeScreenState extends State<HomeScreen> {
             _HomeHeader(
                 userName: profileProvider.displayName,
                 isDark: isDark,
-                onNotificationTap: () {}),
+                onNotificationTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const NotificationsScreen()))),
             _BirthdayGreetingCard(
               isDark: isDark,
               profileProvider: profileProvider,
@@ -242,7 +251,7 @@ class _HomeScreenState extends State<HomeScreen> {
             _HomeHeader(
                 userName: profileProvider.displayName,
                 isDark: isDark,
-                onNotificationTap: () {}),
+                onNotificationTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const NotificationsScreen()))),
             _BirthdayGreetingCard(
               isDark: isDark,
               profileProvider: profileProvider,
@@ -326,7 +335,7 @@ class _HomeScreenState extends State<HomeScreen> {
           _HomeHeader(
               userName: profileProvider.displayName,
               isDark: isDark,
-              onNotificationTap: () {}),
+              onNotificationTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const NotificationsScreen()))),
           _BirthdayGreetingCard(
             isDark: isDark,
             profileProvider: profileProvider,
@@ -390,6 +399,28 @@ class _HomeScreenState extends State<HomeScreen> {
           // 8. Quick Actions Grid
           SectionTitle(title: "Quick Actions", isDark: isDark),
           SizedBox(height: screenHeight * 0.015),
+          Consumer<ChallengeProvider>(
+            builder: (context, challengeProvider, child) {
+              final activeChallenge = challengeProvider.firstActiveChallenge;
+              if (activeChallenge == null) {
+                return const SizedBox.shrink();
+              }
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  ProgressCard(
+                    title: activeChallenge.title,
+                    subtitle: activeChallenge.description,
+                    progress: activeChallenge.progress,
+                    color: isDark ? AppColors.darkPrimary : AppColors.lightPrimary,
+                    icon: Icons.star,
+                    isDark: isDark,
+                  ),
+                  SizedBox(height: screenHeight * 0.03),
+                ],
+              );
+            },
+          ),
           QuickActionsGrid(
             isDark: isDark,
             onAddExpense: () async {
@@ -760,48 +791,73 @@ class _HomeHeader extends StatelessWidget {
             ],
           ),
         ),
+        const SizedBox(width: 10),
 
-        // const SizedBox(width: 10),
-
-        // InkWell(
-        //   onTap: onNotificationTap,
-        //   borderRadius:
-        //       BorderRadius.circular(15),
-        //   child: Container(
-        //     width: 46,
-        //     height: 46,
-        //     decoration: BoxDecoration(
-        //       color: isDark
-        //           ? const Color(0xFF172624)
-        //           : Colors.white,
-        //       borderRadius:
-        //           BorderRadius.circular(15),
-        //       border: Border.all(
-        //         color: isDark
-        //             ? Colors.white
-        //                 .withOpacity(0.05)
-        //             : Colors.black
-        //                 .withOpacity(0.05),
-        //       ),
-        //       boxShadow: isDark
-        //           ? null
-        //           : [
-        //               BoxShadow(
-        //                 color: Colors.black
-        //                     .withOpacity(0.04),
-        //                 blurRadius: 12,
-        //                 offset:
-        //                     const Offset(0, 5),
-        //               ),
-        //             ],
-        //     ),
-        //     child: const Icon(
-        //       Icons.notifications_none_rounded,
-        //       color: Color(0xFFF4C95D),
-        //       size: 24,
-        //     ),
-        //   ),
-        // ),
+        Consumer<NotificationProvider>(
+          builder: (context, notificationProvider, _) {
+            final unreadCount = notificationProvider.unreadCount;
+            return InkWell(
+              onTap: onNotificationTap,
+              borderRadius: BorderRadius.circular(15),
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Container(
+                    width: 46,
+                    height: 46,
+                    decoration: BoxDecoration(
+                      color: isDark ? const Color(0xFF172624) : Colors.white,
+                      borderRadius: BorderRadius.circular(15),
+                      border: Border.all(
+                        color: isDark
+                            ? Colors.white.withOpacity(0.05)
+                            : Colors.black.withOpacity(0.05),
+                      ),
+                      boxShadow: isDark
+                          ? null
+                          : [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.04),
+                                blurRadius: 12,
+                                offset: const Offset(0, 5),
+                              ),
+                            ],
+                    ),
+                    child: const Icon(
+                      Icons.notifications_none_rounded,
+                      color: Color(0xFFF4C95D),
+                      size: 26,
+                    ),
+                  ),
+                  if (unreadCount > 0)
+                    Positioned(
+                      top: -2,
+                      right: -2,
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: Colors.red,
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: isDark ? AppColors.darkBackground : AppColors.lightBackground,
+                            width: 2,
+                          ),
+                        ),
+                        child: Text(
+                          unreadCount > 9 ? '9+' : unreadCount.toString(),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            );
+          },
+        ),
       ],
     );
   }

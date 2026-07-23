@@ -6,6 +6,7 @@ import 'package:alpha_app/providers/financial_analysis_provider.dart';
 import 'package:alpha_app/providers/financial_setup_provider.dart';
 import 'package:alpha_app/providers/goal_provider.dart';
 import 'package:alpha_app/providers/home_provider.dart';
+import 'package:alpha_app/providers/notification_provider.dart';
 
 import 'package:alpha_app/providers/language_provider.dart';
 import 'package:alpha_app/providers/leaderbord_provider.dart';
@@ -87,6 +88,9 @@ void main() async {
           ),
           ChangeNotifierProvider(
             create: (_) => FinancialAnalysisProvider(),
+          ),
+          ChangeNotifierProvider(
+            create: (_) => NotificationProvider(),
           ),
           ChangeNotifierProvider(
             create: (_) => ProfileProvider(),

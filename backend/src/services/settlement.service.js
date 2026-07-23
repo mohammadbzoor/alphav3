@@ -508,6 +508,11 @@ class SettlementService {
       await conn.commit();
       transactionActive = false;
 
+      const { ChallengeEngineService } = require('./challenge-engine.service');
+      ChallengeEngineService.evaluateForSettlement(userId, cycleId).catch(err => {
+        console.error('Async challenge evaluation failed (settlement):', err.message);
+      });
+
       return {
         settlementId: settlement.id,
         cycleId,
