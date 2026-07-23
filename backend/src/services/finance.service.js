@@ -1292,35 +1292,68 @@ class FinanceService {
 
       // Removed expectedIncome assignment because it is protected now
 
-      let paymentDay;
-      if (data.paymentDay !== undefined) {
-        paymentDay = Number(data.paymentDay);
-        if (!Number.isSafeInteger(paymentDay) || paymentDay < 1 || paymentDay > 31) {
-          throw new AppError('Salary payment day must be between 1 and 31', 400, 'BAD_REQUEST');
+      const hasPaymentDay = Object.prototype.hasOwnProperty.call(data, 'paymentDay');
+      const hasCurrency = Object.prototype.hasOwnProperty.call(data, 'currency');
+      const hasTimezone = Object.prototype.hasOwnProperty.call(data, 'timezone');
+
+      let paymentDay = hasPaymentDay ? data.paymentDay : undefined;
+      let currency = hasCurrency ? data.currency : undefined;
+      let timezone = hasTimezone ? data.timezone : undefined;
+
+      if (hasPaymentDay) {
+        if (paymentDay === undefined) {
+          throw new AppError('paymentDay cannot be undefined', 400, 'BAD_REQUEST');
+        }
+        if (paymentDay !== null) {
+          paymentDay = Number(paymentDay);
+          if (!Number.isSafeInteger(paymentDay) || paymentDay < 1 || paymentDay > 31) {
+            throw new AppError('Salary payment day must be between 1 and 31', 400, 'BAD_REQUEST');
+          }
         }
       }
 
-      let currency = data.currency;
-      let timezone = data.timezone;
+      if (hasCurrency) {
+        if (currency === undefined || currency === null || typeof currency !== 'string' || currency.trim() === '') {
+          throw new AppError('Currency must be a valid 3-letter code', 400, 'BAD_REQUEST');
+        }
+        currency = currency.trim().toUpperCase();
+        if (currency.length !== 3) {
+          throw new AppError('Currency must be a valid 3-letter code', 400, 'BAD_REQUEST');
+        }
+        if (currency !== 'JOD') {
+          throw new AppError('Unsupported currency. Only JOD is supported at this time.', 400, 'BAD_REQUEST');
+        }
+      }
+
+      if (hasTimezone) {
+        if (timezone === undefined || typeof timezone !== 'string' || timezone.trim() === '') {
+          throw new AppError('Timezone must be a valid string', 400, 'BAD_REQUEST');
+        }
+        timezone = timezone.trim();
+      }
 
       if (isNew) {
+        const finalCurrency = hasCurrency ? currency : 'JOD';
+        const finalTimezone = hasTimezone ? timezone : 'Asia/Amman';
+        const finalPaymentDay = hasPaymentDay ? paymentDay : null;
+        
         await connection.execute(
-          'INSERT INTO financial_profiles (user_id, payment_day, currency, timezone) VALUES (?, ?, ?, ?)',
-          [userId, paymentDay || null, currency || null, timezone || null]
+          'INSERT INTO financial_profiles (user_id, payment_day, currency, timezone, expected_monthly_income, onboarding_status) VALUES (?, ?, ?, ?, 0, "not_started")',
+          [userId, finalPaymentDay, finalCurrency, finalTimezone]
         );
       } else {
         const updates = [];
         const values = [];
 
-        if (paymentDay !== undefined) {
+        if (hasPaymentDay) {
           updates.push('payment_day = ?');
           values.push(paymentDay);
         }
-        if (currency !== undefined) {
+        if (hasCurrency) {
           updates.push('currency = ?');
           values.push(currency);
         }
-        if (timezone !== undefined) {
+        if (hasTimezone) {
           updates.push('timezone = ?');
           values.push(timezone);
         }
