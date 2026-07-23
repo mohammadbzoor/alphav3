@@ -4,10 +4,14 @@ import 'package:alpha_app/models/expense_model.dart';
 import 'package:alpha_app/providers/expense_provider.dart';
 import 'package:alpha_app/providers/themeprovider.dart';
 import 'package:alpha_app/screens/expenses/expense_date_screen.dart';
+import 'package:alpha_app/screens/main_screen.dart';
 import 'package:alpha_app/widgets/custom_textfield.dart';
 import 'package:alpha_app/widgets/multi_select_chip.dart';
 import 'package:alpha_app/widgets/option_chip.dart';
 import 'package:alpha_app/widgets/app_button.dart';
+import 'package:alpha_app/screens/receipts/receipt_input_screen.dart';
+import 'package:alpha_app/screens/voice/voice_record_screen.dart';
+import 'package:alpha_app/core/utils/dashboard_action_result.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
@@ -21,16 +25,13 @@ class NewExpenseScreen extends StatefulWidget {
   });
 
   @override
-  State<NewExpenseScreen> createState() =>
-      _NewExpenseScreenState();
+  State<NewExpenseScreen> createState() => _NewExpenseScreenState();
 }
 
-class _NewExpenseScreenState
-    extends State<NewExpenseScreen> {
+class _NewExpenseScreenState extends State<NewExpenseScreen> {
   bool _formPrepared = false;
 
-  bool get _isEditing =>
-      widget.expenseToEdit != null;
+  bool get _isEditing => widget.expenseToEdit != null;
 
   @override
   void initState() {
@@ -43,8 +44,7 @@ class _NewExpenseScreenState
 
       _formPrepared = true;
 
-      final provider =
-          context.read<ExpenseProvider>();
+      final provider = context.read<ExpenseProvider>();
 
       if (widget.expenseToEdit != null) {
         provider.prepareExpenseForEditing(
@@ -58,20 +58,15 @@ class _NewExpenseScreenState
 
   @override
   Widget build(BuildContext context) {
-    final provider =
-        context.watch<ExpenseProvider>();
+    final provider = context.watch<ExpenseProvider>();
 
-    final themeProvider =
-        context.watch<Themeprovider>();
+    final themeProvider = context.watch<Themeprovider>();
 
-    final bool isDark =
-        themeProvider.isDark;
+    final bool isDark = themeProvider.isDark;
 
-    final double screenW =
-        Device.width(context);
+    final double screenW = Device.width(context);
 
-    final double screenH =
-        Device.height(context);
+    final double screenH = Device.height(context);
 
     return PopScope(
       canPop: false,
@@ -84,21 +79,18 @@ class _NewExpenseScreenState
         }
       },
       child: Scaffold(
-        backgroundColor: isDark
-            ? AppColors.darkBackground
-            : AppColors.lightBackground,
+        backgroundColor:
+            isDark ? AppColors.darkBackground : AppColors.lightBackground,
         body: SafeArea(
           child: Stack(
             children: [
               SingleChildScrollView(
-                physics:
-                    const BouncingScrollPhysics(),
+                physics: const BouncingScrollPhysics(),
                 padding: EdgeInsets.symmetric(
                   horizontal: screenW * 0.05,
                 ),
                 child: Column(
-                  crossAxisAlignment:
-                      CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     SizedBox(
                       height: screenH * 0.022,
@@ -117,14 +109,12 @@ class _NewExpenseScreenState
                       _isEditing
                           ? "Update the expense details below."
                           : "Record the expense accurately so Alpha can analyze its effect on your budget.",
-                      style: GoogleFonts
-                          .ibmPlexSansArabic(
+                      style: GoogleFonts.ibmPlexSansArabic(
                         color: isDark
                             ? AppColors.darkSubText
                             : AppColors.lightSubText,
                         fontSize: screenW * 0.034,
-                        fontWeight:
-                            FontWeight.w500,
+                        fontWeight: FontWeight.w500,
                         height: 1.5,
                       ),
                     ),
@@ -133,10 +123,67 @@ class _NewExpenseScreenState
                       height: screenH * 0.03,
                     ),
 
-                    // ================= CATEGORY =================
+                    if (!_isEditing) ...[
+                      _SectionTitle(
+                        title: "Input Method",
+                        screenW: screenW,
+                        isDark: isDark,
+                      ),
+                      SizedBox(height: screenH * 0.012),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _InputOptionCard(
+                              icon: Icons.edit_note,
+                              title: "Manual",
+                              isSelected: true,
+                              isDark: isDark,
+                              onTap: () {}, // Already here
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: _InputOptionCard(
+                              icon: Icons.document_scanner_outlined,
+                              title: "Receipt",
+                              isSelected: false,
+                              isDark: isDark,
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: (_) =>
+                                          const ReceiptInputScreen()),
+                                );
+                              },
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: _InputOptionCard(
+                              icon: Icons.mic_none,
+                              title: "Voice",
+                              isSelected: false,
+                              isDark: isDark,
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: (_) =>
+                                          const VoiceRecordScreen()),
+                                );
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: screenH * 0.03),
+                    ],
+
+                    // ================= MOVEMENT TYPE =================
 
                     _SectionTitle(
-                      title: "Category",
+                      title: "Movement type",
                       screenW: screenW,
                       isDark: isDark,
                     ),
@@ -145,103 +192,10 @@ class _NewExpenseScreenState
                       height: screenH * 0.012,
                     ),
 
-                    MultiSelectChip(
-                      items: provider.categories,
-                      selectedItems:
-                          provider.selectedCategory ==
-                                  null
-                              ? []
-                              : [
-                                  provider
-                                      .selectedCategory!,
-                                ],
-                      onTap:
-                          provider.setCategory,
-                    ),
-
-                    if (provider.selectedCategory ==
-                        "Other") ...[
-                      SizedBox(
-                        height: screenH * 0.018,
-                      ),
-
-                      CustomTextfield(
-                        controller: provider
-                            .customCategoryController,
-                        hint:
-                            "Enter category name",
-                        type: TextFieldType.name,
-                        icon:
-                            Icons.category_outlined,
-                        onChanged: (_) {
-                          provider
-                              .notifyExpenseFormChanged();
-                        },
-                      ),
-                    ],
-
-                    SizedBox(
-                      height: screenH * 0.025,
-                    ),
-
-                    // ================= EXPENSE NAME =================
-
-                    _SectionTitle(
-                      title: "Expense name",
-                      screenW: screenW,
-                      isDark: isDark,
-                    ),
-
-                    SizedBox(
-                      height: screenH * 0.01,
-                    ),
-
-                    CustomTextfield(
-                      controller:
-                          provider.titleController,
-                      hint:
-                          "Enter expense name",
-                      type: TextFieldType.name,
-                      icon: Icons
-                          .receipt_long_outlined,
-                      onChanged: (_) {
-                        provider
-                            .notifyExpenseFormChanged();
-                      },
-                    ),
-
-                    SizedBox(
-                      height: screenH * 0.022,
-                    ),
-
-                    // ================= AMOUNT =================
-
-                    _SectionTitle(
-                      title: "Amount",
-                      screenW: screenW,
-                      isDark: isDark,
-                    ),
-
-                    SizedBox(
-                      height: screenH * 0.01,
-                    ),
-
-                    CustomTextfield(
-                      controller:
-                          provider.amountController,
-                      hint: "Enter amount",
-                      type: TextFieldType.number,
-                      icon:
-                          Icons.payments_outlined,
-                      suffix: const Padding(
-                        padding:
-                            EdgeInsets.all(12),
-                        child: Text("JOD"),
-                      ),
-                      onChanged: (_) {
-                        provider
-                            .notifyExpenseFormChanged();
-                      },
+                    OptionChip(
+                      items: provider.movementTypes,
+                      selected: provider.movementTypeLabel,
+                      onTap: provider.setMovementTypeByLabel,
                     ),
 
                     SizedBox(
@@ -265,16 +219,14 @@ class _NewExpenseScreenState
                         "Need",
                         "Want",
                       ],
-                      selected:
-                          provider.expenseType ==
-                                  ExpenseType.need
-                              ? "Need"
-                              : "Want",
+                      selected: provider.expenseType == ExpenseType.need
+                          ? "Need"
+                          : (provider.expenseType == ExpenseType.want
+                              ? "Want"
+                              : null),
                       onTap: (value) {
                         provider.setExpenseType(
-                          value == "Need"
-                              ? ExpenseType.need
-                              : ExpenseType.want,
+                          value == "Need" ? ExpenseType.need : ExpenseType.want,
                         );
                       },
                     ),
@@ -283,10 +235,10 @@ class _NewExpenseScreenState
                       height: screenH * 0.022,
                     ),
 
-                    // ================= MOVEMENT TYPE =================
+                    // ================= CATEGORY =================
 
                     _SectionTitle(
-                      title: "Movement type",
+                      title: "Category",
                       screenW: screenW,
                       isDark: isDark,
                     ),
@@ -295,75 +247,50 @@ class _NewExpenseScreenState
                       height: screenH * 0.012,
                     ),
 
-                    OptionChip(
-                      items:
-                          provider.movementTypes,
-                      selected:
-                          provider.movementTypeLabel,
-                      onTap: provider
-                          .setMovementTypeByLabel,
-                    ),
-
-                    if (provider.isRecurring) ...[
-                      SizedBox(
-                        height: screenH * 0.022,
-                      ),
-
-                      _SectionTitle(
-                        title: "Coverage period",
-                        screenW: screenW,
-                        isDark: isDark,
-                      ),
-
-                      SizedBox(
-                        height: screenH * 0.012,
-                      ),
-
+                    if (provider.expenseType == null)
+                      Text(
+                        "Select an expense type to view categories.",
+                        style: GoogleFonts.ibmPlexSansArabic(
+                          color: isDark
+                              ? AppColors.darkSubText
+                              : AppColors.lightSubText,
+                          fontSize: screenW * 0.035,
+                        ),
+                      )
+                    else
                       MultiSelectChip(
-                        items:
-                            provider.coveragePeriods,
-                        selectedItems: [
-                          provider
-                              .coveragePeriodLabel,
-                        ],
-                        onTap: provider
-                            .setCoveragePeriodByLabel,
+                        items: provider.categories,
+                        selectedItems: provider.selectedCategory == null
+                            ? []
+                            : [
+                                provider.selectedCategory!,
+                              ],
+                        onTap: provider.setCategory,
+                      ),
+
+                    if (provider.selectedCategory == "Other") ...[
+                      SizedBox(
+                        height: screenH * 0.018,
+                      ),
+                      CustomTextfield(
+                        controller: provider.customCategoryController,
+                        hint: "Enter category name",
+                        type: TextFieldType.name,
+                        icon: Icons.category_outlined,
+                        onChanged: (_) {
+                          provider.notifyExpenseFormChanged();
+                        },
                       ),
                     ],
 
                     SizedBox(
-                      height: screenH * 0.022,
+                      height: screenH * 0.025,
                     ),
 
-                    // ================= PAYMENT METHOD =================
+                    // ================= EXPENSE NAME =================
 
                     _SectionTitle(
-                      title: "Payment method",
-                      screenW: screenW,
-                      isDark: isDark,
-                    ),
-
-                    SizedBox(
-                      height: screenH * 0.012,
-                    ),
-
-                    OptionChip(
-                      items:
-                          provider.paymentMethods,
-                      selected:
-                          provider.paymentMethod,
-                      onTap: provider
-                          .setPaymentMethod,
-                    ),
-
-                    SizedBox(
-                      height: screenH * 0.022,
-                    ),
-
-                    // ================= DATE =================
-
-                    _SectionTitle(
-                      title: "Date",
+                      title: "Expense name",
                       screenW: screenW,
                       isDark: isDark,
                     ),
@@ -373,36 +300,149 @@ class _NewExpenseScreenState
                     ),
 
                     CustomTextfield(
-                      controller:
-                          provider.dateController,
-                      hint:
-                          "Select expense date",
+                      controller: provider.titleController,
+                      hint: "Enter expense name",
+                      type: TextFieldType.name,
+                      icon: Icons.receipt_long_outlined,
+                      onChanged: (_) {
+                        provider.notifyExpenseFormChanged();
+                      },
+                    ),
+
+                    SizedBox(
+                      height: screenH * 0.022,
+                    ),
+
+                    // ================= AMOUNT =================
+
+                    _SectionTitle(
+                      title: "Amount",
+                      screenW: screenW,
+                      isDark: isDark,
+                    ),
+
+                    SizedBox(
+                      height: screenH * 0.01,
+                    ),
+
+                    CustomTextfield(
+                      controller: provider.amountController,
+                      hint: "Enter amount",
+                      type: TextFieldType.number,
+                      icon: Icons.payments_outlined,
+                      suffix: const Padding(
+                        padding: EdgeInsets.all(12),
+                        child: Text("JOD"),
+                      ),
+                      onChanged: (_) {
+                        provider.notifyExpenseFormChanged();
+                      },
+                    ),
+
+                    SizedBox(
+                      height: screenH * 0.022,
+                    ),
+
+                    // ================= RECURRING FIELDS =================
+
+                    if (provider.isRecurring) ...[
+                      _SectionTitle(
+                        title: "Coverage period",
+                        screenW: screenW,
+                        isDark: isDark,
+                      ),
+                      SizedBox(
+                        height: screenH * 0.012,
+                      ),
+                      MultiSelectChip(
+                        items: provider.coveragePeriods,
+                        selectedItems: provider.coveragePeriodLabel == null
+                            ? []
+                            : [
+                                provider.coveragePeriodLabel!,
+                              ],
+                        onTap: provider.setCoveragePeriodByLabel,
+                      ),
+                      SizedBox(
+                        height: screenH * 0.022,
+                      ),
+                      _SectionTitle(
+                        title: "Flexibility",
+                        screenW: screenW,
+                        isDark: isDark,
+                      ),
+                      SizedBox(
+                        height: screenH * 0.012,
+                      ),
+                      OptionChip(
+                        items: provider.flexibilities,
+                        selected: provider.flexibility,
+                        onTap: provider.setFlexibility,
+                      ),
+                      SizedBox(
+                        height: screenH * 0.022,
+                      ),
+                    ] else ...[
+                      // ================= PAYMENT METHOD =================
+                      _SectionTitle(
+                        title: "Payment method",
+                        screenW: screenW,
+                        isDark: isDark,
+                      ),
+                      SizedBox(
+                        height: screenH * 0.012,
+                      ),
+                      OptionChip(
+                        items: provider.paymentMethods,
+                        selected: provider.paymentMethod,
+                        onTap: provider.setPaymentMethod,
+                      ),
+                      SizedBox(
+                        height: screenH * 0.022,
+                      ),
+                    ],
+
+                    // ================= DATE =================
+
+                    _SectionTitle(
+                      title: provider.isRecurring
+                          ? "Next Due Date"
+                          : "Transaction Date",
+                      screenW: screenW,
+                      isDark: isDark,
+                    ),
+
+                    SizedBox(
+                      height: screenH * 0.01,
+                    ),
+
+                    CustomTextfield(
+                      controller: provider.dateController,
+                      hint: provider.isRecurring
+                          ? "Select due date"
+                          : "Select transaction date",
                       type: TextFieldType.date,
-                      icon: Icons
-                          .calendar_month_outlined,
+                      icon: Icons.calendar_month_outlined,
                       readOnly: true,
-                    onTap: () async {
-  final selectedDate =
-      await Navigator.push<DateTime>(
-    context,
-    MaterialPageRoute(
-      builder: (_) =>
-          ExpenseDateScreen(
-        initialDate:
-            provider.selectedDate,
-      ),
-    ),
-  );
+                      onTap: () async {
+                        final selectedDate = await Navigator.push<DateTime>(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => ExpenseDateScreen(
+                              initialDate: provider.selectedDate,
+                              isRecurring: provider.isRecurring,
+                            ),
+                          ),
+                        );
 
-  if (selectedDate == null ||
-      !context.mounted) {
-    return;
-  }
+                        if (selectedDate == null || !context.mounted) {
+                          return;
+                        }
 
-  provider.setDate(
-    selectedDate,
-  );
-},
+                        provider.setDate(
+                          selectedDate,
+                        );
+                      },
                     ),
 
                     SizedBox(
@@ -422,22 +462,36 @@ class _NewExpenseScreenState
                     ),
 
                     CustomTextfield(
-                      controller:
-                          provider.noteController,
+                      controller: provider.noteController,
                       hint: "Add a note",
                       type: TextFieldType.name,
                       icon: Icons.notes_rounded,
                       onChanged: (_) {
-                        provider
-                            .notifyExpenseFormChanged();
+                        provider.notifyExpenseFormChanged();
                       },
                     ),
-
-                  
 
                     SizedBox(
                       height: screenH * 0.03,
                     ),
+
+                    // ================= DISABLED REASON =================
+
+                    if (!provider.isValid) ...[
+                      Padding(
+                        padding: EdgeInsets.only(bottom: screenH * 0.015),
+                        child: Text(
+                          provider.validationMessage ?? "",
+                          style: GoogleFonts.ibmPlexSansArabic(
+                            color: isDark
+                                ? AppColors.darkError
+                                : AppColors.lightError,
+                            fontSize: screenW * 0.035,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ],
 
                     // ================= SAVE BUTTON =================
 
@@ -463,37 +517,36 @@ class _NewExpenseScreenState
                               SnackBar(
                                 content: Text(
                                   "Please complete all required fields",
-                                  style: GoogleFonts
-                                      .ibmPlexSansArabic(
-                                          fontSize: screenW * 0.04,
-                fontWeight:
-                    FontWeight.w500,
-                                      ),
+                                  style: GoogleFonts.ibmPlexSansArabic(
+                                    fontSize: screenW * 0.04,
+                                    fontWeight: FontWeight.w500,
+                                  ),
                                 ),
                                 backgroundColor: isDark
                                     ? AppColors.darkError
                                     : AppColors.lightError,
-                                behavior:
-                                    SnackBarBehavior.floating,
+                                behavior: SnackBarBehavior.floating,
                               ),
                             );
 
                           return;
                         }
 
-                        final bool wasEditing =
-                            _isEditing;
+                        final bool wasEditing = _isEditing;
 
                         final bool addedToSession =
-                            provider
-                                    .isShoppingSessionActive &&
-                                !wasEditing;
+                            provider.isShoppingSessionActive && !wasEditing;
 
-                        final bool saved =
-                            await provider
-                                .saveCurrentExpense();
+                        final bool saved = await provider.saveCurrentExpense();
 
                         if (!mounted) {
+                          return;
+                        }
+
+                        if (provider.errorMessage ==
+                                'NO_ACTIVE_FINANCIAL_CYCLE' ||
+                            provider.errorMessage == 'CYCLE_NOT_FOUND') {
+                          _showNoActiveCycleDialog(context, provider);
                           return;
                         }
 
@@ -504,18 +557,15 @@ class _NewExpenseScreenState
                               SnackBar(
                                 content: Text(
                                   "Could not save expense",
-                                  style: GoogleFonts
-                                      .ibmPlexSansArabic(
-                                          fontSize: screenW * 0.04,
-                fontWeight:
-                    FontWeight.w500,
-                                      ),
+                                  style: GoogleFonts.ibmPlexSansArabic(
+                                    fontSize: screenW * 0.04,
+                                    fontWeight: FontWeight.w500,
+                                  ),
                                 ),
                                 backgroundColor: isDark
                                     ? AppColors.darkError
                                     : AppColors.lightError,
-                                behavior:
-                                    SnackBarBehavior.floating,
+                                behavior: SnackBarBehavior.floating,
                               ),
                             );
 
@@ -532,25 +582,21 @@ class _NewExpenseScreenState
                                     : addedToSession
                                         ? "Expense added to shopping session"
                                         : "Expense added successfully",
-                                style: GoogleFonts
-                                    .ibmPlexSansArabic(
-                                 
-                                      fontSize: screenW * 0.04,
-                fontWeight:
-                    FontWeight.w500,
+                                style: GoogleFonts.ibmPlexSansArabic(
+                                  fontSize: screenW * 0.04,
+                                  fontWeight: FontWeight.w500,
                                 ),
                               ),
                               backgroundColor: isDark
                                   ? AppColors.darkSecondary
                                   : AppColors.lightSecondary,
-                              behavior:
-                                  SnackBarBehavior.floating,
+                              behavior: SnackBarBehavior.floating,
                             ),
                           );
 
                         Navigator.pop(
                           context,
-                          true,
+                          DashboardActionResult.created,
                         );
                       },
                     ),
@@ -561,13 +607,11 @@ class _NewExpenseScreenState
                   ],
                 ),
               ),
-
               if (provider.isSaving)
                 Positioned.fill(
                   child: AbsorbPointer(
                     child: Container(
-                      color: Colors.black
-                          .withOpacity(0.15),
+                      color: Colors.black.withOpacity(0.15),
                     ),
                   ),
                 ),
@@ -586,49 +630,34 @@ class _NewExpenseScreenState
       children: [
         InkWell(
           onTap: _closeScreen,
-          borderRadius:
-              BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(12),
           child: Container(
             width: screenW * 0.11,
             height: screenW * 0.11,
             decoration: BoxDecoration(
-              color: isDark
-                  ? const Color(0xFF203330)
-                  : Colors.white,
-              borderRadius:
-                  BorderRadius.circular(12),
+              color: isDark ? const Color(0xFF203330) : Colors.white,
+              borderRadius: BorderRadius.circular(12),
               border: Border.all(
                 color: isDark
-                    ? Colors.white
-                        .withOpacity(0.04)
-                    : Colors.black
-                        .withOpacity(0.05),
+                    ? Colors.white.withOpacity(0.04)
+                    : Colors.black.withOpacity(0.05),
               ),
             ),
             child: Icon(
               Icons.arrow_back_ios_new_rounded,
-              color: isDark
-                  ? AppColors.darkText
-                  : AppColors.lightText,
+              color: isDark ? AppColors.darkText : AppColors.lightText,
               size: screenW * 0.05,
             ),
           ),
         ),
-
         SizedBox(
           width: screenW * 0.035,
         ),
-
         Expanded(
           child: Text(
-            _isEditing
-                ? "Edit Expense"
-                : "Add Expense",
-            style: GoogleFonts
-                .ibmPlexSansArabic(
-              color: isDark
-                  ? AppColors.darkText
-                  : AppColors.lightText,
+            _isEditing ? "Edit Expense" : "Add Expense",
+            style: GoogleFonts.ibmPlexSansArabic(
+              color: isDark ? AppColors.darkText : AppColors.lightText,
               fontSize: screenW * 0.065,
               fontWeight: FontWeight.bold,
             ),
@@ -642,8 +671,7 @@ class _NewExpenseScreenState
     required ExpenseProvider provider,
     required bool isDark,
   }) async {
-    final selectedDate =
-        await showDatePicker(
+    final selectedDate = await showDatePicker(
       context: context,
       initialDate: provider.selectedDate,
       firstDate: DateTime(2020),
@@ -654,14 +682,10 @@ class _NewExpenseScreenState
       ) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme:
-                ColorScheme.fromSeed(
-              seedColor: isDark
-                  ? AppColors.darkPrimary
-                  : AppColors.lightPrimary,
-              brightness: isDark
-                  ? Brightness.dark
-                  : Brightness.light,
+            colorScheme: ColorScheme.fromSeed(
+              seedColor:
+                  isDark ? AppColors.darkPrimary : AppColors.lightPrimary,
+              brightness: isDark ? Brightness.dark : Brightness.light,
             ),
           ),
           child: child!,
@@ -669,8 +693,7 @@ class _NewExpenseScreenState
       },
     );
 
-    if (selectedDate == null ||
-        !mounted) {
+    if (selectedDate == null || !mounted) {
       return;
     }
 
@@ -678,11 +701,82 @@ class _NewExpenseScreenState
   }
 
   void _closeScreen() {
-    context
-        .read<ExpenseProvider>()
-        .clearForm();
+    context.read<ExpenseProvider>().clearForm();
 
     Navigator.pop(context);
+  }
+
+  void _showNoActiveCycleDialog(
+      BuildContext context, ExpenseProvider provider) {
+    showModalBottomSheet(
+        context: context,
+        isDismissible: false,
+        enableDrag: false,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        builder: (ctx) {
+          return StatefulBuilder(builder: (context, setState) {
+            final isDark = Theme.of(context).brightness == Brightness.dark;
+            final screenW = Device.width(context);
+            final screenH = Device.height(context);
+
+            return SafeArea(
+              child: Padding(
+                padding: EdgeInsets.all(screenW * 0.05),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text(
+                      "No Active Financial Cycle",
+                      style: GoogleFonts.ibmPlexSansArabic(
+                        fontSize: screenW * 0.05,
+                        fontWeight: FontWeight.bold,
+                        color:
+                            isDark ? AppColors.darkText : AppColors.lightText,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    SizedBox(height: screenH * 0.015),
+                    Text(
+                      "Start a financial cycle before adding transactions.",
+                      style: GoogleFonts.ibmPlexSansArabic(
+                        fontSize: screenW * 0.04,
+                        fontWeight: FontWeight.w500,
+                        color: isDark
+                            ? AppColors.darkSubText
+                            : AppColors.lightSubText,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    SizedBox(height: screenH * 0.03),
+                    AppButton(
+                      text: "Start Financial Cycle",
+                      isDark: isDark,
+                      onPressed: () {
+                        Navigator.pop(ctx);
+                        Navigator.pushAndRemoveUntil(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const MainNavigationScreen(),
+                          ),
+                          (route) => false,
+                        );
+                      },
+                    ),
+                    SizedBox(height: screenH * 0.015),
+                    AppButton(
+                      text: "Cancel",
+                      isDark: isDark,
+                      onPressed: () {
+                        Navigator.pop(ctx);
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            );
+          });
+        });
   }
 }
 
@@ -705,16 +799,72 @@ class _SectionTitle extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       title,
-      style:
-          GoogleFonts.ibmPlexSansArabic(
+      style: GoogleFonts.ibmPlexSansArabic(
         fontSize: screenW * 0.04,
-        color: isDark
-            ? AppColors.darkSubText
-            : AppColors.lightSubText,
+        color: isDark ? AppColors.darkSubText : AppColors.lightSubText,
         fontWeight: FontWeight.bold,
       ),
     );
   }
 }
 
+// =====================================================
+// INPUT OPTION CARD
+// =====================================================
 
+class _InputOptionCard extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final bool isSelected;
+  final bool isDark;
+  final VoidCallback onTap;
+
+  const _InputOptionCard({
+    required this.icon,
+    required this.title,
+    required this.isSelected,
+    required this.isDark,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final color = isSelected
+        ? (isDark ? AppColors.darkPrimary : AppColors.lightPrimary)
+        : (isDark ? AppColors.darkBorder : AppColors.lightBorder);
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? color.withOpacity(0.1)
+              : (isDark ? AppColors.darkBackground : AppColors.lightBackground),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: color,
+            width: isSelected ? 2 : 1,
+          ),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, color: color, size: 28),
+            const SizedBox(height: 8),
+            Text(
+              title,
+              style: GoogleFonts.ibmPlexSansArabic(
+                color: isSelected
+                    ? color
+                    : (isDark ? AppColors.darkSubText : AppColors.lightSubText),
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                fontSize: 12,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

@@ -18,12 +18,14 @@ class ForgetPasswordScreen extends StatelessWidget {
     final authProvider = Provider.of<AuthProvider>(context);
 
     return Scaffold(
-      backgroundColor: isDark ? AppColors.darkBackground : AppColors.lightBackground,
+      backgroundColor:
+          isDark ? AppColors.darkBackground : AppColors.lightBackground,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios, color: isDark ? AppColors.darkText : AppColors.lightText),
+          icon: Icon(Icons.arrow_back_ios,
+              color: isDark ? AppColors.darkText : AppColors.lightText),
           onPressed: () => Navigator.pop(context),
         ),
       ),
@@ -46,7 +48,8 @@ class ForgetPasswordScreen extends StatelessWidget {
               Text(
                 'Please enter your email address to receive a verification code.',
                 style: GoogleFonts.ibmPlexSansArabic(
-                  color: isDark ? AppColors.darkSubText : AppColors.lightSubText,
+                  color:
+                      isDark ? AppColors.darkSubText : AppColors.lightSubText,
                   fontSize: 16,
                 ),
               ),
@@ -56,7 +59,8 @@ class ForgetPasswordScreen extends StatelessWidget {
                   color: isDark ? AppColors.darkCard : Colors.white,
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
-                    color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+                    color:
+                        isDark ? AppColors.darkBorder : AppColors.lightBorder,
                   ),
                 ),
                 child: TextField(
@@ -68,14 +72,19 @@ class ForgetPasswordScreen extends StatelessWidget {
                   decoration: InputDecoration(
                     prefixIcon: Icon(
                       Icons.email_outlined,
-                      color: isDark ? AppColors.darkSecondary : AppColors.lightSecondary,
+                      color: isDark
+                          ? AppColors.darkSecondary
+                          : AppColors.lightSecondary,
                     ),
                     hintText: 'Email',
                     hintStyle: GoogleFonts.ibmPlexSansArabic(
-                      color: isDark ? AppColors.darkSubText : AppColors.lightSubText,
+                      color: isDark
+                          ? AppColors.darkSubText
+                          : AppColors.lightSubText,
                     ),
                     border: InputBorder.none,
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+                    contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 20, vertical: 20),
                   ),
                 ),
               ),
@@ -95,15 +104,19 @@ class ForgetPasswordScreen extends StatelessWidget {
                   onPressed: authProvider.isLoading
                       ? () {}
                       : () async {
-                          final success = await authProvider.sendPasswordResetOtp();
+                          final success =
+                              await authProvider.sendPasswordResetOtp();
                           if (success && context.mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('If the account exists, a verification code has been sent.')),
+                              const SnackBar(
+                                  content: Text(
+                                      'If the account exists, a verification code has been sent.')),
                             );
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (context) => ForgetPasswordOtpScreen(email: authProvider.email),
+                                builder: (context) => ForgetPasswordOtpScreen(
+                                    email: authProvider.email),
                               ),
                             );
                           }

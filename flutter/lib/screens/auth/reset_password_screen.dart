@@ -24,7 +24,8 @@ class ResetPasswordScreen extends StatefulWidget {
 class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
   bool _obscureText = true;
   bool _obscureConfirmText = true;
-  final TextEditingController _confirmPasswordController = TextEditingController();
+  final TextEditingController _confirmPasswordController =
+      TextEditingController();
 
   @override
   void dispose() {
@@ -40,22 +41,32 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
 
     if (newPass.isEmpty || confPass.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Both password fields are required'), backgroundColor: Colors.red),
+        const SnackBar(
+            content: Text('Both password fields are required'),
+            backgroundColor: Colors.red),
       );
       return;
     }
 
     if (newPass != confPass) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Passwords do not match'), backgroundColor: Colors.red),
+        const SnackBar(
+            content: Text('Passwords do not match'),
+            backgroundColor: Colors.red),
       );
       return;
     }
 
     // Password policy validation (at least 8 chars, 1 uppercase, 1 lowercase, 1 number)
-    if (newPass.length < 8 || !RegExp(r'[A-Z]').hasMatch(newPass) || !RegExp(r'[a-z]').hasMatch(newPass) || !RegExp(r'\d').hasMatch(newPass)) {
+    if (newPass.length < 8 ||
+        !RegExp(r'[A-Z]').hasMatch(newPass) ||
+        !RegExp(r'[a-z]').hasMatch(newPass) ||
+        !RegExp(r'\d').hasMatch(newPass)) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Password must be at least 8 characters and contain uppercase, lowercase, and numbers'), backgroundColor: Colors.red),
+        const SnackBar(
+            content: Text(
+                'Password must be at least 8 characters and contain uppercase, lowercase, and numbers'),
+            backgroundColor: Colors.red),
       );
       return;
     }
@@ -84,12 +95,14 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
     final authProvider = Provider.of<AuthProvider>(context);
 
     return Scaffold(
-      backgroundColor: isDark ? AppColors.darkBackground : AppColors.lightBackground,
+      backgroundColor:
+          isDark ? AppColors.darkBackground : AppColors.lightBackground,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios, color: isDark ? AppColors.darkText : AppColors.lightText),
+          icon: Icon(Icons.arrow_back_ios,
+              color: isDark ? AppColors.darkText : AppColors.lightText),
           onPressed: () => Navigator.pop(context),
         ),
       ),
@@ -112,7 +125,8 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
               Text(
                 'Please enter your new password.',
                 style: GoogleFonts.ibmPlexSansArabic(
-                  color: isDark ? AppColors.darkSubText : AppColors.lightSubText,
+                  color:
+                      isDark ? AppColors.darkSubText : AppColors.lightSubText,
                   fontSize: 16,
                 ),
               ),
@@ -122,7 +136,8 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                   color: isDark ? AppColors.darkCard : Colors.white,
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
-                    color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+                    color:
+                        isDark ? AppColors.darkBorder : AppColors.lightBorder,
                   ),
                 ),
                 child: TextField(
@@ -134,12 +149,16 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                   decoration: InputDecoration(
                     prefixIcon: Icon(
                       Icons.lock_outline,
-                      color: isDark ? AppColors.darkSecondary : AppColors.lightSecondary,
+                      color: isDark
+                          ? AppColors.darkSecondary
+                          : AppColors.lightSecondary,
                     ),
                     suffixIcon: IconButton(
                       icon: Icon(
                         _obscureText ? Icons.visibility_off : Icons.visibility,
-                        color: isDark ? AppColors.darkSecondary : AppColors.lightSecondary,
+                        color: isDark
+                            ? AppColors.darkSecondary
+                            : AppColors.lightSecondary,
                       ),
                       onPressed: () {
                         setState(() {
@@ -149,10 +168,13 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                     ),
                     hintText: 'New Password',
                     hintStyle: GoogleFonts.ibmPlexSansArabic(
-                      color: isDark ? AppColors.darkSubText : AppColors.lightSubText,
+                      color: isDark
+                          ? AppColors.darkSubText
+                          : AppColors.lightSubText,
                     ),
                     border: InputBorder.none,
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+                    contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 20, vertical: 20),
                   ),
                 ),
               ),
@@ -162,7 +184,8 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                   color: isDark ? AppColors.darkCard : Colors.white,
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
-                    color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+                    color:
+                        isDark ? AppColors.darkBorder : AppColors.lightBorder,
                   ),
                 ),
                 child: TextField(
@@ -174,12 +197,18 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                   decoration: InputDecoration(
                     prefixIcon: Icon(
                       Icons.lock_outline,
-                      color: isDark ? AppColors.darkSecondary : AppColors.lightSecondary,
+                      color: isDark
+                          ? AppColors.darkSecondary
+                          : AppColors.lightSecondary,
                     ),
                     suffixIcon: IconButton(
                       icon: Icon(
-                        _obscureConfirmText ? Icons.visibility_off : Icons.visibility,
-                        color: isDark ? AppColors.darkSecondary : AppColors.lightSecondary,
+                        _obscureConfirmText
+                            ? Icons.visibility_off
+                            : Icons.visibility,
+                        color: isDark
+                            ? AppColors.darkSecondary
+                            : AppColors.lightSecondary,
                       ),
                       onPressed: () {
                         setState(() {
@@ -189,10 +218,13 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                     ),
                     hintText: 'Confirm New Password',
                     hintStyle: GoogleFonts.ibmPlexSansArabic(
-                      color: isDark ? AppColors.darkSubText : AppColors.lightSubText,
+                      color: isDark
+                          ? AppColors.darkSubText
+                          : AppColors.lightSubText,
                     ),
                     border: InputBorder.none,
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+                    contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 20, vertical: 20),
                   ),
                 ),
               ),

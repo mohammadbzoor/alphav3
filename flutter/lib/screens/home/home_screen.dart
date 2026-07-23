@@ -2,6 +2,7 @@ import 'package:alpha_app/core/utils/app_colors.dart';
 import 'package:alpha_app/core/utils/device.dart';
 import 'package:alpha_app/models/home_model.dart';
 import 'package:alpha_app/providers/home_provider.dart';
+import 'package:alpha_app/providers/profile_provider.dart';
 import 'package:alpha_app/providers/themeprovider.dart';
 import 'package:alpha_app/screens/ai_assistant/chat_screen.dart';
 import 'package:alpha_app/screens/analysis/financial_analysis_screen.dart';
@@ -12,6 +13,22 @@ import 'package:alpha_app/screens/incomes/incomes_screen.dart';
 import 'package:alpha_app/screens/receipts/receipt_input_screen.dart';
 import 'package:alpha_app/widgets/Home/progress_card.dart';
 import 'package:alpha_app/widgets/Home/quick_actions_grid.dart';
+import 'package:alpha_app/providers/cycle_provider.dart';
+import 'package:alpha_app/providers/onboarding_provider.dart';
+import 'package:alpha_app/widgets/app_button.dart';
+import 'package:alpha_app/widgets/complete_profile_card.dart';
+import 'package:alpha_app/screens/profile/financial_profile_screen.dart';
+import 'package:alpha_app/core/utils/onboarding_guard.dart';
+import 'package:alpha_app/core/utils/dashboard_action_result.dart';
+import 'package:alpha_app/widgets/dashboard/cycle_header.dart';
+import 'package:alpha_app/widgets/dashboard/income_overview.dart';
+import 'package:alpha_app/widgets/dashboard/safe_daily_spending.dart';
+import 'package:alpha_app/widgets/dashboard/bucket_cards.dart';
+import 'package:alpha_app/widgets/dashboard/commitments_summary.dart';
+import 'package:alpha_app/widgets/dashboard/goals_summary.dart';
+import 'package:alpha_app/widgets/dashboard/dashboard_warnings.dart';
+import 'package:alpha_app/widgets/dashboard/section_title.dart';
+import 'package:alpha_app/providers/profile_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:percent_indicator/percent_indicator.dart';
@@ -23,42 +40,84 @@ class HomeScreen extends StatefulWidget {
   });
 
   @override
-  State<HomeScreen> createState() =>
-      _HomeScreenState();
+  State<HomeScreen> createState() => _HomeScreenState();
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  
+  bool _didLoadDashboard = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!_didLoadDashboard && mounted) {
+        _didLoadDashboard = true;
+        _initializeDashboard();
+      }
+    });
+  }
+
+  Future<void> _initializeDashboard() async {
+    if (!mounted) return;
+
+    final onboardingProvider = context.read<OnboardingProvider>();
+    final cycleProvider = context.read<CycleProvider>();
+    final homeProvider = context.read<HomeProvider>();
+    final profileProvider = context.read<ProfileProvider>();
+
+    // 1. Load Onboarding status
+    await onboardingProvider.checkOnboardingStatus();
+    if (!mounted) return;
+
+    if (!onboardingProvider.isOnboarded) {
+      // Not onboarded -> CompleteProfileCard only, do NOT load financial data
+      return;
+    }
+
+    // Load profile summary safely in background
+    if (!profileProvider.hasProfile && !profileProvider.isLoading) {
+      profileProvider.loadProfileSummary().catchError((_) {});
+    }
+
+    // 2. Load Current Cycle
+    await cycleProvider.loadCurrentCycle();
+    if (!mounted) return;
+
+    if (!cycleProvider.hasActiveCycle) {
+      // No active cycle -> StartCycleCard only, do NOT load dashboard data
+      return;
+    }
+
+    // 3. Load Dashboard Data (which internally handles expenses, etc.)
+    if (!homeProvider.hasData && !homeProvider.isLoading) {
+      await homeProvider.loadHomeData();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final homeProvider =
-        context.watch<HomeProvider>();
+    final homeProvider = context.watch<HomeProvider>();
 
-    final themeProvider =
-        context.watch<Themeprovider>();
+    final themeProvider = context.watch<Themeprovider>();
 
     final isDark = themeProvider.isDark;
 
     final homeData = homeProvider.homeData;
 
     final screenW = Device.width(context);
-      final screenH = Device.height(context);
-       
+    final screenH = Device.height(context);
 
     return Scaffold(
-      backgroundColor: isDark
-          ? AppColors.darkBackground
-          : AppColors.lightBackground,
+      backgroundColor:
+          isDark ? AppColors.darkBackground : AppColors.lightBackground,
       body: SafeArea(
         child: _buildBody(
-          context: context,
-          homeProvider: homeProvider,
-          homeData: homeData,
-          isDark: isDark,
-          screenWidth: screenW,
-          screenHeight: screenH
-        ),
+            context: context,
+            homeProvider: homeProvider,
+            homeData: homeData,
+            isDark: isDark,
+            screenWidth: screenW,
+            screenHeight: screenH),
       ),
     );
   }
@@ -70,50 +129,324 @@ class _HomeScreenState extends State<HomeScreen> {
     required bool isDark,
     required double screenWidth,
     required double screenHeight,
-
   }) {
+    final cycleProvider = context.watch<CycleProvider>();
+    final onboardingProvider = context.watch<OnboardingProvider>();
 
-    if (homeProvider.isLoading &&
-        homeData == null) {
+    // 1. Onboarding Loading
+    if (onboardingProvider.isLoading) {
       return Center(
         child: CircularProgressIndicator(
-          color: isDark
-              ? AppColors.darkPrimary
-              : AppColors.lightPrimary,
+            color: isDark ? AppColors.darkPrimary : AppColors.lightPrimary),
+      );
+    }
+
+    // 2. Onboarding Error
+    if (onboardingProvider.errorMessage != null) {
+      return _HomeErrorView(
+        message:
+            onboardingProvider.errorMessage ?? "تعذر تحميل بيانات الملف المالي",
+        isDark: isDark,
+        onRetry: () => onboardingProvider.checkOnboardingStatus(),
+      );
+    }
+
+    // 3. Not Onboarded
+    if (!onboardingProvider.isOnboarded) {
+      return _buildScrollableContent(
+        context: context,
+        isDark: isDark,
+        screenWidth: screenWidth,
+        screenHeight: screenHeight,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _HomeHeader(
+                userName: context.watch<ProfileProvider>().displayName,
+                isDark: isDark,
+                onNotificationTap: () {}),
+            SizedBox(height: screenHeight * 0.03),
+            CompleteProfileCard(isDark: isDark),
+          ],
         ),
       );
     }
 
-    if (homeProvider.hasError &&
-        homeData == null) {
-      return _HomeErrorView(
-        message: homeProvider.errorMessage ??
-            "Something went wrong",
+    // 3.5. Onboarded but Financial Profile Incomplete
+    if (!onboardingProvider.financialProfileComplete) {
+      return _buildScrollableContent(
+        context: context,
         isDark: isDark,
-        onRetry: () {
-          context
-              .read<HomeProvider>()
-              .loadHomeData();
-        },
+        screenWidth: screenWidth,
+        screenHeight: screenHeight,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _HomeHeader(
+                userName: context.watch<ProfileProvider>().displayName,
+                isDark: isDark,
+                onNotificationTap: () {}),
+            SizedBox(height: screenHeight * 0.03),
+            _FinancialProfileNeedsAttentionCard(
+              isDark: isDark,
+              missingFields: onboardingProvider.missingFinancialFields,
+              onCompleteTap: () {
+                Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (_) => const FinancialProfileScreen()));
+              },
+            ),
+          ],
+        ),
       );
     }
 
-    if (homeData == null) {
-      return const SizedBox.shrink();
+    // 4. Cycle Loading
+    if (cycleProvider.isLoading) {
+      return Center(
+        child: CircularProgressIndicator(
+            color: isDark ? AppColors.darkPrimary : AppColors.lightPrimary),
+      );
     }
 
+    // 5. Cycle Error
+    if (cycleProvider.error != null) {
+      return _HomeErrorView(
+        message: cycleProvider.error!,
+        isDark: isDark,
+        onRetry: () => cycleProvider.loadCurrentCycle(),
+      );
+    }
+
+    // 6. No Active Cycle
+    if (!cycleProvider.hasActiveCycle) {
+      return _buildScrollableContent(
+        context: context,
+        isDark: isDark,
+        screenWidth: screenWidth,
+        screenHeight: screenHeight,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _HomeHeader(
+                userName: context.watch<ProfileProvider>().displayName,
+                isDark: isDark,
+                onNotificationTap: () {}),
+            SizedBox(height: screenHeight * 0.03),
+            _StartCycleCard(
+              isDark: isDark,
+              isLoading: cycleProvider.isCreatingCycle,
+              onStart: () async {
+                final success = await context
+                    .read<CycleProvider>()
+                    .createCycle({}, context.read<OnboardingProvider>());
+                if (success && context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text("تم بدء دورتك المالية بنجاح",
+                          style: GoogleFonts.ibmPlexSansArabic()),
+                      backgroundColor: isDark
+                          ? AppColors.darkPrimary
+                          : AppColors.lightPrimary,
+                    ),
+                  );
+                  await context.read<CycleProvider>().loadCurrentCycle();
+                  if (context.mounted &&
+                      context.read<CycleProvider>().hasActiveCycle) {
+                    await context.read<HomeProvider>().loadHomeData();
+                  }
+                } else if (context.mounted &&
+                    context.read<CycleProvider>().error != null) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(context.read<CycleProvider>().error!,
+                          style: GoogleFonts.ibmPlexSansArabic()),
+                      backgroundColor:
+                          isDark ? AppColors.darkError : AppColors.lightError,
+                    ),
+                  );
+                  context.read<CycleProvider>().clearError();
+                }
+              },
+            ),
+          ],
+        ),
+      );
+    }
+
+    // 7. Home Loading
+    if (homeProvider.isLoading) {
+      return Center(
+        child: CircularProgressIndicator(
+            color: isDark ? AppColors.darkPrimary : AppColors.lightPrimary),
+      );
+    }
+
+    // 8. Home Error
+    if (homeProvider.hasError) {
+      return _HomeErrorView(
+        message: homeProvider.errorMessage ?? "تعذر تحميل لوحة التحكم",
+        isDark: isDark,
+        onRetry: () => context.read<HomeProvider>().loadHomeData(),
+      );
+    }
+
+    // 9. Dashboard data is ready
+    if (homeData == null) {
+      return _HomeErrorView(
+        message: "حدث خطأ غير متوقع",
+        isDark: isDark,
+        onRetry: () => context.read<HomeProvider>().loadHomeData(),
+      );
+    }
+
+    return _buildScrollableContent(
+      context: context,
+      isDark: isDark,
+      screenWidth: screenWidth,
+      screenHeight: screenHeight,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _HomeHeader(
+              userName: context.watch<ProfileProvider>().displayName,
+              isDark: isDark,
+              onNotificationTap: () {}),
+          SizedBox(height: screenHeight * 0.03),
+          // 1. Warnings
+          DashboardWarningsWidget(warnings: homeData.warnings, isDark: isDark),
+          if (homeData.warnings.isNotEmpty &&
+              !homeData.warnings.every((w) => w == 'NO_ACTIVE_FINANCIAL_CYCLE'))
+            SizedBox(height: screenHeight * 0.02),
+
+          // 2. Cycle Header
+          CycleHeader(cycle: homeData.cycle, isDark: isDark),
+          SizedBox(height: screenHeight * 0.03),
+
+          // 3. Income Overview
+          IncomeOverview(income: homeData.income, isDark: isDark),
+          SizedBox(height: screenHeight * 0.03),
+
+          // 4. Safe Daily Spending
+          SafeDailySpendingCard(
+            safeDailySpending: homeData.safeDailySpending,
+            isDark: isDark,
+          ),
+          SizedBox(height: screenHeight * 0.03),
+
+          // 5. Buckets (Needs, Wants, Savings)
+          SectionTitle(title: "Budgets & Savings", isDark: isDark),
+          SizedBox(height: screenHeight * 0.015),
+          BucketCardsSection(buckets: homeData.buckets, isDark: isDark),
+          SizedBox(height: screenHeight * 0.03),
+
+          // 6. Commitments Summary
+          CommitmentsSummaryWidget(
+            commitments: homeData.commitments,
+            isDark: isDark,
+            onViewCommitments: () {
+              // Navigate to commitments list
+            },
+          ),
+          if ((homeData.commitments?.totalReserved ?? 0) > 0 ||
+              (homeData.commitments?.upcomingCount ?? 0) > 0 ||
+              (homeData.commitments?.overdueCount ?? 0) > 0)
+            SizedBox(height: screenHeight * 0.03),
+
+          // 7. Goals Summary
+          GoalsSummaryWidget(
+            goals: homeData.goals,
+            isDark: isDark,
+            onViewGoals: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => MyGoalsScreen()),
+              );
+            },
+          ),
+          if ((homeData.goals?.activeCount ?? 0) > 0 ||
+              (homeData.goals?.readyCount ?? 0) > 0)
+            SizedBox(height: screenHeight * 0.03),
+
+          // 8. Quick Actions Grid
+          SectionTitle(title: "Quick Actions", isDark: isDark),
+          SizedBox(height: screenHeight * 0.015),
+          QuickActionsGrid(
+            isDark: isDark,
+            onAddExpense: () async {
+              if (!requireOnboarding(context)) return;
+              if (!cycleProvider.hasActiveCycle) {
+                _showNoCycleMessage(context, isDark);
+                return;
+              }
+              final result = await Navigator.push<DashboardActionResult>(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const NewExpenseScreen(),
+                ),
+              );
+              if (result == DashboardActionResult.created && context.mounted) {
+                context.read<HomeProvider>().refreshHomeData();
+              }
+            },
+            onAnalytics: () {
+              if (!requireOnboarding(context)) return;
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const FinancialAnalysisScreen(),
+                ),
+              );
+            },
+            onScanReceipt: () async {
+              if (!requireOnboarding(context)) return;
+              if (!cycleProvider.hasActiveCycle) {
+                _showNoCycleMessage(context, isDark);
+                return;
+              }
+              final result = await Navigator.push<DashboardActionResult>(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const ReceiptInputScreen(),
+                ),
+              );
+              if (result == DashboardActionResult.created && context.mounted) {
+                context.read<HomeProvider>().refreshHomeData();
+              }
+            },
+            onChallenges: () {
+              if (!requireOnboarding(context)) return;
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const ChallengesScreen(),
+                ),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildScrollableContent({
+    required BuildContext context,
+    required bool isDark,
+    required double screenWidth,
+    required double screenHeight,
+    required Widget child,
+  }) {
     return RefreshIndicator(
-      color: isDark
-          ? AppColors.darkPrimary
-          : AppColors.lightPrimary,
-      onRefresh: () {
-        return context
-            .read<HomeProvider>()
-            .refreshHomeData();
+      color: isDark ? AppColors.darkPrimary : AppColors.lightPrimary,
+      onRefresh: () async {
+        await context.read<CycleProvider>().loadCurrentCycle();
+        if (context.read<CycleProvider>().hasActiveCycle) {
+          await context.read<HomeProvider>().refreshHomeData();
+        }
       },
       child: SingleChildScrollView(
-        physics:
-            const AlwaysScrollableScrollPhysics(
+        physics: const AlwaysScrollableScrollPhysics(
           parent: BouncingScrollPhysics(),
         ),
         padding: EdgeInsets.fromLTRB(
@@ -122,153 +455,112 @@ class _HomeScreenState extends State<HomeScreen> {
           screenWidth * 0.055,
           125,
         ),
-        child: Column(
-          crossAxisAlignment:
-              CrossAxisAlignment.start,
-          children: [
-           
-            _HomeHeader(
-              userName: homeData.userName,
-              isDark: isDark,
-              onNotificationTap: () {},
-            ),
-
-          SizedBox(height: screenHeight*0.03),
-
-            _FinancialScoreCard(
-              score: homeData.financialScore,
-              scoreMessage: homeData.scoreMessage,
-              scoreLevel: homeData.scoreLevel,
-              isDark: isDark,
-            ),
-
-           SizedBox(height: screenHeight*0.03),
-
-            _FinancialSummarySection(
-              income: homeData.income,
-              expenses: homeData.expenses,
-              savings: homeData.savings,
-              isDark: isDark,
-            ),
-
-           SizedBox(height: screenHeight*0.03),
-
-            _SectionTitle(
-              title: "Today's Insight",
-              isDark: isDark,
-            ),
-
-            SizedBox(height: screenHeight*0.015),
-
-            _TodayInsightCard(
-              insight: homeData.todayInsight,
-              isDark: isDark,
-              onViewAdvice: () {
-               Navigator.push(context, MaterialPageRoute(builder: (context) => FinancialAnalysisScreen(),));
-              },
-            ),
-
-            if (homeData.goal != null) ...[
-              SizedBox(height: screenHeight*0.03),
-
-              _SectionTitle(
-                title: "Goal Progress",
-                isDark: isDark,
-                actionText: "View All",
-                onActionTap: () {
-                  Navigator.push(context, MaterialPageRoute(builder: (context) => MyGoalsScreen()),) ;
-                },
-              ),
-
-            SizedBox(height: screenHeight*0.015),
-
-             ProgressCard(
-  title: homeData.goal!.name,
-  subtitle: "Keep saving to reach your goal",
-  progress: homeData.goal!.progress,
-  color: isDark ? AppColors.darkAccent  : AppColors.lightAccent,
-  icon: Icons.flag_outlined,
-  isDark: isDark,
-),
-            ],
-
-            if (homeData.challenge != null) ...[
-            SizedBox(height: screenHeight*0.03),
-
-              _SectionTitle(
-                title: "Active Challenge",
-                isDark: isDark,
-                actionText: "View",
-                onActionTap: () {
-                    Navigator.push(context, MaterialPageRoute(builder: (context) => ChallengesScreen(),));
-                },
-              ),
-
-              SizedBox(height: screenHeight*0.015),
-
-             ProgressCard(
-  title: homeData.challenge!.name,
-  subtitle: "You're getting closer to completing it",
-  progress: homeData.challenge!.progress,
-  color: isDark ? AppColors.darkPrimary : AppColors.lightPrimary,
-  icon: Icons.emoji_events_outlined,
-  isDark: isDark,
-),
-            ],
-
-            SizedBox(height: screenHeight*0.03),
-
-            _SectionTitle(
-              title: "Quick Actions",
-              isDark: isDark,
-            ),
-
-            SizedBox(height: screenHeight*0.015),
-QuickActionsGrid(
-  isDark: isDark,
-
-  onAddExpense: () {
-      Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) =>
-            const NewExpenseScreen(),
+        child: child,
       ),
     );
-  },
+  }
 
-  onAnalytics: () {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) =>
-            const FinancialAnalysisScreen(),
-      ),
-    );
-  },
-
-  onScanReceipt: () {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) =>
-            const ReceiptInputScreen(),
-      ),
-    );
-  },
-
-  onChallenges: () {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) =>
-            const ChallengesScreen(),
-      ),
-    );
-  },
-),
-          ],
+  void _showNoCycleMessage(BuildContext context, bool isDark) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          "ابدأ دورة مالية أولًا.",
+          style: GoogleFonts.ibmPlexSansArabic(),
         ),
+        backgroundColor: isDark ? AppColors.darkError : AppColors.lightError,
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+}
+
+class _StartCycleCard extends StatelessWidget {
+  final bool isDark;
+  final bool isLoading;
+  final VoidCallback onStart;
+
+  const _StartCycleCard({
+    Key? key,
+    required this.isDark,
+    required this.isLoading,
+    required this.onStart,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.darkCard : AppColors.lightCard,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+          width: 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: isDark
+                      ? AppColors.darkPrimary.withOpacity(0.1)
+                      : AppColors.lightPrimary.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Icon(
+                  Icons.play_circle_fill_rounded,
+                  color:
+                      isDark ? AppColors.darkPrimary : AppColors.lightPrimary,
+                  size: 28,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "ابدأ دورتك المالية",
+                      style: GoogleFonts.ibmPlexSansArabic(
+                        color:
+                            isDark ? AppColors.darkText : AppColors.lightText,
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      "الملف المالي مكتمل. ابدأ دورة جديدة لتنظيم ميزانيتك.",
+                      style: GoogleFonts.ibmPlexSansArabic(
+                        color: isDark
+                            ? AppColors.darkSubText
+                            : AppColors.lightSubText,
+                        fontSize: 14,
+                        height: 1.5,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+          SizedBox(
+            width: double.infinity,
+            height: 54,
+            child: AppButton(
+              text: "بدء الدورة الآن",
+              onPressed: onStart,
+              isLoading: isLoading,
+              isDark: isDark,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -291,12 +583,9 @@ class _HomeHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final displayName = userName.trim().isEmpty
-        ? "User"
-        : userName.trim();
+    final displayName = userName.trim().isEmpty ? "User" : userName.trim();
 
-    final firstLetter =
-        displayName[0].toUpperCase();
+    final firstLetter = displayName[0].toUpperCase();
 
     return Row(
       children: [
@@ -313,13 +602,11 @@ class _HomeHeader extends StatelessWidget {
                 Color(0xFF14B8A6),
               ],
             ),
-            borderRadius:
-                BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(16),
           ),
           child: Text(
             firstLetter,
-            style:
-                GoogleFonts.ibmPlexSansArabic(
+            style: GoogleFonts.ibmPlexSansArabic(
               color: Colors.white,
               fontSize: 20,
               fontWeight: FontWeight.bold,
@@ -327,40 +614,30 @@ class _HomeHeader extends StatelessWidget {
           ),
         ),
 
-         SizedBox(width: 13),
+        SizedBox(width: 13),
 
         Expanded(
           child: Column(
-            crossAxisAlignment:
-                CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 "Hello, $displayName 👋",
                 maxLines: 1,
-                overflow:
-                    TextOverflow.ellipsis,
-                style: GoogleFonts
-                    .ibmPlexSansArabic(
-                  color: isDark
-                      ? AppColors.darkText
-                      : AppColors.lightText,
+                overflow: TextOverflow.ellipsis,
+                style: GoogleFonts.ibmPlexSansArabic(
+                  color: isDark ? AppColors.darkText : AppColors.lightText,
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
                 ),
               ),
-
               const SizedBox(height: 2),
-
               Text(
                 "Let's improve your finances today",
                 maxLines: 1,
-                overflow:
-                    TextOverflow.ellipsis,
-                style: GoogleFonts
-                    .ibmPlexSansArabic(
-                  color: isDark
-                      ? AppColors.darkSubText
-                      : AppColors.lightSubText,
+                overflow: TextOverflow.ellipsis,
+                style: GoogleFonts.ibmPlexSansArabic(
+                  color:
+                      isDark ? AppColors.darkSubText : AppColors.lightSubText,
                   fontSize: 11,
                 ),
               ),
@@ -368,7 +645,7 @@ class _HomeHeader extends StatelessWidget {
           ),
         ),
 
-       // const SizedBox(width: 10),
+        // const SizedBox(width: 10),
 
         // InkWell(
         //   onTap: onNotificationTap,
@@ -418,555 +695,11 @@ class _HomeHeader extends StatelessWidget {
 // FINANCIAL SCORE
 // =====================================================
 
-class _FinancialScoreCard
-    extends StatelessWidget {
-  final int score;
-  final String scoreMessage;
-  final String scoreLevel;
-  final bool isDark;
-
-  const _FinancialScoreCard({
-    required this.score,
-    required this.scoreMessage,
-    required this.scoreLevel,
-    required this.isDark,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final safeScore =
-        score.clamp(0, 100);
-
-    final scoreProgress =
-        safeScore / 100;
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-       color: isDark ? AppColors.darkPrimary.withOpacity(0.04) : AppColors.lightPrimary.withOpacity(0.04),
-      
-        borderRadius:
-            BorderRadius.circular(26),
-        border: Border.all(
-          color: isDark
-              ? AppColors.darkPrimary
-              : AppColors.lightPrimary,
-             
-        ),
-       
-              
-      ),
-      child: Row(
-        children: [
-          CircularPercentIndicator(
-            radius: 55,
-            lineWidth: 9,
-            percent:
-                scoreProgress.clamp(0.0, 1.0),
-            animation: true,
-            animationDuration: 850,
-            circularStrokeCap:
-                CircularStrokeCap.round,
-            backgroundColor: isDark
-                ? AppColors.darkBorder : AppColors.lightBorder,
-            progressColor:
-                const Color(0xFF34D399),
-            center: Column(
-              mainAxisAlignment:
-                  MainAxisAlignment.center,
-              children: [
-                Text(
-                  "$safeScore",
-                  style: GoogleFonts
-                      .ibmPlexSansArabic(
-                    color: isDark
-                        ? AppColors.darkText
-                        : AppColors.lightText,
-                    fontSize: 27,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-
-                Text(
-                  "Score",
-                  style: GoogleFonts
-                      .ibmPlexSansArabic(
-                    color: isDark
-                        ? AppColors.darkText
-                        : AppColors
-                            .lightText,
-                    fontSize: 10,
-                    fontWeight: FontWeight.w400,
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          const SizedBox(width: 20),
-
-          Expanded(
-            child: Column(
-              crossAxisAlignment:
-                  CrossAxisAlignment.start,
-              children: [
-                Text(
-                  "Financial Score",
-                  style: GoogleFonts
-                      .ibmPlexSansArabic(
-                    color: isDark
-                        ? AppColors.darkText
-                        : AppColors.lightText,
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-
-                const SizedBox(height: 7),
-
-                Text(
-                  scoreMessage.trim().isEmpty
-                      ? 'Your financial score details will appear here.'
-                      : scoreMessage,
-                  style: GoogleFonts
-                      .ibmPlexSansArabic(
-                    color: isDark
-                        ? AppColors.darkSubText
-                        : AppColors
-                            .lightSubText,
-                    fontSize: 12,
-                    height: 1.5,
-                  ),
-                ),
-
-                const SizedBox(height: 12),
-
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(
-                    horizontal: 11,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color:
-                      isDark ? AppColors.darkPrimary.withOpacity(0.08) : AppColors.lightPrimary.withOpacity(0.08),
-                    borderRadius:
-                        BorderRadius.circular(30),
-                  ),
-                  child: Text(
-                    scoreLevel.trim().isEmpty
-                        ? 'Not available'
-                        : scoreLevel,
-                    style: GoogleFonts
-                        .ibmPlexSansArabic(
-                      color:
-                          isDark ? AppColors.darkPrimary : AppColors.lightPrimary,
-                      fontSize: 11,
-                      fontWeight:
-                          FontWeight.w600,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-}
-
-// =====================================================
-// SUMMARY
-// =====================================================
-
-class _FinancialSummarySection
-    extends StatelessWidget {
-  final double income;
-  final double expenses;
-  final double savings;
-  final bool isDark;
-
-  const _FinancialSummarySection({
-    required this.income,
-    required this.expenses,
-    required this.savings,
-    required this.isDark,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: GestureDetector(
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const IncomesScreen()),
-              );
-            },
-            child: _SummaryCard(
-              title: "Income",
-              amount: income,
-              icon: Icons.south_west_rounded,
-              color: isDark ? AppColors.darkPrimary : AppColors.lightPrimary,
-              isDark: isDark,
-            ),
-          ),
-        ),
-
-        const SizedBox(width: 10),
-
-        Expanded(
-          child: _SummaryCard(
-            title: "Expenses",
-            amount: expenses,
-            icon:
-                Icons.north_east_rounded,
-            color:
-                isDark ? AppColors.darkError : AppColors.lightError,
-            isDark: isDark,
-          ),
-        ),
-
-        const SizedBox(width: 10),
-
-        Expanded(
-          child: _SummaryCard(
-            title: "Savings",
-            amount: savings,
-            icon: Icons
-                .account_balance_wallet_outlined,
-            color:
-                isDark ? AppColors.darkAccent : AppColors.lightAccent,
-            isDark: isDark,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _SummaryCard extends StatelessWidget {
-  final String title;
-  final double amount;
-  final IconData icon;
-  final Color color;
-  final bool isDark;
-
-  const _SummaryCard({
-    required this.title,
-    required this.amount,
-    required this.icon,
-    required this.color,
-    required this.isDark,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 118,
-      padding: const EdgeInsets.symmetric(
-        horizontal: 8,
-        vertical: 13,
-      ),
-      decoration: BoxDecoration(
-        color: isDark
-            ? AppColors.darkBorder.withOpacity(0.4)
-            :AppColors.lightBorder.withOpacity(0.4),
-        borderRadius:
-            BorderRadius.circular(20),
-        border: Border.all(
-          color: isDark
-              ? AppColors.darkBorder
-              : AppColors.lightBorder
-        ),
-      
-      ),
-      child: Column(
-        mainAxisAlignment:
-            MainAxisAlignment.center,
-        children: [
-          Container(
-            width: 34,
-            height: 34,
-            decoration: BoxDecoration(
-              color: color.withOpacity(0.12),
-              borderRadius:
-                  BorderRadius.circular(11),
-            ),
-            child: Icon(
-              icon,
-              color: color,
-              size: 18,
-            ),
-          ),
-
-          const SizedBox(height: 7),
-
-          Text(
-            title,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style:
-                GoogleFonts.ibmPlexSansArabic(
-              color: isDark
-                  ? AppColors.darkSubText
-                  : AppColors.lightSubText,
-              fontSize: 10,
-            ),
-          ),
-
-          const SizedBox(height: 3),
-
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            child: Text(
-              "${amount.toStringAsFixed(0)} JD",
-              style: GoogleFonts
-                  .ibmPlexSansArabic(
-                color: isDark
-                    ? AppColors.darkText
-                    : AppColors.lightText,
-                fontSize: 13,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// =====================================================
-// SECTION TITLE
-// =====================================================
-
-class _SectionTitle extends StatelessWidget {
-  final String title;
-  final bool isDark;
-  final String? actionText;
-  final VoidCallback? onActionTap;
-
-  const _SectionTitle({
-    required this.title,
-    required this.isDark,
-    this.actionText,
-    this.onActionTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: Text(
-            title,
-            style:
-                GoogleFonts.ibmPlexSansArabic(
-              color: isDark
-                  ? AppColors.darkText
-                  : AppColors.lightText,
-              fontSize: 17,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ),
-
-        if (actionText != null)
-          TextButton(
-            onPressed: onActionTap,
-            style: TextButton.styleFrom(
-              padding:
-                  const EdgeInsets.symmetric(
-                horizontal: 6,
-              ),
-              minimumSize: Size.zero,
-              tapTargetSize:
-                  MaterialTapTargetSize
-                      .shrinkWrap,
-            ),
-            child: Text(
-              actionText!,
-              style: GoogleFonts
-                  .ibmPlexSansArabic(
-                color:
-                   isDark? AppColors.darkPrimary : AppColors.lightPrimary,
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-      ],
-    );
-  }
-}
-
-// =====================================================
-// TODAY INSIGHT
-// =====================================================
-
-class _TodayInsightCard
-    extends StatelessWidget {
-  final String insight;
-  final bool isDark;
-  final VoidCallback onViewAdvice;
-
-  const _TodayInsightCard({
-    required this.insight,
-    required this.isDark,
-    required this.onViewAdvice,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-       color: isDark ? AppColors.darkAccent.withOpacity(0.2) : AppColors.lightAccent.withOpacity(0.2),
-        borderRadius:
-            BorderRadius.circular(24),
-        border: Border.all(
-          color: isDark ? AppColors.darkAccent : AppColors.lightAccent,
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment:
-            CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 38,
-                height: 38,
-                decoration: BoxDecoration(
-                  color:
-                     isDark ? AppColors.darkAccent.withOpacity(0.12) : AppColors.lightAccent.withOpacity(0.12),
-                        
-                  borderRadius:
-                      BorderRadius.circular(
-                    12,
-                  ),
-                ),
-                child:  Icon(
-                  Icons.auto_awesome_rounded,
-                  color: isDark ?
-                   AppColors.darkAccent : AppColors.lightAccent,
-                  size: 21,
-                ),
-              ),
-
-              const SizedBox(width: 10),
-
-              Expanded(
-                child: Text(
-                  "Alpha Smart Insight",
-                  style: GoogleFonts
-                      .ibmPlexSansArabic(
-                    color: isDark
-                        ? AppColors.darkText
-                        : AppColors.lightText,
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(
-                  horizontal: 8,
-                  vertical: 4,
-                ),
-                decoration: BoxDecoration(
-                  color: isDark ? AppColors.darkAccent.withOpacity(0.12) : AppColors.lightAccent.withOpacity(0.12),
-                    
-                  borderRadius:
-                      BorderRadius.circular(
-                    20,
-                  ),
-                ),
-                child: Text(
-                  "AI",
-                  style: GoogleFonts
-                      .ibmPlexSansArabic(
-                    color: isDark ?
-                      AppColors.darkAccent : AppColors.lightAccent,
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ],
-          ),
-
-          const SizedBox(height: 14),
-
-          Text(
-            insight.isEmpty
-                ? "Your financial insight will appear here."
-                : insight,
-            style:
-                GoogleFonts.ibmPlexSansArabic(
-              color: isDark
-                  ? AppColors.darkText
-                  : AppColors.lightText,
-              fontSize: 13,
-              height: 1.65,
-            ),
-          ),
-
-          const SizedBox(height: 15),
-
-          SizedBox(
-            width: double.infinity,
-            height: 46,
-            child: ElevatedButton(
-              onPressed: onViewAdvice,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: isDark ?
-                   AppColors.darkAccent : AppColors.lightAccent, 
-                
-                elevation: 0,
-                shape: RoundedRectangleBorder(
-                  borderRadius:
-                      BorderRadius.circular(
-                    15,
-                  ),
-                ),
-              ),
-              child: Text(
-                "View Advice",
-                style: GoogleFonts
-                    .ibmPlexSansArabic(
-                      color: isDark ? AppColors.darkText : AppColors.lightText,
-                  fontSize: 13,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-
-
-
-
 // =====================================================
 // ERROR VIEW
 // =====================================================
 
-class _HomeErrorView
-    extends StatelessWidget {
+class _HomeErrorView extends StatelessWidget {
   final String message;
   final bool isDark;
   final VoidCallback onRetry;
@@ -989,8 +722,9 @@ class _HomeErrorView
               width: 74,
               height: 74,
               decoration: BoxDecoration(
-                color:  isDark ? AppColors.darkError.withOpacity(0.12) : AppColors.lightError
-                    .withOpacity(0.12),
+                color: isDark
+                    ? AppColors.darkError.withOpacity(0.12)
+                    : AppColors.lightError.withOpacity(0.12),
                 shape: BoxShape.circle,
               ),
               child: const Icon(
@@ -999,38 +733,26 @@ class _HomeErrorView
                 size: 35,
               ),
             ),
-
             const SizedBox(height: 18),
-
             Text(
               "Unable to load home data",
               textAlign: TextAlign.center,
-              style:
-                  GoogleFonts.ibmPlexSansArabic(
-                color: isDark
-                    ? AppColors.darkText
-                    : AppColors.lightText,
+              style: GoogleFonts.ibmPlexSansArabic(
+                color: isDark ? AppColors.darkText : AppColors.lightText,
                 fontSize: 17,
                 fontWeight: FontWeight.bold,
               ),
             ),
-
             const SizedBox(height: 8),
-
             Text(
               message,
               textAlign: TextAlign.center,
-              style:
-                  GoogleFonts.ibmPlexSansArabic(
-                color: isDark
-                    ? AppColors.darkSubText
-                    : AppColors.lightSubText,
+              style: GoogleFonts.ibmPlexSansArabic(
+                color: isDark ? AppColors.darkSubText : AppColors.lightSubText,
                 fontSize: 13,
               ),
             ),
-
             const SizedBox(height: 20),
-
             ElevatedButton.icon(
               onPressed: onRetry,
               icon: const Icon(
@@ -1038,18 +760,15 @@ class _HomeErrorView
               ),
               label: const Text("Try Again"),
               style: ElevatedButton.styleFrom(
-                backgroundColor: isDark
-                    ? AppColors.darkPrimary
-                    : AppColors.lightPrimary,
+                backgroundColor:
+                    isDark ? AppColors.darkPrimary : AppColors.lightPrimary,
                 foregroundColor: Colors.white,
-                padding:
-                    const EdgeInsets.symmetric(
+                padding: const EdgeInsets.symmetric(
                   horizontal: 22,
                   vertical: 13,
                 ),
                 shape: RoundedRectangleBorder(
-                  borderRadius:
-                      BorderRadius.circular(
+                  borderRadius: BorderRadius.circular(
                     14,
                   ),
                 ),
@@ -1057,6 +776,109 @@ class _HomeErrorView
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _FinancialProfileNeedsAttentionCard extends StatelessWidget {
+  final bool isDark;
+  final List<String> missingFields;
+  final VoidCallback onCompleteTap;
+
+  const _FinancialProfileNeedsAttentionCard({
+    Key? key,
+    required this.isDark,
+    required this.missingFields,
+    required this.onCompleteTap,
+  }) : super(key: key);
+
+  String _formatMissingFields() {
+    if (missingFields.isEmpty) return "يرجى مراجعة ملفك المالي.";
+    final map = {
+      'expectedMonthlyIncome': 'الدخل الشهري المتوقع',
+      'paymentDay': 'يوم استلام الدخل',
+      'currency': 'العملة',
+      'allocation_preferences': 'تفضيلات التوزيع (Allocation)',
+      'valid_allocation_bps': 'صحة التوزيع المئوي للنسب',
+      'financial_profiles': 'الملف المالي الأساسي'
+    };
+    final names = missingFields.map((f) => map[f] ?? f).join('، ');
+    return "البيانات الناقصة أو غير الصالحة: $names";
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.darkCard : AppColors.lightCard,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: Colors.orange.withOpacity(0.5),
+          width: 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.orange.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: const Icon(
+                  Icons.warning_rounded,
+                  color: Colors.orange,
+                  size: 28,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "الملف المالي غير مكتمل",
+                      style: GoogleFonts.ibmPlexSansArabic(
+                        color:
+                            isDark ? AppColors.darkText : AppColors.lightText,
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      _formatMissingFields(),
+                      style: GoogleFonts.ibmPlexSansArabic(
+                        color: isDark
+                            ? AppColors.darkSubText
+                            : AppColors.lightSubText,
+                        fontSize: 14,
+                        height: 1.5,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+          SizedBox(
+            width: double.infinity,
+            height: 54,
+            child: AppButton(
+              text: "أكمل ملفك المالي",
+              onPressed: onCompleteTap,
+              isLoading: false,
+              isDark: isDark,
+            ),
+          ),
+        ],
       ),
     );
   }

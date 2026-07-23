@@ -8,6 +8,7 @@ import 'package:alpha_app/widgets/dashed_action_button.dart';
 import 'package:alpha_app/widgets/delete_dialog.dart';
 import 'package:alpha_app/widgets/empty_screen.dart';
 import 'package:alpha_app/widgets/expenses/expense_card.dart';
+import 'package:alpha_app/core/utils/onboarding_guard.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -27,68 +28,53 @@ class ExpensesScreen extends StatefulWidget {
   });
 
   @override
-  State<ExpensesScreen> createState() =>
-      _ExpensesScreenState();
+  State<ExpensesScreen> createState() => _ExpensesScreenState();
 }
 
-class _ExpensesScreenState
-    extends State<ExpensesScreen> {
-  _AnalyticsType _selectedAnalytics =
-      _AnalyticsType.payment;
+class _ExpensesScreenState extends State<ExpensesScreen> {
+  _AnalyticsType _selectedAnalytics = _AnalyticsType.payment;
 
   @override
   Widget build(BuildContext context) {
-    final expenseProvider =
-        context.watch<ExpenseProvider>();
+    final expenseProvider = context.watch<ExpenseProvider>();
 
-    final themeProvider =
-        context.watch<Themeprovider>();
+    final themeProvider = context.watch<Themeprovider>();
 
-    final bool isDark =
-        themeProvider.isDark;
+    final bool isDark = themeProvider.isDark;
 
-    final double screenW =
-        Device.width(context);
+    final double screenW = Device.width(context);
 
-    final double screenH =
-        Device.height(context);
+    final double screenH = Device.height(context);
 
-    final List<ExpenseModel> expenses =
-        expenseProvider.expenses;
+    final List<ExpenseModel> expenses = expenseProvider.expenses;
 
     return Scaffold(
-      backgroundColor: isDark
-          ? AppColors.darkBackground
-          : AppColors.lightBackground,
+      backgroundColor:
+          isDark ? AppColors.darkBackground : AppColors.lightBackground,
       body: SafeArea(
         child: Padding(
           padding: EdgeInsets.symmetric(
             horizontal: screenW * 0.055,
           ),
           child: Column(
-            crossAxisAlignment:
-                CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               SizedBox(
                 height: screenH * 0.025,
               ),
-
               _Header(
                 isDark: isDark,
                 screenW: screenW,
-                expenseCount:
-                    expenses.length,
+                expenseCount: expenses.length,
                 onAddPressed: () {
                   _openNewExpenseScreen(
                     context,
                   );
                 },
               ),
-
               SizedBox(
                 height: screenH * 0.025,
               ),
-
               Expanded(
                 child: expenses.isEmpty
                     ? EmptyStateView(
@@ -97,10 +83,8 @@ class _ExpensesScreenState
                         title: "No expenses yet",
                         description:
                             "Start recording your expenses to unlock spending analysis and personalized Alpha insights.",
-                        buttonText:
-                            "Add your first expense",
-                        icon: Icons
-                            .account_balance_wallet_outlined,
+                        buttonText: "Add your first expense",
+                        icon: Icons.account_balance_wallet_outlined,
                         color: isDark
                             ? AppColors.darkSecondary
                             : AppColors.lightSecondary,
@@ -111,107 +95,75 @@ class _ExpensesScreenState
                         },
                       )
                     : ListView(
-                        physics:
-                            const BouncingScrollPhysics(),
+                        physics: const BouncingScrollPhysics(),
                         padding: EdgeInsets.only(
-                          bottom:
-                              screenH * 0.14,
+                          bottom: screenH * 0.14,
                         ),
                         children: [
                           _ThisMonthCard(
-                            total:
-                                expenseProvider
-                                    .currentMonthTotal,
-                            expenseCount:
-                                expenses.length,
+                            total: expenseProvider.currentMonthTotal,
+                            expenseCount: expenses.length,
                             isDark: isDark,
                           ),
-
                           SizedBox(
-                            height:
-                                screenH * 0.018,
+                            height: screenH * 0.018,
                           ),
-
                           _AnalyticsCard(
                             expenses: expenses,
-                            selectedType:
-                                _selectedAnalytics,
+                            selectedType: _selectedAnalytics,
                             isDark: isDark,
                             onTypeChanged: (
                               type,
                             ) {
                               setState(() {
-                                _selectedAnalytics =
-                                    type;
+                                _selectedAnalytics = type;
                               });
                             },
                           ),
-
                           SizedBox(
-                            height:
-                                screenH * 0.018,
+                            height: screenH * 0.018,
                           ),
-
                           _AlphaInsightCard(
-                            insight:
-                                expenseProvider
-                                    .spendingInsight,
+                            insight: expenseProvider.spendingInsight,
                             isDark: isDark,
                           ),
-
                           SizedBox(
-                            height:
-                                screenH * 0.025,
+                            height: screenH * 0.025,
                           ),
-
                           _RecentExpensesHeader(
-                            count:
-                                expenses.length,
+                            count: expenses.length,
                             isDark: isDark,
                             screenW: screenW,
                           ),
-
                           SizedBox(
-                            height:
-                                screenH * 0.014,
+                            height: screenH * 0.014,
                           ),
-
                           ...expenses.map(
-                            (expense) =>
-                                ExpenseCard(
-                              expense:
-                                  expense,
+                            (expense) => ExpenseCard(
+                              expense: expense,
                               onDelete: () {
                                 DeleteDialog.show(
-                                  context:
-                                      context,
-                                  title:
-                                      "Delete Expense",
+                                  context: context,
+                                  title: "Delete Expense",
                                   message:
                                       'Are you sure you want to delete "${expense.title}"?',
                                   onDelete: () {
                                     context
-                                        .read<
-                                            ExpenseProvider>()
+                                        .read<ExpenseProvider>()
                                         .deleteExpense(
                                           expense.id,
                                         );
 
-                                    ScaffoldMessenger
-                                            .of(
-                                              context,
-                                            )
-                                        .showSnackBar(
+                                    ScaffoldMessenger.of(
+                                      context,
+                                    ).showSnackBar(
                                       SnackBar(
-                                        content:
-                                            Text(
+                                        content: Text(
                                           "Expense deleted successfully",
-                                          style: GoogleFonts
-                                              .ibmPlexSansArabic(),
+                                          style:
+                                              GoogleFonts.ibmPlexSansArabic(),
                                         ),
-                                        behavior:
-                                            SnackBarBehavior
-                                                .floating,
+                                        behavior: SnackBarBehavior.floating,
                                       ),
                                     );
                                   },
@@ -219,14 +171,11 @@ class _ExpensesScreenState
                               },
                             ),
                           ),
-
                           const SizedBox(
                             height: 4,
                           ),
-
                           DashedActionButton(
-                            text:
-                                "Add a new expense",
+                            text: "Add a new expense",
                             isDark: isDark,
                             onTap: () {
                               _openNewExpenseScreen(
@@ -247,11 +196,12 @@ class _ExpensesScreenState
   void _openNewExpenseScreen(
     BuildContext context,
   ) {
+    if (!requireOnboarding(context)) return;
+
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) =>
-            const NewExpenseScreen(),
+        builder: (_) => const NewExpenseScreen(),
       ),
     );
   }
@@ -277,64 +227,47 @@ class _Header extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Row(
-      crossAxisAlignment:
-          CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Expanded(
           child: Column(
-            crossAxisAlignment:
-                CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 "Expenses",
-                style: GoogleFonts
-                    .ibmPlexSansArabic(
-                  color: isDark
-                      ? AppColors.darkText
-                      : AppColors.lightText,
-                  fontSize:
-                      screenW * 0.07,
-                  fontWeight:
-                      FontWeight.bold,
+                style: GoogleFonts.ibmPlexSansArabic(
+                  color: isDark ? AppColors.darkText : AppColors.lightText,
+                  fontSize: screenW * 0.07,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
               const SizedBox(height: 3),
               Text(
                 "$expenseCount ${expenseCount == 1 ? "expense" : "expenses"} recorded",
-                style: GoogleFonts
-                    .ibmPlexSansArabic(
-                  color: isDark
-                      ? AppColors.darkSubText
-                      : AppColors.lightSubText,
-                  fontSize:
-                      screenW * 0.034,
+                style: GoogleFonts.ibmPlexSansArabic(
+                  color:
+                      isDark ? AppColors.darkSubText : AppColors.lightSubText,
+                  fontSize: screenW * 0.034,
                 ),
               ),
             ],
           ),
         ),
-
         InkWell(
           onTap: onAddPressed,
-          borderRadius:
-              BorderRadius.circular(13),
+          borderRadius: BorderRadius.circular(13),
           child: Container(
             width: screenW * 0.12,
             height: screenW * 0.12,
             decoration: BoxDecoration(
               color: isDark
-                  ? AppColors.darkPrimary
-                      .withOpacity(0.10)
-                  : AppColors.lightPrimary
-                      .withOpacity(0.10),
-              borderRadius:
-                  BorderRadius.circular(13),
+                  ? AppColors.darkPrimary.withOpacity(0.10)
+                  : AppColors.lightPrimary.withOpacity(0.10),
+              borderRadius: BorderRadius.circular(13),
             ),
             child: Icon(
               Icons.add_rounded,
-              color: isDark
-                  ? AppColors.darkPrimary
-                  : AppColors.lightPrimary,
+              color: isDark ? AppColors.darkPrimary : AppColors.lightPrimary,
               size: screenW * 0.075,
             ),
           ),
@@ -377,17 +310,13 @@ class _ThisMonthCard extends StatelessWidget {
             width: 47,
             height: 47,
             decoration: BoxDecoration(
-              color: (isDark
-                      ? AppColors.darkPrimary
-                      : AppColors.lightPrimary)
+              color: (isDark ? AppColors.darkPrimary : AppColors.lightPrimary)
                   .withOpacity(0.13),
               borderRadius: BorderRadius.circular(15),
             ),
             child: Icon(
               Icons.account_balance_wallet_outlined,
-              color: isDark
-                  ? AppColors.darkPrimary
-                  : AppColors.lightPrimary,
+              color: isDark ? AppColors.darkPrimary : AppColors.lightPrimary,
               size: 24,
             ),
           ),
@@ -399,9 +328,8 @@ class _ThisMonthCard extends StatelessWidget {
                 Text(
                   "This Month",
                   style: GoogleFonts.ibmPlexSansArabic(
-                    color: isDark
-                        ? AppColors.darkSubText
-                        : AppColors.lightSubText,
+                    color:
+                        isDark ? AppColors.darkSubText : AppColors.lightSubText,
                     fontSize: 11,
                   ),
                 ),
@@ -409,9 +337,7 @@ class _ThisMonthCard extends StatelessWidget {
                 Text(
                   "${total.toStringAsFixed(2)} JOD",
                   style: GoogleFonts.ibmPlexSansArabic(
-                    color: isDark
-                        ? AppColors.darkText
-                        : AppColors.lightText,
+                    color: isDark ? AppColors.darkText : AppColors.lightText,
                     fontSize: 23,
                     fontWeight: FontWeight.bold,
                   ),
@@ -420,9 +346,8 @@ class _ThisMonthCard extends StatelessWidget {
                 Text(
                   "$expenseCount ${expenseCount == 1 ? "expense" : "expenses"} • $monthLabel ${now.year}",
                   style: GoogleFonts.ibmPlexSansArabic(
-                    color: isDark
-                        ? AppColors.darkSubText
-                        : AppColors.lightSubText,
+                    color:
+                        isDark ? AppColors.darkSubText : AppColors.lightSubText,
                     fontSize: 10,
                     fontWeight: FontWeight.w500,
                   ),
@@ -440,13 +365,11 @@ class _ThisMonthCard extends StatelessWidget {
 // ANALYTICS CARD
 // =====================================================
 
-class _AnalyticsCard
-    extends StatelessWidget {
+class _AnalyticsCard extends StatelessWidget {
   final List<ExpenseModel> expenses;
   final _AnalyticsType selectedType;
   final bool isDark;
-  final ValueChanged<_AnalyticsType>
-      onTypeChanged;
+  final ValueChanged<_AnalyticsType> onTypeChanged;
 
   const _AnalyticsCard({
     required this.expenses,
@@ -457,8 +380,7 @@ class _AnalyticsCard
 
   @override
   Widget build(BuildContext context) {
-    final Map<String, double> data =
-        _buildAnalyticsData(
+    final Map<String, double> data = _buildAnalyticsData(
       expenses,
       selectedType,
     );
@@ -472,8 +394,7 @@ class _AnalyticsCard
           sum + value,
     );
 
-    final List<MapEntry<String, double>>
-        entries = data.entries.toList()
+    final List<MapEntry<String, double>> entries = data.entries.toList()
       ..sort(
         (
           a,
@@ -484,66 +405,48 @@ class _AnalyticsCard
 
     return Container(
       width: double.infinity,
-      padding:
-          const EdgeInsets.all(18),
+      padding: const EdgeInsets.all(18),
       decoration: _cardDecoration(
         isDark,
         radius: 24,
       ),
       child: Column(
-        crossAxisAlignment:
-            CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
               Expanded(
                 child: Text(
                   "Spending Analytics",
-                  style: GoogleFonts
-                      .ibmPlexSansArabic(
-                    color: isDark
-                        ? AppColors.darkText
-                        : AppColors.lightText,
+                  style: GoogleFonts.ibmPlexSansArabic(
+                    color: isDark ? AppColors.darkText : AppColors.lightText,
                     fontSize: 16,
-                    fontWeight:
-                        FontWeight.bold,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
               ),
               Icon(
-                Icons
-                    .donut_large_outlined,
-                color: isDark
-                    ? AppColors.darkPrimary
-                    : AppColors.lightPrimary,
+                Icons.donut_large_outlined,
+                color: isDark ? AppColors.darkPrimary : AppColors.lightPrimary,
               ),
             ],
           ),
-
           const SizedBox(height: 15),
-
           _AnalyticsSelector(
-            selectedType:
-                selectedType,
+            selectedType: selectedType,
             isDark: isDark,
-            onChanged:
-                onTypeChanged,
+            onChanged: onTypeChanged,
           ),
-
           const SizedBox(height: 20),
-
-          if (entries.isEmpty ||
-              total <= 0)
+          if (entries.isEmpty || total <= 0)
             SizedBox(
               height: 200,
               child: Center(
                 child: Text(
                   "No analytics data yet",
-                  style: GoogleFonts
-                      .ibmPlexSansArabic(
-                    color: isDark
-                        ? AppColors.darkSubText
-                        : AppColors.lightSubText,
+                  style: GoogleFonts.ibmPlexSansArabic(
+                    color:
+                        isDark ? AppColors.darkSubText : AppColors.lightSubText,
                   ),
                 ),
               ),
@@ -656,8 +559,7 @@ class _AnalyticsSelector extends StatelessWidget {
   }
 }
 
-class _AnalyticsTab
-    extends StatelessWidget {
+class _AnalyticsTab extends StatelessWidget {
   final String label;
   final IconData icon;
   final bool isSelected;
@@ -675,54 +577,41 @@ class _AnalyticsTab
   @override
   Widget build(BuildContext context) {
     final Color selectedColor =
-        isDark
-            ? AppColors.darkPrimary
-            : AppColors.lightPrimary;
+        isDark ? AppColors.darkPrimary : AppColors.lightPrimary;
 
     return SizedBox(
       width: 104,
       child: InkWell(
         onTap: onTap,
-        borderRadius:
-            BorderRadius.circular(11),
+        borderRadius: BorderRadius.circular(11),
         child: AnimatedContainer(
-          duration:
-              const Duration(
+          duration: const Duration(
             milliseconds: 180,
           ),
-          padding:
-              const EdgeInsets.symmetric(
+          padding: const EdgeInsets.symmetric(
             horizontal: 5,
             vertical: 10,
           ),
           decoration: BoxDecoration(
             color: isSelected
-                ? selectedColor
-                    .withOpacity(0.13)
+                ? selectedColor.withOpacity(0.13)
                 : Colors.transparent,
-            borderRadius:
-                BorderRadius.circular(11),
+            borderRadius: BorderRadius.circular(11),
             border: isSelected
                 ? Border.all(
-                    color: selectedColor
-                        .withOpacity(0.28),
+                    color: selectedColor.withOpacity(0.28),
                   )
                 : null,
           ),
           child: Column(
-            mainAxisSize:
-                MainAxisSize.min,
+            mainAxisSize: MainAxisSize.min,
             children: [
               Icon(
                 icon,
                 size: 18,
                 color: isSelected
                     ? selectedColor
-                    : (isDark
-                        ? AppColors
-                            .darkSubText
-                        : AppColors
-                            .lightSubText),
+                    : (isDark ? AppColors.darkSubText : AppColors.lightSubText),
               ),
               const SizedBox(height: 4),
               FittedBox(
@@ -730,22 +619,14 @@ class _AnalyticsTab
                 child: Text(
                   label,
                   maxLines: 1,
-                  style: GoogleFonts
-                      .ibmPlexSansArabic(
+                  style: GoogleFonts.ibmPlexSansArabic(
                     color: isSelected
                         ? selectedColor
                         : (isDark
-                            ? AppColors
-                                .darkSubText
-                            : AppColors
-                                .lightSubText),
+                            ? AppColors.darkSubText
+                            : AppColors.lightSubText),
                     fontSize: 10,
-                    fontWeight:
-                        isSelected
-                            ? FontWeight
-                                .bold
-                            : FontWeight
-                                .w500,
+                    fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
                   ),
                 ),
               ),
@@ -757,10 +638,8 @@ class _AnalyticsTab
   }
 }
 
-class _AnalyticsPieChart
-    extends StatelessWidget {
-  final List<MapEntry<String, double>>
-      entries;
+class _AnalyticsPieChart extends StatelessWidget {
+  final List<MapEntry<String, double>> entries;
   final double total;
   final _AnalyticsType selectedType;
   final bool isDark;
@@ -782,8 +661,7 @@ class _AnalyticsPieChart
             centerSpaceRadius: 48,
             sectionsSpace: 3,
             startDegreeOffset: -90,
-            borderData:
-                FlBorderData(
+            borderData: FlBorderData(
               show: false,
             ),
             sections: List.generate(
@@ -791,51 +669,37 @@ class _AnalyticsPieChart
               (
                 index,
               ) {
-                final entry =
-                    entries[index];
+                final entry = entries[index];
 
                 final double percentage =
-                    total == 0
-                        ? 0
-                        : entry.value /
-                            total *
-                            100;
+                    total == 0 ? 0 : entry.value / total * 100;
 
                 return PieChartSectionData(
                   value: entry.value,
-                  color:
-                      _analyticsColor(
+                  color: _analyticsColor(
                     index,
                   ),
                   radius: 27,
-                  showTitle:
-                      percentage >= 12,
-                  title:
-                      "${percentage.round()}%",
-                  titleStyle:
-                       TextStyle(
+                  showTitle: percentage >= 12,
+                  title: "${percentage.round()}%",
+                  titleStyle: TextStyle(
                     color: isDark ? AppColors.darkText : AppColors.lightText,
                     fontSize: 10,
-                    fontWeight:
-                        FontWeight.bold,
+                    fontWeight: FontWeight.bold,
                   ),
                 );
               },
             ),
           ),
         ),
-
         Column(
-          mainAxisSize:
-              MainAxisSize.min,
+          mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
               _analyticsCenterIcon(
                 selectedType,
               ),
-              color: isDark
-                  ? AppColors.darkPrimary
-                  : AppColors.lightPrimary,
+              color: isDark ? AppColors.darkPrimary : AppColors.lightPrimary,
               size: 20,
             ),
             const SizedBox(height: 4),
@@ -843,14 +707,10 @@ class _AnalyticsPieChart
               _analyticsCenterText(
                 selectedType,
               ),
-              style: GoogleFonts
-                  .ibmPlexSansArabic(
-                color: isDark
-                    ? AppColors.darkText
-                    : AppColors.lightText,
+              style: GoogleFonts.ibmPlexSansArabic(
+                color: isDark ? AppColors.darkText : AppColors.lightText,
                 fontSize: 11,
-                fontWeight:
-                    FontWeight.bold,
+                fontWeight: FontWeight.bold,
               ),
             ),
           ],
@@ -860,10 +720,8 @@ class _AnalyticsPieChart
   }
 }
 
-class _AnalyticsLegend
-    extends StatelessWidget {
-  final List<MapEntry<String, double>>
-      entries;
+class _AnalyticsLegend extends StatelessWidget {
+  final List<MapEntry<String, double>> entries;
   final double total;
   final bool isDark;
 
@@ -877,8 +735,7 @@ class _AnalyticsLegend
   Widget build(BuildContext context) {
     return ListView.separated(
       shrinkWrap: true,
-      physics:
-          const NeverScrollableScrollPhysics(),
+      physics: const NeverScrollableScrollPhysics(),
       itemCount: entries.length,
       separatorBuilder: (
         context,
@@ -889,15 +746,9 @@ class _AnalyticsLegend
         context,
         index,
       ) {
-        final entry =
-            entries[index];
+        final entry = entries[index];
 
-        final double percentage =
-            total == 0
-                ? 0
-                : entry.value /
-                    total *
-                    100;
+        final double percentage = total == 0 ? 0 : entry.value / total * 100;
 
         return Row(
           children: [
@@ -905,46 +756,32 @@ class _AnalyticsLegend
               width: 10,
               height: 10,
               decoration: BoxDecoration(
-                color:
-                    _analyticsColor(
+                color: _analyticsColor(
                   index,
                 ),
                 shape: BoxShape.circle,
               ),
             ),
-
             const SizedBox(width: 8),
-
             Expanded(
               child: Text(
                 entry.key,
                 maxLines: 1,
-                overflow:
-                    TextOverflow.ellipsis,
-                style: GoogleFonts
-                    .ibmPlexSansArabic(
-                  color: isDark
-                      ? AppColors.darkText
-                      : AppColors.lightText,
+                overflow: TextOverflow.ellipsis,
+                style: GoogleFonts.ibmPlexSansArabic(
+                  color: isDark ? AppColors.darkText : AppColors.lightText,
                   fontSize: 10,
-                  fontWeight:
-                      FontWeight.w500,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
             ),
-
             const SizedBox(width: 5),
-
             Text(
               "${percentage.round()}%",
-              style: GoogleFonts
-                  .ibmPlexSansArabic(
-                color: isDark
-                    ? AppColors.darkSubText
-                    : AppColors.lightSubText,
+              style: GoogleFonts.ibmPlexSansArabic(
+                color: isDark ? AppColors.darkSubText : AppColors.lightSubText,
                 fontSize: 9,
-                fontWeight:
-                    FontWeight.w600,
+                fontWeight: FontWeight.w600,
               ),
             ),
           ],
@@ -984,9 +821,7 @@ class _WeeklySpendingChart extends StatelessWidget {
             : AppColors.lightBorder.withOpacity(0.42),
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
-          color: isDark
-              ? AppColors.darkBorder
-              : AppColors.lightBorder,
+          color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
         ),
       ),
       child: Column(
@@ -997,17 +832,13 @@ class _WeeklySpendingChart extends StatelessWidget {
               Icon(
                 Icons.show_chart_rounded,
                 size: 19,
-                color: isDark
-                    ? AppColors.darkAccent
-                    : AppColors.lightAccent,
+                color: isDark ? AppColors.darkAccent : AppColors.lightAccent,
               ),
               const SizedBox(width: 7),
               Text(
                 "Last 7 Days",
                 style: GoogleFonts.ibmPlexSansArabic(
-                  color: isDark
-                      ? AppColors.darkText
-                      : AppColors.lightText,
+                  color: isDark ? AppColors.darkText : AppColors.lightText,
                   fontSize: 13,
                   fontWeight: FontWeight.bold,
                 ),
@@ -1024,8 +855,7 @@ class _WeeklySpendingChart extends StatelessWidget {
                 gridData: FlGridData(
                   show: true,
                   drawVerticalLine: false,
-                  horizontalInterval:
-                      maxValue <= 0 ? 2 : (maxValue * 1.22) / 4,
+                  horizontalInterval: maxValue <= 0 ? 2 : (maxValue * 1.22) / 4,
                   getDrawingHorizontalLine: (value) {
                     return FlLine(
                       color: (isDark
@@ -1104,9 +934,8 @@ class _WeeklySpendingChart extends StatelessWidget {
                     ),
                     isCurved: true,
                     curveSmoothness: 0.28,
-                    color: isDark
-                        ? AppColors.darkAccent
-                        : AppColors.lightAccent,
+                    color:
+                        isDark ? AppColors.darkAccent : AppColors.lightAccent,
                     barWidth: 3,
                     isStrokeCapRound: true,
                     dotData: FlDotData(
@@ -1146,8 +975,7 @@ class _WeeklySpendingChart extends StatelessWidget {
 // ALPHA INSIGHT
 // =====================================================
 
-class _AlphaInsightCard
-    extends StatelessWidget {
+class _AlphaInsightCard extends StatelessWidget {
   final String insight;
   final bool isDark;
 
@@ -1160,68 +988,54 @@ class _AlphaInsightCard
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding:
-          const EdgeInsets.all(17),
+      padding: const EdgeInsets.all(17),
       decoration: BoxDecoration(
-        color: 
-            isDark ? AppColors.darkAccent.withOpacity(0.2) : AppColors.lightAccent.withOpacity(0.2),
-        borderRadius:
-            BorderRadius.circular(21),
+        color: isDark
+            ? AppColors.darkAccent.withOpacity(0.2)
+            : AppColors.lightAccent.withOpacity(0.2),
+        borderRadius: BorderRadius.circular(21),
         border: Border.all(
           color: isDark ? AppColors.darkAccent : AppColors.lightAccent,
         ),
       ),
       child: Row(
-        crossAxisAlignment:
-            CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
             width: 43,
             height: 43,
             decoration: BoxDecoration(
-              color:   isDark ? AppColors.darkAccent.withOpacity(0.12) : AppColors.lightAccent.withOpacity(0.12),
-              borderRadius:
-                  BorderRadius.circular(13),
+              color: isDark
+                  ? AppColors.darkAccent.withOpacity(0.12)
+                  : AppColors.lightAccent.withOpacity(0.12),
+              borderRadius: BorderRadius.circular(13),
             ),
             child: Icon(
               Icons.auto_awesome_rounded,
-              color: isDark ? 
-               AppColors.darkAccent : AppColors.lightAccent,
+              color: isDark ? AppColors.darkAccent : AppColors.lightAccent,
               size: 22,
             ),
           ),
-
           const SizedBox(width: 12),
-
           Expanded(
             child: Column(
-              crossAxisAlignment:
-                  CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   "Alpha Insight",
-                  style: GoogleFonts
-                      .ibmPlexSansArabic(
-                    color: isDark
-                        ? AppColors.darkText
-                        : AppColors.lightText,
+                  style: GoogleFonts.ibmPlexSansArabic(
+                    color: isDark ? AppColors.darkText : AppColors.lightText,
                     fontSize: 14,
-                    fontWeight:
-                        FontWeight.bold,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
-
                 const SizedBox(height: 5),
-
                 Text(
                   insight.trim().isEmpty
                       ? "Your personalized spending insight will appear here."
                       : insight,
-                  style: GoogleFonts
-                      .ibmPlexSansArabic(
-                    color: isDark
-                        ? AppColors.darkText
-                        : AppColors.lightText,
+                  style: GoogleFonts.ibmPlexSansArabic(
+                    color: isDark ? AppColors.darkText : AppColors.lightText,
                     fontSize: 13,
                     height: 1.5,
                   ),
@@ -1239,8 +1053,7 @@ class _AlphaInsightCard
 // RECENT EXPENSES
 // =====================================================
 
-class _RecentExpensesHeader
-    extends StatelessWidget {
+class _RecentExpensesHeader extends StatelessWidget {
   final int count;
   final bool isDark;
   final double screenW;
@@ -1258,19 +1071,13 @@ class _RecentExpensesHeader
         Expanded(
           child: Text(
             "Recent Expenses",
-            style: GoogleFonts
-                .ibmPlexSansArabic(
-              color: isDark
-                  ? AppColors.darkText
-                  : AppColors.lightText,
-              fontSize:
-                  screenW * 0.048,
-              fontWeight:
-                  FontWeight.bold,
+            style: GoogleFonts.ibmPlexSansArabic(
+              color: isDark ? AppColors.darkText : AppColors.lightText,
+              fontSize: screenW * 0.048,
+              fontWeight: FontWeight.bold,
             ),
           ),
         ),
-       
       ],
     );
   }
@@ -1287,14 +1094,10 @@ Map<String, double> _buildAnalyticsData(
   final Map<String, double> result = {};
 
   for (final expense in expenses) {
-    final Map<String, dynamic> json =
-        expense.toJson();
+    final Map<String, dynamic> json = expense.toJson();
 
-    final double amount =
-        _toDouble(
-      json['amount'] ??
-          json['expenseAmount'] ??
-          json['value'],
+    final double amount = _toDouble(
+      json['amount'] ?? json['expenseAmount'] ?? json['value'],
     );
 
     final String label;
@@ -1363,9 +1166,7 @@ Map<String, double> _buildAnalyticsData(
         break;
     }
 
-    result[label] =
-        (result[label] ?? 0) +
-            (amount > 0 ? amount : 1);
+    result[label] = (result[label] ?? 0) + (amount > 0 ? amount : 1);
   }
 
   result.removeWhere(
@@ -1385,15 +1186,13 @@ String _readLabel(
   required String fallback,
 }) {
   for (final key in keys) {
-    final dynamic value =
-        json[key];
+    final dynamic value = json[key];
 
     if (value == null) {
       continue;
     }
 
-    final String cleaned =
-        _cleanEnumText(
+    final String cleaned = _cleanEnumText(
       value.toString(),
     );
 
@@ -1408,12 +1207,10 @@ String _readLabel(
 String _cleanEnumText(
   String value,
 ) {
-  String cleaned =
-      value.trim();
+  String cleaned = value.trim();
 
   if (cleaned.contains('.')) {
-    cleaned =
-        cleaned.split('.').last;
+    cleaned = cleaned.split('.').last;
   }
 
   cleaned = cleaned.replaceAll(
@@ -1488,9 +1285,7 @@ List<double> _weeklyTotals(
     }
 
     totals[index] += _toDouble(
-      json['amount'] ??
-          json['expenseAmount'] ??
-          json['value'],
+      json['amount'] ?? json['expenseAmount'] ?? json['value'],
     );
   }
 
@@ -1580,8 +1375,7 @@ Color _analyticsColor(
     Color(0xFFEC76A8),
   ];
 
-  return colors[
-      index % colors.length];
+  return colors[index % colors.length];
 }
 
 IconData _analyticsCenterIcon(
@@ -1589,8 +1383,7 @@ IconData _analyticsCenterIcon(
 ) {
   switch (type) {
     case _AnalyticsType.payment:
-      return Icons
-          .credit_card_outlined;
+      return Icons.credit_card_outlined;
 
     case _AnalyticsType.movement:
       return Icons.repeat_rounded;
@@ -1633,16 +1426,11 @@ BoxDecoration _cardDecoration(
 }) {
   return BoxDecoration(
     color: isDark
-        ? AppColors.darkPrimary
-            .withOpacity(0.04)
-        : AppColors.lightPrimary
-            .withOpacity(0.04),
-    borderRadius:
-        BorderRadius.circular(radius),
+        ? AppColors.darkPrimary.withOpacity(0.04)
+        : AppColors.lightPrimary.withOpacity(0.04),
+    borderRadius: BorderRadius.circular(radius),
     border: Border.all(
-      color: isDark
-          ? AppColors.darkPrimary
-          : AppColors.lightPrimary,
+      color: isDark ? AppColors.darkPrimary : AppColors.lightPrimary,
     ),
   );
 }

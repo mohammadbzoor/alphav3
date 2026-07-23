@@ -9,11 +9,14 @@ import 'package:alpha_app/providers/home_provider.dart';
 
 import 'package:alpha_app/providers/language_provider.dart';
 import 'package:alpha_app/providers/leaderbord_provider.dart';
+import 'package:alpha_app/providers/onboarding_provider.dart';
 import 'package:alpha_app/providers/personal_provider.dart';
 import 'package:alpha_app/providers/profile_provider.dart';
 import 'package:alpha_app/providers/receipt_provider.dart';
 import 'package:alpha_app/providers/income_provider.dart';
+import 'package:alpha_app/providers/cycle_provider.dart';
 import 'package:alpha_app/providers/reward_provider.dart' show RewardProvider;
+import 'package:alpha_app/providers/financial_profile_provider.dart';
 
 import 'package:alpha_app/providers/themeprovider.dart';
 import 'package:alpha_app/screens/analysis/financial_analysis_screen.dart';
@@ -33,74 +36,62 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
-
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
-
-
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load(fileName: '.env');
   await EasyLocalization.ensureInitialized();
 
-  
-
-  
-
- 
- runApp(
+  runApp(
     EasyLocalization(
-      supportedLocales: const [Locale('en'), Locale('ar')],
-      path: 'assets/translations', 
-      fallbackLocale: const Locale('en'),
-       startLocale: const Locale('en'),
-      child: MultiProvider( providers: [
-            
-        ChangeNotifierProvider(create: (context) => Themeprovider()..loadtheme(),),
-         ChangeNotifierProvider(create: (context) => LanguageProvider()..loadSavedLanguage()),
-        ChangeNotifierProvider(create: (context) =>AuthProvider()),
-       ChangeNotifierProvider(create: (context) =>IncomeProvider()),
-  
-  ChangeNotifierProvider(create: (context) =>PersonalProvider()),
-       ChangeNotifierProvider(create: (context) =>FinancialProvider()),
-         ChangeNotifierProvider(create: (context) =>GoalProvider()),
+        supportedLocales: const [Locale('en'), Locale('ar')],
+        path: 'assets/translations',
+        fallbackLocale: const Locale('en'),
+        startLocale: const Locale('en'),
+        child: MultiProvider(providers: [
           ChangeNotifierProvider(
-      create: (_) => ChallengeProvider(),
-    ),
-    ChangeNotifierProvider(
-      create: (_) => RewardProvider(),
-    ),
-    ChangeNotifierProvider(
-      create: (_) => LeaderboardProvider(),
-    ),
-         ChangeNotifierProvider(
-
-create: (_) => ChatbotProvider(),
-
-),
-
-ChangeNotifierProvider(
-  create: (_) => HomeProvider(),
-),
-ChangeNotifierProvider(
-  create: (_) => ReceiptProvider(),
-),
-
-ChangeNotifierProvider(
-  create: (_) => ExpenseProvider(),
-),
-
-ChangeNotifierProvider(
-  create: (_) =>
-      FinancialAnalysisProvider(),
-),
-
-ChangeNotifierProvider(
-  create: (_) => ProfileProvider(),
-),
-      ],
-        child: MyApp())
-    ),
+            create: (context) => Themeprovider()..loadtheme(),
+          ),
+          ChangeNotifierProvider(
+              create: (context) => LanguageProvider()..loadSavedLanguage()),
+          ChangeNotifierProvider(create: (context) => AuthProvider()),
+          ChangeNotifierProvider(create: (context) => OnboardingProvider()),
+          ChangeNotifierProvider(create: (context) => IncomeProvider()),
+          ChangeNotifierProvider(create: (context) => PersonalProvider()),
+          ChangeNotifierProvider(
+              create: (context) => FinancialProfileProvider()),
+          ChangeNotifierProvider(create: (context) => FinancialProvider()),
+          ChangeNotifierProvider(create: (context) => GoalProvider()),
+          ChangeNotifierProvider(create: (context) => CycleProvider()),
+          ChangeNotifierProvider(
+            create: (_) => ChallengeProvider(),
+          ),
+          ChangeNotifierProvider(
+            create: (_) => RewardProvider(),
+          ),
+          ChangeNotifierProvider(
+            create: (_) => LeaderboardProvider(),
+          ),
+          ChangeNotifierProvider(
+            create: (_) => ChatbotProvider(),
+          ),
+          ChangeNotifierProvider(
+            create: (_) => HomeProvider(),
+          ),
+          ChangeNotifierProvider(
+            create: (_) => ReceiptProvider(),
+          ),
+          ChangeNotifierProvider(
+            create: (_) => ExpenseProvider(),
+          ),
+          ChangeNotifierProvider(
+            create: (_) => FinancialAnalysisProvider(),
+          ),
+          ChangeNotifierProvider(
+            create: (_) => ProfileProvider(),
+          ),
+        ], child: MyApp())),
   );
 }
 
@@ -112,48 +103,32 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
-@override
-
-void initState() {
+  @override
+  void initState() {
     // TODO: implement initState
     super.initState();
-     Future.microtask(() {
-     
-
-  String currentLang = context.locale.languageCode;
-  
-    
-  
-        
-          
-
- 
-  
-    
-          
+    Future.microtask(() {
+      String currentLang = context.locale.languageCode;
     });
   }
+
   @override
   Widget build(BuildContext context) {
+    print(context.locale.languageCode);
 
-     print(context.locale.languageCode);
-       
-        return Consumer<Themeprovider>(builder: (context, themeprovider, _) {
-         return MaterialApp(
+    return Consumer<Themeprovider>(
+      builder: (context, themeprovider, _) {
+        return MaterialApp(
             debugShowCheckedModeBanner: false,
             theme: ThemeData.light(),
             darkTheme: ThemeData.dark(),
-             themeMode: themeprovider.thememode,
-                localizationsDelegates: context.localizationDelegates,
-                 supportedLocales: context.supportedLocales,
-                 locale: context.locale,
-                   navigatorKey: navigatorKey,
-             home: const SplashScreen()
-           );
-        },
-         
-        );
-      
-    
+            themeMode: themeprovider.thememode,
+            localizationsDelegates: context.localizationDelegates,
+            supportedLocales: context.supportedLocales,
+            locale: context.locale,
+            navigatorKey: navigatorKey,
+            home: const SplashScreen());
+      },
+    );
   }
 }

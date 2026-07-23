@@ -36,8 +36,7 @@ class ReceiptItemModel {
     return ReceiptItemModel(
       id: json['id']?.toString() ?? '',
       name: json['name']?.toString() ?? '',
-      category:
-          json['category']?.toString() ?? 'Other',
+      category: json['category']?.toString() ?? 'Other',
       amount: double.tryParse(
             json['amount']?.toString() ?? '',
           ) ??
@@ -93,34 +92,28 @@ class ParsedReceiptModel {
       id: id ?? this.id,
       storeName: storeName ?? this.storeName,
       date: date ?? this.date,
-      suggestedCategory:
-          suggestedCategory ?? this.suggestedCategory,
+      suggestedCategory: suggestedCategory ?? this.suggestedCategory,
       items: items ?? this.items,
       total: total ?? this.total,
       confidence: confidence ?? this.confidence,
       inputType: inputType ?? this.inputType,
-      extractedText:
-          extractedText ?? this.extractedText,
+      extractedText: extractedText ?? this.extractedText,
     );
   }
 
   factory ParsedReceiptModel.fromJson(
     Map<String, dynamic> json,
   ) {
-    final rawItems =
-        json['items'] as List<dynamic>? ?? [];
+    final rawItems = json['items'] as List<dynamic>? ?? [];
 
     return ParsedReceiptModel(
       id: json['id']?.toString(),
-      storeName:
-          json['store_name']?.toString() ?? 'Unknown Store',
+      storeName: json['store_name']?.toString() ?? 'Unknown Store',
       date: DateTime.tryParse(
             json['date']?.toString() ?? '',
           ) ??
           DateTime.now(),
-      suggestedCategory:
-          json['suggested_category']?.toString() ??
-              'Shopping',
+      suggestedCategory: json['suggested_category']?.toString() ?? 'Shopping',
       items: rawItems
           .map(
             (item) => ReceiptItemModel.fromJson(
@@ -136,12 +129,10 @@ class ParsedReceiptModel {
             json['confidence']?.toString() ?? '',
           ) ??
           0,
-      inputType:
-          json['input_type'] == 'voice'
-              ? ReceiptInputType.voice
-              : ReceiptInputType.image,
-      extractedText:
-          json['extracted_text']?.toString() ?? '',
+      inputType: json['input_type'] == 'voice'
+          ? ReceiptInputType.voice
+          : ReceiptInputType.image,
+      extractedText: json['extracted_text']?.toString() ?? '',
     );
   }
 
@@ -151,9 +142,7 @@ class ParsedReceiptModel {
       'store_name': storeName,
       'date': date.toIso8601String(),
       'suggested_category': suggestedCategory,
-      'items': items
-          .map((item) => item.toJson())
-          .toList(),
+      'items': items.map((item) => item.toJson()).toList(),
       'total': total,
       'confidence': confidence,
       'input_type': inputType.name,

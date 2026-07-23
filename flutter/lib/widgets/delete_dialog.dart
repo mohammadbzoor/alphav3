@@ -11,19 +11,16 @@ class DeleteDialog {
     required String message,
     required VoidCallback onDelete,
   }) async {
-    final themeProvider =
-        context.read<Themeprovider>();
+    final themeProvider = context.read<Themeprovider>();
 
     await showDialog<void>(
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
-          backgroundColor: themeProvider.isDark
-              ? const Color(0xFF172624)
-              : Colors.white,
+          backgroundColor:
+              themeProvider.isDark ? const Color(0xFF172624) : Colors.white,
           shape: RoundedRectangleBorder(
-            borderRadius:
-                BorderRadius.circular(22),
+            borderRadius: BorderRadius.circular(22),
           ),
           title: Text(
             title,

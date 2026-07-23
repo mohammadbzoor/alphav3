@@ -317,25 +317,25 @@ class _GoalDateScreenState extends State<GoalDateScreen> {
                 SizedBox(
                   height: screenH * 0.02,
                 ),
-              Padding(
-  padding: EdgeInsets.only(
-    bottom: screenH * 0.02,
-  ),
-  child: AppButton(
-    text: "Confirm Date",
-    isDark: themeprovider.isDark,
-    width: screenW,
-    height: screenH * 0.065,
-    onPressed: () {
-      if (_selectedDay != null) {
-        Navigator.pop(
-          context,
-          _selectedDay,
-        );
-      }
-    },
-  ),
-),
+                Padding(
+                  padding: EdgeInsets.only(
+                    bottom: screenH * 0.02,
+                  ),
+                  child: AppButton(
+                    text: "Confirm Date",
+                    isDark: themeprovider.isDark,
+                    width: screenW,
+                    height: screenH * 0.065,
+                    onPressed: () {
+                      if (_selectedDay != null) {
+                        Navigator.pop(
+                          context,
+                          _selectedDay,
+                        );
+                      }
+                    },
+                  ),
+                ),
               ],
             ),
           ),

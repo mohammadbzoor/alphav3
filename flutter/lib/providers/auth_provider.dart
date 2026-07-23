@@ -8,26 +8,19 @@ class AuthProvider extends ChangeNotifier {
   // CONTROLLERS
   // =====================================================
 
-  final TextEditingController nameController =
-      TextEditingController();
+  final TextEditingController nameController = TextEditingController();
 
-  final TextEditingController phoneController =
-      TextEditingController();
+  final TextEditingController phoneController = TextEditingController();
 
-  final TextEditingController emailController =
-      TextEditingController();
+  final TextEditingController emailController = TextEditingController();
 
-  final TextEditingController passwordController =
-      TextEditingController();
+  final TextEditingController passwordController = TextEditingController();
 
-  final TextEditingController birthDateController =
-      TextEditingController();
+  final TextEditingController birthDateController = TextEditingController();
 
-  final TextEditingController otpController =
-      TextEditingController();
+  final TextEditingController otpController = TextEditingController();
 
-  final TextEditingController newPasswordController =
-      TextEditingController();
+  final TextEditingController newPasswordController = TextEditingController();
 
   // =====================================================
   // STATE
@@ -47,11 +40,9 @@ class AuthProvider extends ChangeNotifier {
   // CLEAN VALUES
   // =====================================================
 
-  String get fullName =>
-      nameController.text.trim();
+  String get fullName => nameController.text.trim();
 
-  String get localPhoneNumber =>
-      phoneController.text.trim();
+  String get localPhoneNumber => phoneController.text.trim();
 
   String get fullPhoneNumber {
     final phone = localPhoneNumber;
@@ -67,11 +58,9 @@ class AuthProvider extends ChangeNotifier {
     return '+962$phone';
   }
 
-  String get email =>
-      emailController.text.trim();
+  String get email => emailController.text.trim();
 
-  String get password =>
-      passwordController.text;
+  String get password => passwordController.text;
 
   String get birthDateIso {
     final date = birthDate;
@@ -92,8 +81,7 @@ class AuthProvider extends ChangeNotifier {
   void setBirthDate(DateTime date) {
     birthDate = date;
 
-    birthDateController.text =
-        birthDateIso;
+    birthDateController.text = birthDateIso;
 
     notifyListeners();
   }
@@ -122,8 +110,7 @@ class AuthProvider extends ChangeNotifier {
       return false;
     }
 
-    final validationError =
-        validateRegistrationData();
+    final validationError = validateRegistrationData();
 
     if (validationError != null) {
       errorMessage = validationError;
@@ -138,8 +125,7 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final response =
-          await AuthService.register(
+      final response = await AuthService.register(
         fullName: fullName,
         phone: fullPhoneNumber,
         email: email,
@@ -154,16 +140,14 @@ class AuthProvider extends ChangeNotifier {
       final rawData = response['data'];
 
       if (rawData is Map) {
-        currentUser =
-            Map<String, dynamic>.from(rawData);
+        currentUser = Map<String, dynamic>.from(rawData);
       }
 
       registrationCreated = true;
 
       return true;
     } catch (error) {
-      errorMessage =
-          _cleanError(error);
+      errorMessage = _cleanError(error);
 
       debugPrint(
         'REGISTER ERROR: $error',
@@ -188,14 +172,10 @@ class AuthProvider extends ChangeNotifier {
       return false;
     }
 
-    final cleanOtp =
-        otpCode.trim();
+    final cleanOtp = otpCode.trim();
 
-    if (cleanOtp.length != 6 ||
-        !RegExp(r'^\d{6}$')
-            .hasMatch(cleanOtp)) {
-      errorMessage =
-          'Please enter a valid 6-digit verification code';
+    if (cleanOtp.length != 6 || !RegExp(r'^\d{6}$').hasMatch(cleanOtp)) {
+      errorMessage = 'Please enter a valid 6-digit verification code';
 
       notifyListeners();
 
@@ -203,8 +183,7 @@ class AuthProvider extends ChangeNotifier {
     }
 
     if (!_isValidPhone(localPhoneNumber)) {
-      errorMessage =
-          'Enter a valid phone number';
+      errorMessage = 'Enter a valid phone number';
 
       notifyListeners();
 
@@ -216,8 +195,7 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final response =
-          await AuthService.verifyPhone(
+      final response = await AuthService.verifyPhone(
         phoneNumber: fullPhoneNumber,
         otpCode: cleanOtp,
       );
@@ -229,14 +207,12 @@ class AuthProvider extends ChangeNotifier {
       final rawData = response['data'];
 
       if (rawData is Map) {
-        final data =
-            Map<String, dynamic>.from(rawData);
+        final data = Map<String, dynamic>.from(rawData);
 
         final rawUser = data['user'];
 
         if (rawUser is Map) {
-          currentUser =
-              Map<String, dynamic>.from(
+          currentUser = Map<String, dynamic>.from(
             rawUser,
           );
         }
@@ -247,8 +223,7 @@ class AuthProvider extends ChangeNotifier {
 
       return true;
     } catch (error) {
-      errorMessage =
-          _cleanError(error);
+      errorMessage = _cleanError(error);
 
       debugPrint(
         'VERIFY OTP ERROR: $error',
@@ -271,8 +246,7 @@ class AuthProvider extends ChangeNotifier {
     }
 
     if (!_isValidPhone(localPhoneNumber)) {
-      errorMessage =
-          'Enter a valid phone number';
+      errorMessage = 'Enter a valid phone number';
 
       notifyListeners();
 
@@ -280,8 +254,7 @@ class AuthProvider extends ChangeNotifier {
     }
 
     if (password.isEmpty) {
-      errorMessage =
-          'Password is required';
+      errorMessage = 'Password is required';
 
       notifyListeners();
 
@@ -293,8 +266,7 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final response =
-          await AuthService.login(
+      final response = await AuthService.login(
         phoneNumber: fullPhoneNumber,
         password: password,
       );
@@ -306,21 +278,18 @@ class AuthProvider extends ChangeNotifier {
       final rawData = response['data'];
 
       if (rawData is Map) {
-        final data =
-            Map<String, dynamic>.from(rawData);
+        final data = Map<String, dynamic>.from(rawData);
 
         final rawUser = data['user'];
 
         if (rawUser is Map) {
-          currentUser =
-              Map<String, dynamic>.from(
+          currentUser = Map<String, dynamic>.from(
             rawUser,
           );
         }
       }
 
-      final preferences =
-          await SharedPreferences.getInstance();
+      final preferences = await SharedPreferences.getInstance();
 
       await preferences.setBool(
         'remember_me',
@@ -340,8 +309,7 @@ class AuthProvider extends ChangeNotifier {
 
       return true;
     } catch (error) {
-      errorMessage =
-          _cleanError(error);
+      errorMessage = _cleanError(error);
 
       debugPrint(
         'LOGIN ERROR: $error',
@@ -364,8 +332,7 @@ class AuthProvider extends ChangeNotifier {
     }
 
     if (!_isValidEmail(email)) {
-      errorMessage =
-          'Enter a valid email';
+      errorMessage = 'Enter a valid email';
 
       notifyListeners();
 
@@ -377,8 +344,7 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final response =
-          await AuthService.forgotPassword(
+      final response = await AuthService.forgotPassword(
         email: email,
       );
 
@@ -388,8 +354,7 @@ class AuthProvider extends ChangeNotifier {
 
       return true;
     } catch (error) {
-      errorMessage =
-          _cleanError(error);
+      errorMessage = _cleanError(error);
 
       debugPrint(
         'FORGOT PASSWORD ERROR: $error',
@@ -409,14 +374,10 @@ class AuthProvider extends ChangeNotifier {
       return false;
     }
 
-    final cleanOtp =
-        otpCode.trim();
+    final cleanOtp = otpCode.trim();
 
-    if (cleanOtp.length != 6 ||
-        !RegExp(r'^\d{6}$')
-            .hasMatch(cleanOtp)) {
-      errorMessage =
-          'Please enter a valid 6-digit code';
+    if (cleanOtp.length != 6 || !RegExp(r'^\d{6}$').hasMatch(cleanOtp)) {
+      errorMessage = 'Please enter a valid 6-digit code';
 
       notifyListeners();
 
@@ -424,8 +385,7 @@ class AuthProvider extends ChangeNotifier {
     }
 
     if (!_isValidEmail(email)) {
-      errorMessage =
-          'Enter a valid email';
+      errorMessage = 'Enter a valid email';
 
       notifyListeners();
 
@@ -437,8 +397,7 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final response =
-          await AuthService.verifyResetOtp(
+      final response = await AuthService.verifyResetOtp(
         email: email,
         otpCode: cleanOtp,
       );
@@ -451,8 +410,7 @@ class AuthProvider extends ChangeNotifier {
 
       return true;
     } catch (error) {
-      errorMessage =
-          _cleanError(error);
+      errorMessage = _cleanError(error);
 
       debugPrint(
         'VERIFY RESET OTP ERROR: $error',
@@ -473,31 +431,25 @@ class AuthProvider extends ChangeNotifier {
       return false;
     }
 
-    final cleanOtp =
-        otpCode.trim();
+    final cleanOtp = otpCode.trim();
 
     if (!_isValidEmail(email)) {
-      errorMessage =
-          'Enter a valid email';
+      errorMessage = 'Enter a valid email';
 
       notifyListeners();
 
       return false;
     }
 
-    if (cleanOtp.length != 6 ||
-        !RegExp(r'^\d{6}$')
-            .hasMatch(cleanOtp)) {
-      errorMessage =
-          'Please enter a valid 6-digit code';
+    if (cleanOtp.length != 6 || !RegExp(r'^\d{6}$').hasMatch(cleanOtp)) {
+      errorMessage = 'Please enter a valid 6-digit code';
 
       notifyListeners();
 
       return false;
     }
 
-    final passwordError =
-        _validatePassword(newPassword);
+    final passwordError = _validatePassword(newPassword);
 
     if (passwordError != null) {
       errorMessage = passwordError;
@@ -511,8 +463,7 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final response =
-          await AuthService.resetPassword(
+      final response = await AuthService.resetPassword(
         email: email,
         otpCode: cleanOtp,
         newPassword: newPassword,
@@ -527,8 +478,7 @@ class AuthProvider extends ChangeNotifier {
 
       return true;
     } catch (error) {
-      errorMessage =
-          _cleanError(error);
+      errorMessage = _cleanError(error);
 
       debugPrint(
         'RESET PASSWORD ERROR: $error',
@@ -558,8 +508,7 @@ class AuthProvider extends ChangeNotifier {
       await AuthService.refreshToken();
       return true;
     } catch (error) {
-      errorMessage =
-          _cleanError(error);
+      errorMessage = _cleanError(error);
 
       return false;
     } finally {
@@ -601,18 +550,15 @@ class AuthProvider extends ChangeNotifier {
   // =====================================================
 
   Future<void> loadRememberedUser() async {
-    final preferences =
-        await SharedPreferences.getInstance();
+    final preferences = await SharedPreferences.getInstance();
 
-    rememberMe =
-        preferences.getBool(
+    rememberMe = preferences.getBool(
           'remember_me',
         ) ??
         false;
 
     if (rememberMe) {
-      phoneController.text =
-          preferences.getString(
+      phoneController.text = preferences.getString(
             'saved_phone',
           ) ??
           '';
@@ -622,16 +568,13 @@ class AuthProvider extends ChangeNotifier {
   }
 
   Future<bool> hasSavedSession() async {
-    final preferences =
-        await SharedPreferences.getInstance();
+    final preferences = await SharedPreferences.getInstance();
 
-    final token =
-        preferences.getString(
-          'access_token',
-        );
+    final token = preferences.getString(
+      'access_token',
+    );
 
-    return token != null &&
-        token.isNotEmpty;
+    return token != null && token.isNotEmpty;
   }
 
   // =====================================================
@@ -708,18 +651,15 @@ class AuthProvider extends ChangeNotifier {
       return 'Password must be at least 8 characters';
     }
 
-    if (!RegExp(r'[a-z]')
-        .hasMatch(value)) {
+    if (!RegExp(r'[a-z]').hasMatch(value)) {
       return 'Password must contain a lowercase letter';
     }
 
-    if (!RegExp(r'[A-Z]')
-        .hasMatch(value)) {
+    if (!RegExp(r'[A-Z]').hasMatch(value)) {
       return 'Password must contain an uppercase letter';
     }
 
-    if (!RegExp(r'\d')
-        .hasMatch(value)) {
+    if (!RegExp(r'\d').hasMatch(value)) {
       return 'Password must contain a number';
     }
 
@@ -747,12 +687,13 @@ class AuthProvider extends ChangeNotifier {
           return error.message;
       }
     }
-    
+
     final errStr = error.toString();
-    if (errStr.contains('SocketException') || errStr.contains('TimeoutException')) {
+    if (errStr.contains('SocketException') ||
+        errStr.contains('TimeoutException')) {
       return 'Network timeout. Please check your internet connection.';
     }
-    
+
     if (errStr.contains('500')) {
       return 'An internal server error occurred. Please try again later.';
     }

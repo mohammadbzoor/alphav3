@@ -5,7 +5,13 @@ class N8nService {
   static async forwardToWebhook(file, type) {
     const WEBHOOK_URL = process.env.N8N_WEBHOOK_URL;
 
-    console.log('WEBHOOK URL:', WEBHOOK_URL);
+    let host = 'unknown';
+    try {
+      if (WEBHOOK_URL) host = new URL(WEBHOOK_URL).host;
+    } catch (e) {}
+
+    console.log('N8N webhook configured=true');
+    console.log('N8N webhook host=' + host);
     console.log('TYPE:', type);
 
     if (!WEBHOOK_URL) {
@@ -41,7 +47,73 @@ class N8nService {
           maxContentLength: Infinity
         });
 
-        return response.data;
+        const rawData = response.data;
+        const typeOfData = typeof rawData;
+        const isArray = Array.isArray(rawData);
+        const isBuffer = Buffer.isBuffer(rawData);
+
+        let rootKeys = '';
+        if (rawData && typeOfData === 'object' && !isArray && !isBuffer) {
+          rootKeys = Object.keys(rawData).join(',');
+        }
+
+        let outputType = 'undefined';
+        let dataType = 'undefined';
+        if (rawData && typeOfData === 'object') {
+          if (isArray && rawData.length > 0) {
+            outputType = typeof rawData[0].output;
+            dataType = typeof rawData[0].data;
+          } else if (!isArray && !isBuffer) {
+            outputType = typeof rawData.output;
+            dataType = typeof rawData.data;
+          }
+        }
+
+        let strContent = '';
+        if (typeOfData === 'string') {
+          strContent = rawData;
+        } else if (isBuffer) {
+          strContent = rawData.toString('utf8');
+        } else if (rawData && typeof rawData.output === 'string') {
+          strContent = rawData.output;
+        } else if (isArray && rawData.length > 0 && typeof rawData[0].output === 'string') {
+          strContent = rawData[0].output;
+        } else if (rawData && typeof rawData.data === 'string') {
+          strContent = rawData.data;
+        } else if (isArray && rawData.length > 0 && typeof rawData[0].data === 'string') {
+          strContent = rawData[0].data;
+        }
+
+        const containsMarkdownFence = strContent.includes('```json') || strContent.includes('```');
+
+        const { isTransactionCandidate } = require('../utils/n8n-response.helper');
+        const isCandidate = isTransactionCandidate(rawData);
+
+        let length = 'undefined';
+        if (isBuffer) length = rawData.length;
+        else if (typeOfData === 'string') length = rawData.length;
+        else if (isArray) length = rawData.length;
+        else if (typeOfData === 'object') length = 'not_applicable';
+
+        let transactionCount = 'undefined';
+        if (isArray) {
+            transactionCount = rawData.length;
+        }
+
+        console.log(`N8N statusCode=${response.status}`);
+        console.log(`N8N contentType=${response.headers['content-type']}`);
+        console.log(`N8N responseRuntimeType=${typeOfData}${isBuffer ? ' (Buffer)' : ''}${isArray ? ' (Array)' : ''}`);
+        console.log(`N8N responseLength=${length}`);
+        console.log(`N8N rootIsList=${isArray}`);
+        console.log(`N8N rootIsMap=${typeOfData === 'object' && !isArray && !isBuffer}`);
+        console.log(`N8N rootKeys=${rootKeys}`);
+        console.log(`N8N outputType=${outputType}`);
+        console.log(`N8N dataType=${dataType}`);
+        console.log(`N8N transactionCount=${transactionCount}`);
+        console.log(`N8N containsMarkdownFence=${containsMarkdownFence}`);
+        console.log(`N8N directTransactionCandidate=${isCandidate}`);
+
+        return rawData;
       } catch (error) {
         attempt++;
         console.error(`N8n Webhook Error (Attempt ${attempt}):`, error.message);

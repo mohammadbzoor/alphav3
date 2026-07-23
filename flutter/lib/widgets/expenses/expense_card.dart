@@ -17,19 +17,15 @@ class ExpenseCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark =
-        context.watch<Themeprovider>().isDark;
+    final isDark = context.watch<Themeprovider>().isDark;
 
     final json = expense.toJson();
 
-    final title = expense.title.trim().isEmpty
-        ? "Expense"
-        : expense.title.trim();
+    final title =
+        expense.title.trim().isEmpty ? "Expense" : expense.title.trim();
 
     final amount = _toDouble(
-      json['amount'] ??
-          json['expenseAmount'] ??
-          json['value'],
+      json['amount'] ?? json['expenseAmount'] ?? json['value'],
     );
 
     final category = _readValue(
@@ -73,8 +69,7 @@ class ExpenseCard extends StatelessWidget {
     );
 
     final date = _readDate(json);
-    final categoryColor =
-        _categoryColor(category);
+    final categoryColor = _categoryColor(category);
 
     return Container(
       width: double.infinity,
@@ -86,8 +81,7 @@ class ExpenseCard extends StatelessWidget {
         color: categoryColor.withOpacity(
           isDark ? 0.10 : 0.06,
         ),
-        borderRadius:
-            BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(
           color: categoryColor.withOpacity(0.28),
           width: 1.2,
@@ -103,16 +97,14 @@ class ExpenseCard extends StatelessWidget {
       child: Column(
         children: [
           Row(
-            crossAxisAlignment:
-                CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
                 width: 44,
                 height: 44,
                 decoration: BoxDecoration(
                   color: categoryColor.withOpacity(0.18),
-                  borderRadius:
-                      BorderRadius.circular(14),
+                  borderRadius: BorderRadius.circular(14),
                 ),
                 child: Icon(
                   _categoryIcon(category),
@@ -120,59 +112,42 @@ class ExpenseCard extends StatelessWidget {
                   size: 22,
                 ),
               ),
-
               const SizedBox(width: 12),
-
               Expanded(
                 child: Column(
-                  crossAxisAlignment:
-                      CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       title,
                       maxLines: 1,
-                      overflow:
-                          TextOverflow.ellipsis,
-                      style: GoogleFonts
-                          .ibmPlexSansArabic(
-                        color: isDark
-                            ? AppColors.darkText
-                            : AppColors.lightText,
+                      overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.ibmPlexSansArabic(
+                        color:
+                            isDark ? AppColors.darkText : AppColors.lightText,
                         fontSize: 15,
-                        fontWeight:
-                            FontWeight.bold,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
-
                     const SizedBox(height: 4),
-
                     Text(
                       "$category • $payment",
                       maxLines: 1,
-                      overflow:
-                          TextOverflow.ellipsis,
-                      style: GoogleFonts
-                          .ibmPlexSansArabic(
+                      overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.ibmPlexSansArabic(
                         color: isDark
-                            ? AppColors
-                                .darkSubText
-                            : AppColors
-                                .lightSubText,
+                            ? AppColors.darkSubText
+                            : AppColors.lightSubText,
                         fontSize: 10,
                       ),
                     ),
-
                     if (date != null) ...[
                       const SizedBox(height: 3),
                       Text(
                         _formatDate(date),
-                        style: GoogleFonts
-                            .ibmPlexSansArabic(
+                        style: GoogleFonts.ibmPlexSansArabic(
                           color: isDark
-                              ? AppColors
-                                  .darkSubText
-                              : AppColors
-                                  .lightSubText,
+                              ? AppColors.darkSubText
+                              : AppColors.lightSubText,
                           fontSize: 9,
                         ),
                       ),
@@ -180,38 +155,27 @@ class ExpenseCard extends StatelessWidget {
                   ],
                 ),
               ),
-
               const SizedBox(width: 8),
-
               Column(
-                crossAxisAlignment:
-                    CrossAxisAlignment.end,
+                crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   PopupMenuButton<String>(
-                    tooltip:
-                        "Expense options",
+                    tooltip: "Expense options",
                     padding: EdgeInsets.zero,
-                    constraints:
-                        const BoxConstraints(),
-                    color: isDark
-                        ? AppColors.darkBorder
-                        : Colors.white,
-                    shape:
-                        RoundedRectangleBorder(
-                      borderRadius:
-                          BorderRadius.circular(
+                    constraints: const BoxConstraints(),
+                    color: isDark ? AppColors.darkBorder : Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(
                         14,
                       ),
                     ),
                     icon: Icon(
                       Icons.more_horiz_rounded,
-                      color: categoryColor
-                          .withOpacity(0.75),
+                      color: categoryColor.withOpacity(0.75),
                       size: 21,
                     ),
                     onSelected: (value) {
-                      if (value ==
-                          'delete') {
+                      if (value == 'delete') {
                         onDelete();
                       }
                     },
@@ -224,29 +188,21 @@ class ExpenseCard extends StatelessWidget {
                           child: Row(
                             children: [
                               Icon(
-                                Icons
-                                    .delete_outline_rounded,
+                                Icons.delete_outline_rounded,
                                 color: isDark
-                                    ? AppColors
-                                        .darkError
-                                    : AppColors
-                                        .lightError,
+                                    ? AppColors.darkError
+                                    : AppColors.lightError,
                               ),
                               const SizedBox(
                                 width: 8,
                               ),
                               Text(
                                 "Delete Expense",
-                                style: GoogleFonts
-                                    .ibmPlexSansArabic(
+                                style: GoogleFonts.ibmPlexSansArabic(
                                   color: isDark
-                                      ? AppColors
-                                          .darkError
-                                      : AppColors
-                                          .lightError,
-                                  fontWeight:
-                                      FontWeight
-                                          .w600,
+                                      ? AppColors.darkError
+                                      : AppColors.lightError,
+                                  fontWeight: FontWeight.w600,
                                 ),
                               ),
                             ],
@@ -255,55 +211,38 @@ class ExpenseCard extends StatelessWidget {
                       ];
                     },
                   ),
-
                   const SizedBox(height: 8),
-
                   Text(
                     "${amount.toStringAsFixed(2)} JOD",
-                    style: GoogleFonts
-                        .ibmPlexSansArabic(
+                    style: GoogleFonts.ibmPlexSansArabic(
                       color: categoryColor,
                       fontSize: 15,
-                      fontWeight:
-                          FontWeight.bold,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
                 ],
               ),
             ],
           ),
-
           const SizedBox(height: 12),
-
           Row(
             children: [
               _SmallBadge(
                 label: expenseType,
-                color: expenseType
-                        .toLowerCase()
-                        .contains('want')
-                    ? (isDark
-                        ? AppColors.darkAccent
-                        : AppColors.lightAccent)
+                color: expenseType.toLowerCase().contains('want')
+                    ? (isDark ? AppColors.darkAccent : AppColors.lightAccent)
                     : (isDark
                         ? AppColors.darkSecondary
                         : AppColors.lightSecondary),
               ),
-
               const SizedBox(width: 8),
-
               _SmallBadge(
                 label: movement,
-                color: isDark
-                    ? AppColors.darkPrimary
-                    : AppColors.lightPrimary,
+                color: isDark ? AppColors.darkPrimary : AppColors.lightPrimary,
               ),
-
               const Spacer(),
-
               Icon(
-                Icons
-                    .arrow_forward_ios_rounded,
+                Icons.arrow_forward_ios_rounded,
                 color: categoryColor.withOpacity(0.70),
                 size: 13,
               ),
@@ -315,8 +254,7 @@ class ExpenseCard extends StatelessWidget {
   }
 }
 
-class _SmallBadge
-    extends StatelessWidget {
+class _SmallBadge extends StatelessWidget {
   final String label;
   final Color color;
 
@@ -328,23 +266,19 @@ class _SmallBadge
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding:
-          const EdgeInsets.symmetric(
+      padding: const EdgeInsets.symmetric(
         horizontal: 9,
         vertical: 5,
       ),
       decoration: BoxDecoration(
         color: color.withOpacity(0.12),
-        borderRadius:
-            BorderRadius.circular(9),
+        borderRadius: BorderRadius.circular(9),
       ),
       child: Text(
         label,
         maxLines: 1,
-        overflow:
-            TextOverflow.ellipsis,
-        style:
-            GoogleFonts.ibmPlexSansArabic(
+        overflow: TextOverflow.ellipsis,
+        style: GoogleFonts.ibmPlexSansArabic(
           color: color,
           fontSize: 9,
           fontWeight: FontWeight.w600,
@@ -366,8 +300,7 @@ String _readValue(
       continue;
     }
 
-    final cleaned =
-        _cleanText(value.toString());
+    final cleaned = _cleanText(value.toString());
 
     if (cleaned.isNotEmpty) {
       return cleaned;
@@ -383,12 +316,10 @@ String _cleanText(
   var cleaned = value.trim();
 
   if (cleaned.contains('.')) {
-    cleaned =
-        cleaned.split('.').last;
+    cleaned = cleaned.split('.').last;
   }
 
-  cleaned =
-      cleaned.replaceAll('_', ' ');
+  cleaned = cleaned.replaceAll('_', ' ');
 
   if (cleaned.isEmpty) {
     return '';
@@ -400,8 +331,7 @@ String _cleanText(
         (word) => word.isNotEmpty,
       )
       .map(
-        (word) =>
-            '${word[0].toUpperCase()}${word.substring(1).toLowerCase()}',
+        (word) => '${word[0].toUpperCase()}${word.substring(1).toLowerCase()}',
       )
       .join(' ');
 }
@@ -433,8 +363,7 @@ DateTime? _readDate(
   }
 
   if (value is int) {
-    return DateTime
-        .fromMillisecondsSinceEpoch(
+    return DateTime.fromMillisecondsSinceEpoch(
       value,
     );
   }

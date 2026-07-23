@@ -170,14 +170,11 @@ class AuthService {
   // =====================================================
 
   static Future<Map<String, dynamic>> refreshToken() async {
-    final preferences =
-        await SharedPreferences.getInstance();
+    final preferences = await SharedPreferences.getInstance();
 
-    final savedRefreshToken =
-        preferences.getString('refresh_token');
+    final savedRefreshToken = preferences.getString('refresh_token');
 
-    if (savedRefreshToken == null ||
-        savedRefreshToken.isEmpty) {
+    if (savedRefreshToken == null || savedRefreshToken.isEmpty) {
       throw const ApiException(
         message: 'No refresh token available',
         code: 'NO_REFRESH_TOKEN',
@@ -223,8 +220,7 @@ class AuthService {
     } catch (_) {
       // Clear the local session even if the server request fails.
     } finally {
-      final preferences =
-          await SharedPreferences.getInstance();
+      final preferences = await SharedPreferences.getInstance();
 
       await preferences.remove('access_token');
       await preferences.remove('refresh_token');
@@ -253,27 +249,21 @@ class AuthService {
       );
     }
 
-    if (response.statusCode >= 200 &&
-        response.statusCode < 300) {
+    if (response.statusCode >= 200 && response.statusCode < 300) {
       return body;
     }
 
     final rawError = body['error'];
 
     final Map<String, dynamic>? error =
-        rawError is Map
-            ? Map<String, dynamic>.from(rawError)
-            : null;
+        rawError is Map ? Map<String, dynamic>.from(rawError) : null;
 
     final rawDetails = error?['details'];
 
     final Map<String, dynamic>? details =
-        rawDetails is Map
-            ? Map<String, dynamic>.from(rawDetails)
-            : null;
+        rawDetails is Map ? Map<String, dynamic>.from(rawDetails) : null;
 
-    String message =
-        error?['message']?.toString() ??
+    String message = error?['message']?.toString() ??
         body['message']?.toString() ??
         fallbackMessage;
 
@@ -283,15 +273,11 @@ class AuthService {
       final firstError = rawErrors.first;
 
       if (firstError is Map) {
-        final field =
-            firstError['field']?.toString();
-        final fieldMessage =
-            firstError['message']?.toString();
+        final field = firstError['field']?.toString();
+        final fieldMessage = firstError['message']?.toString();
 
-        if (fieldMessage != null &&
-            fieldMessage.isNotEmpty) {
-          message = field == null ||
-                  field.isEmpty
+        if (fieldMessage != null && fieldMessage.isNotEmpty) {
+          message = field == null || field.isEmpty
               ? fieldMessage
               : '$field: $fieldMessage';
         }
@@ -315,34 +301,26 @@ class AuthService {
     final rawData = body['data'];
 
     final Map<String, dynamic>? data =
-        rawData is Map
-            ? Map<String, dynamic>.from(rawData)
-            : null;
+        rawData is Map ? Map<String, dynamic>.from(rawData) : null;
 
     final rawTokens = data?['tokens'];
 
     final Map<String, dynamic>? tokens =
-        rawTokens is Map
-            ? Map<String, dynamic>.from(rawTokens)
-            : null;
+        rawTokens is Map ? Map<String, dynamic>.from(rawTokens) : null;
 
-    final accessToken =
-        tokens?['accessToken']?.toString() ??
+    final accessToken = tokens?['accessToken']?.toString() ??
         data?['accessToken']?.toString() ??
         data?['access_token']?.toString();
 
-    final refreshToken =
-        tokens?['refreshToken']?.toString() ??
+    final refreshToken = tokens?['refreshToken']?.toString() ??
         data?['refreshToken']?.toString() ??
         data?['refresh_token']?.toString();
 
-    if (accessToken == null ||
-        accessToken.isEmpty) {
+    if (accessToken == null || accessToken.isEmpty) {
       return;
     }
 
-    final preferences =
-        await SharedPreferences.getInstance();
+    final preferences = await SharedPreferences.getInstance();
 
     await preferences.setString(
       'access_token',
@@ -354,8 +332,7 @@ class AuthService {
       accessToken,
     );
 
-    if (refreshToken != null &&
-        refreshToken.isNotEmpty) {
+    if (refreshToken != null && refreshToken.isNotEmpty) {
       await preferences.setString(
         'refresh_token',
         refreshToken,

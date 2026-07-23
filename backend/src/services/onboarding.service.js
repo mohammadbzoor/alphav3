@@ -3,6 +3,7 @@ const { AppError } = require('../utils/app-error');
 const { OnboardingRepository } = require('../repositories/onboarding.repository');
 const { UserRepository } = require('../repositories/user.repository');
 const { AllocationService } = require('./allocation.service');
+const { CycleRepository } = require('../repositories/cycle.repository');
 
 class OnboardingService {
   /**
@@ -14,24 +15,100 @@ class OnboardingService {
     if (!user) {
       throw new AppError('User not found', 404, 'USER_NOT_FOUND');
     }
+
+    const baseResponse = {
+      isOnboarded: false,
+      nextStep: 'otp_verification',
+      canCreateCycle: false,
+      financialProfileComplete: false,
+      missingFinancialFields: []
+    };
+
     if (!user.is_verified) {
-      return { nextStep: 'otp_verification', isOnboarded: false, canCreateCycle: false };
+      return baseResponse;
     }
+
     const profile = await OnboardingRepository.findUserProfile(null, userId);
     if (!profile) {
-      return { nextStep: 'personal_info', isOnboarded: false, canCreateCycle: false };
+      return { ...baseResponse, nextStep: 'personal_info' };
     }
+
     const financial = await OnboardingRepository.findFinancialProfile(null, userId);
-    const incomeValid = financial && financial.expected_monthly_income && Number(financial.expected_monthly_income) > 0;
-    const paymentDayValid = financial && Number.isSafeInteger(financial.payment_day) && financial.payment_day >= 1 && financial.payment_day <= 31;
-    const tierPresent = financial && financial.detected_tier !== null && financial.detected_tier !== undefined;
-    if (!(incomeValid && paymentDayValid && tierPresent)) {
-      return { nextStep: 'financial_setup', isOnboarded: false, canCreateCycle: false };
+    const pref = await OnboardingRepository.findAllocationPreferences(null, userId);
+
+    const missingFields = [];
+    if (!financial) {
+      missingFields.push('financial_profiles');
+    } else {
+      if (!financial.expected_monthly_income || Number(financial.expected_monthly_income) <= 0) {
+        missingFields.push('expectedMonthlyIncome');
+      }
+      if (!Number.isSafeInteger(financial.payment_day) || financial.payment_day < 1 || financial.payment_day > 31) {
+        missingFields.push('paymentDay');
+      }
+      if (!financial.currency) {
+        missingFields.push('currency');
+      }
     }
-    if (Number(user.is_onboarded) === 0) {
-      return { nextStep: 'allocation_review', isOnboarded: false, canCreateCycle: false };
+
+    if (!pref) {
+      missingFields.push('allocation_preferences');
+    } else {
+      const needs = Number(pref.needs_bps);
+      const wants = Number(pref.wants_bps);
+      const savings = Number(pref.savings_bps);
+      if (!Number.isSafeInteger(needs) || needs < 0 ||
+          !Number.isSafeInteger(wants) || wants < 0 ||
+          !Number.isSafeInteger(savings) || savings < 0 ||
+          (needs + wants + savings) !== 10000) {
+        missingFields.push('valid_allocation_bps');
+      }
+      if (!pref.based_on_income) {
+        missingFields.push('based_on_income');
+      }
     }
-    return { nextStep: 'dashboard', isOnboarded: true, canCreateCycle: true };
+
+    const financialProfileComplete = missingFields.length === 0;
+
+    const isOnboarded = Number(user.is_onboarded) === 1;
+    let nextStep = 'dashboard';
+
+    if (!isOnboarded) {
+      const incomeValid = financial && financial.expected_monthly_income && Number(financial.expected_monthly_income) > 0;
+      const paymentDayValid = financial && Number.isSafeInteger(financial.payment_day) && financial.payment_day >= 1 && financial.payment_day <= 31;
+      const tierPresent = financial && financial.detected_tier !== null && financial.detected_tier !== undefined;
+
+      if (!(incomeValid && paymentDayValid && tierPresent)) {
+        nextStep = 'financial_setup';
+      } else {
+        nextStep = 'allocation_review';
+      }
+    }
+
+    let canCreateCycle = false;
+    let cycleCreationState = 'ready';
+
+    if (!isOnboarded) {
+      cycleCreationState = 'onboarding_incomplete';
+    } else if (!financialProfileComplete) {
+      cycleCreationState = 'financial_profile_incomplete';
+    } else {
+      const activeCycle = await CycleRepository.findOpenCycle(connOrNull, userId);
+      if (activeCycle) {
+        cycleCreationState = 'active_cycle_exists';
+      } else {
+        canCreateCycle = true;
+      }
+    }
+
+    return {
+      nextStep,
+      isOnboarded,
+      canCreateCycle,
+      financialProfileComplete,
+      missingFinancialFields: missingFields,
+      cycleCreationState
+    };
   }
 
   static async getStatus(userId) {
@@ -41,7 +118,42 @@ class OnboardingService {
     }
     const profile = await OnboardingRepository.findUserProfile(null, userId);
     const stepInfo = await this.resolveNextStep(userId);
-    return { isOnboarded: stepInfo.isOnboarded, nextStep: stepInfo.nextStep, profile };
+
+    let allocationData = undefined;
+    let income = undefined;
+    let tier = undefined;
+
+    if (stepInfo.nextStep === 'allocation_review' || stepInfo.isOnboarded) {
+      const pref = await OnboardingRepository.findAllocationPreferences(null, userId);
+      const financial = await OnboardingRepository.findFinancialProfile(null, userId);
+      if (pref && financial) {
+        income = AllocationService.normalizeIncome(financial.expected_monthly_income);
+        tier = financial.detected_tier;
+        const amounts = AllocationService.calculateAmounts(income, pref.needs_bps, pref.wants_bps, pref.savings_bps);
+        allocationData = {
+          needsBps: pref.needs_bps,
+          wantsBps: pref.wants_bps,
+          savingsBps: pref.savings_bps,
+          needsAmount: amounts.needsAmount,
+          wantsAmount: amounts.wantsAmount,
+          savingsAmount: amounts.savingsAmount,
+          source: pref.source,
+          basedOnIncome: pref.based_on_income,
+          isCustomized: pref.source === 'user_adjusted'
+        };
+      }
+    }
+
+    return {
+      isOnboarded: stepInfo.isOnboarded,
+      nextStep: stepInfo.nextStep,
+      canCreateCycle: stepInfo.canCreateCycle,
+      financialProfileComplete: stepInfo.financialProfileComplete,
+      missingFinancialFields: stepInfo.missingFinancialFields,
+      cycleCreationState: stepInfo.cycleCreationState,
+      profile,
+      ...(allocationData ? { allocation: allocationData, income, tier } : {})
+    };
   }
 
   static normalizeUserProfileData(data) {

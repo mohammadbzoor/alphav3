@@ -18,15 +18,13 @@ class GoalCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final themeProvider =
-        context.watch<Themeprovider>();
+    final themeProvider = context.watch<Themeprovider>();
 
     final isDark = themeProvider.isDark;
 
-    final Color urgencyColor =
-        goal.showCircularProgress
-            ? const Color(0xFFF4C95D)
-            : const Color(0xFF34D399);
+    final Color urgencyColor = goal.showCircularProgress
+        ? const Color(0xFFF4C95D)
+        : const Color(0xFF34D399);
 
     return Container(
       width: double.infinity,
@@ -35,19 +33,15 @@ class GoalCard extends StatelessWidget {
       ),
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: 
-            isDark ? AppColors.darkPrimary.withOpacity(0.04) : AppColors.lightPrimary.withOpacity(0.04),
+        color: isDark
+            ? AppColors.darkPrimary.withOpacity(0.04)
+            : AppColors.lightPrimary.withOpacity(0.04),
         borderRadius: BorderRadius.circular(22),
         border: Border.all(
-          color: isDark ? AppColors.darkPrimary : AppColors.lightPrimary
-           
-        ),
-      
-              
+            color: isDark ? AppColors.darkPrimary : AppColors.lightPrimary),
       ),
       child: Column(
-        crossAxisAlignment:
-            CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _GoalHeader(
             goal: goal,
@@ -55,9 +49,7 @@ class GoalCard extends StatelessWidget {
             urgencyColor: urgencyColor,
             onDelete: onDelete,
           ),
-
           const SizedBox(height: 18),
-
           if (goal.showCircularProgress)
             _CircularGoalContent(
               goal: goal,
@@ -101,40 +93,30 @@ class _GoalHeader extends StatelessWidget {
           decoration: BoxDecoration(
             color: isDark
                 ? AppColors.darkPrimary.withOpacity(0.7)
-            :AppColors.lightPrimary.withOpacity(0.7),
-            borderRadius:
-                BorderRadius.circular(12),
+                : AppColors.lightPrimary.withOpacity(0.7),
+            borderRadius: BorderRadius.circular(12),
           ),
           alignment: Alignment.center,
-          child: Icon( 
+          child: Icon(
             _goalIcon(goal.category),
-            color: isDark
-                ? AppColors.darkText
-            :AppColors.lightText,
+            color: isDark ? AppColors.darkText : AppColors.lightText,
             size: 25,
           ),
         ),
-
         const SizedBox(width: 12),
-
         Expanded(
           child: Text(
             goal.title,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style:
-                GoogleFonts.ibmPlexSansArabic(
-              color: isDark
-                  ? AppColors.darkText
-                  : AppColors.lightText,
+            style: GoogleFonts.ibmPlexSansArabic(
+              color: isDark ? AppColors.darkText : AppColors.lightText,
               fontSize: 16,
               fontWeight: FontWeight.bold,
             ),
           ),
         ),
-
         const SizedBox(width: 5),
-
         Container(
           padding: const EdgeInsets.symmetric(
             horizontal: 7,
@@ -142,38 +124,29 @@ class _GoalHeader extends StatelessWidget {
           ),
           decoration: BoxDecoration(
             color: urgencyColor.withOpacity(0.15),
-            borderRadius:
-                BorderRadius.circular(6),
+            borderRadius: BorderRadius.circular(6),
           ),
           child: Text(
             "${goal.daysLeft} days left",
-            style:
-                GoogleFonts.ibmPlexSansArabic(
+            style: GoogleFonts.ibmPlexSansArabic(
               color: urgencyColor,
               fontSize: 12,
               fontWeight: FontWeight.w600,
             ),
           ),
         ),
-
         const SizedBox(width: 2),
-
         PopupMenuButton<String>(
           tooltip: "Goal options",
           padding: EdgeInsets.zero,
-          color: isDark
-               ? AppColors.darkBorder
-            :AppColors.lightBorder,
+          color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
           elevation: 5,
           shape: RoundedRectangleBorder(
-            borderRadius:
-                BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(14),
           ),
           icon: Icon(
             Icons.more_vert,
-            color: isDark
-                ? AppColors.darkSubText
-                : AppColors.lightSubText,
+            color: isDark ? AppColors.darkSubText : AppColors.lightSubText,
             size: 22,
           ),
           onSelected: (value) {
@@ -189,20 +162,18 @@ class _GoalHeader extends StatelessWidget {
                   children: [
                     Icon(
                       Icons.delete_outline,
-                      color: isDark ? AppColors.darkError : AppColors.lightError,
+                      color:
+                          isDark ? AppColors.darkError : AppColors.lightError,
                       size: 23,
                     ),
-
                     const SizedBox(width: 9),
-
                     Text(
                       "Delete Goal",
-                      style: GoogleFonts
-                          .ibmPlexSansArabic(
-                        color: isDark ? AppColors.darkError : AppColors.lightError,
+                      style: GoogleFonts.ibmPlexSansArabic(
+                        color:
+                            isDark ? AppColors.darkError : AppColors.lightError,
                         fontSize: 15,
-                        fontWeight:
-                            FontWeight.w600,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ],
@@ -251,8 +222,7 @@ class _GoalHeader extends StatelessWidget {
 // CIRCULAR CARD CONTENT
 // =====================================================
 
-class _CircularGoalContent
-    extends StatelessWidget {
+class _CircularGoalContent extends StatelessWidget {
   final Goal goal;
   final bool isDark;
 
@@ -273,85 +243,61 @@ class _CircularGoalContent
               percent: goal.progress,
               animation: true,
               animationDuration: 700,
-              circularStrokeCap:
-                  CircularStrokeCap.round,
-              backgroundColor: isDark
-                     ? AppColors.darkBorder : AppColors.lightBorder,
-              progressColor:
-                  const Color(0xFFF4C95D),
+              circularStrokeCap: CircularStrokeCap.round,
+              backgroundColor:
+                  isDark ? AppColors.darkBorder : AppColors.lightBorder,
+              progressColor: const Color(0xFFF4C95D),
               center: Text(
                 "${goal.progressPercentage}%",
-                style: GoogleFonts
-                    .ibmPlexSansArabic(
-                  color: isDark
-                      ? AppColors.darkText
-                      : AppColors.lightText,
+                style: GoogleFonts.ibmPlexSansArabic(
+                  color: isDark ? AppColors.darkText : AppColors.lightText,
                   fontSize: 12,
                   fontWeight: FontWeight.bold,
                 ),
               ),
             ),
-
             const SizedBox(width: 18),
-
             Expanded(
               child: Column(
-                crossAxisAlignment:
-                    CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     "Saved so far",
-                    style: GoogleFonts
-                        .ibmPlexSansArabic(
+                    style: GoogleFonts.ibmPlexSansArabic(
                       color: isDark
                           ? AppColors.darkSubText
-                          : AppColors
-                              .lightSubText,
+                          : AppColors.lightSubText,
                       fontSize: 11,
                     ),
                   ),
-
                   const SizedBox(height: 4),
-
                   if (goal.hasProgressData)
                     Row(
-                      crossAxisAlignment:
-                          CrossAxisAlignment.end,
+                      crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
                         Text(
-                          goal.savedAmount!
-                              .toStringAsFixed(0),
-                          style: GoogleFonts
-                              .ibmPlexSansArabic(
+                          goal.savedAmount!.toStringAsFixed(0),
+                          style: GoogleFonts.ibmPlexSansArabic(
                             color: isDark
                                 ? AppColors.darkText
-                                : AppColors
-                                    .lightText,
+                                : AppColors.lightText,
                             fontSize: 16,
-                            fontWeight:
-                                FontWeight.bold,
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
-
                         const SizedBox(width: 4),
-
                         Flexible(
                           child: Padding(
-                            padding:
-                                const EdgeInsets.only(
+                            padding: const EdgeInsets.only(
                               bottom: 2,
                             ),
                             child: Text(
                               "of ${goal.targetAmount!.toStringAsFixed(0)} JD",
-                              overflow:
-                                  TextOverflow.ellipsis,
-                              style: GoogleFonts
-                                  .ibmPlexSansArabic(
+                              overflow: TextOverflow.ellipsis,
+                              style: GoogleFonts.ibmPlexSansArabic(
                                 color: isDark
-                                    ? AppColors
-                                        .darkSubText
-                                    : AppColors
-                                        .lightSubText,
+                                    ? AppColors.darkSubText
+                                    : AppColors.lightSubText,
                                 fontSize: 10,
                               ),
                             ),
@@ -362,12 +308,10 @@ class _CircularGoalContent
                   else
                     Text(
                       "Progress will appear here",
-                      style: GoogleFonts
-                          .ibmPlexSansArabic(
+                      style: GoogleFonts.ibmPlexSansArabic(
                         color: isDark
                             ? AppColors.darkSubText
-                            : AppColors
-                                .lightSubText,
+                            : AppColors.lightSubText,
                         fontSize: 11,
                       ),
                     ),
@@ -376,9 +320,7 @@ class _CircularGoalContent
             ),
           ],
         ),
-
         const SizedBox(height: 18),
-
         _RecommendationBox(
           goal: goal,
           isDark: isDark,
@@ -392,8 +334,7 @@ class _CircularGoalContent
 // LINEAR CARD CONTENT
 // =====================================================
 
-class _LinearGoalContent
-    extends StatelessWidget {
+class _LinearGoalContent extends StatelessWidget {
   final Goal goal;
   final bool isDark;
 
@@ -407,58 +348,42 @@ class _LinearGoalContent
     return Column(
       children: [
         ClipRRect(
-          borderRadius:
-              BorderRadius.circular(30),
+          borderRadius: BorderRadius.circular(30),
           child: LinearProgressIndicator(
             value: goal.progress,
             minHeight: 7,
-            backgroundColor: isDark
-                                   ? AppColors.darkBorder : AppColors.lightBorder,
-
-            valueColor:
-                const AlwaysStoppedAnimation<
-                    Color>(
+            backgroundColor:
+                isDark ? AppColors.darkBorder : AppColors.lightBorder,
+            valueColor: const AlwaysStoppedAnimation<Color>(
               Color(0xFF34D399),
             ),
           ),
         ),
-
         const SizedBox(height: 8),
-
         Row(
-          mainAxisAlignment:
-              MainAxisAlignment.spaceBetween,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
               goal.savedAmount != null
                   ? "${goal.savedAmount!.toStringAsFixed(0)} JD"
                   : "0 JD",
-              style: GoogleFonts
-                  .ibmPlexSansArabic(
-                color: isDark
-                    ? AppColors.darkSubText
-                    : AppColors.lightSubText,
+              style: GoogleFonts.ibmPlexSansArabic(
+                color: isDark ? AppColors.darkSubText : AppColors.lightSubText,
                 fontSize: 10,
               ),
             ),
-
             Text(
               goal.targetAmount != null
                   ? "Goal ${goal.targetAmount!.toStringAsFixed(0)} JD"
                   : "Goal",
-              style: GoogleFonts
-                  .ibmPlexSansArabic(
-                color: isDark
-                    ? AppColors.darkSubText
-                    : AppColors.lightSubText,
+              style: GoogleFonts.ibmPlexSansArabic(
+                color: isDark ? AppColors.darkSubText : AppColors.lightSubText,
                 fontSize: 10,
               ),
             ),
           ],
         ),
-
         const SizedBox(height: 16),
-
         _RecommendationBox(
           goal: goal,
           isDark: isDark,
@@ -472,8 +397,7 @@ class _LinearGoalContent
 // RECOMMENDATION
 // =====================================================
 
-class _RecommendationBox
-    extends StatelessWidget {
+class _RecommendationBox extends StatelessWidget {
   final Goal goal;
   final bool isDark;
 
@@ -493,18 +417,13 @@ class _RecommendationBox
       decoration: BoxDecoration(
         color: isDark
             ? AppColors.darkBorder.withOpacity(0.8)
-            :AppColors.lightBorder.withOpacity(0.8),
-        borderRadius:
-            BorderRadius.circular(20),
+            : AppColors.lightBorder.withOpacity(0.8),
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: isDark
-             ? AppColors.darkBorder
-            :AppColors.lightBorder
-        ),
+            color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
       ),
       child: Column(
-        crossAxisAlignment:
-            CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
@@ -512,17 +431,14 @@ class _RecommendationBox
                 "💰",
                 style: TextStyle(fontSize: 13),
               ),
-
               const SizedBox(width: 5),
-
               Expanded(
                 child: Text(
                   "Recommended Monthly Saving",
-                  style: GoogleFonts
-                      .ibmPlexSansArabic(
+                  style: GoogleFonts.ibmPlexSansArabic(
                     color: isDark
-                         ? AppColors.darkSecondary
-            :AppColors.lightSecondary,
+                        ? AppColors.darkSecondary
+                        : AppColors.lightSecondary,
                     fontSize: 12,
                     fontWeight: FontWeight.bold,
                   ),
@@ -530,40 +446,28 @@ class _RecommendationBox
               ),
             ],
           ),
-
           const SizedBox(height: 5),
-
           Row(
-            crossAxisAlignment:
-                CrossAxisAlignment.end,
+            crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
                 "${goal.displayedMonthlyRecommendation.toStringAsFixed(0)} JD",
-                style: GoogleFonts
-                    .ibmPlexSansArabic(
-                  color: isDark
-                      ? AppColors.darkText
-                      : AppColors.lightText,
+                style: GoogleFonts.ibmPlexSansArabic(
+                  color: isDark ? AppColors.darkText : AppColors.lightText,
                   fontSize: 17,
                   fontWeight: FontWeight.bold,
                 ),
               ),
-
               const SizedBox(width: 5),
-
               Padding(
-                padding:
-                    const EdgeInsets.only(
+                padding: const EdgeInsets.only(
                   bottom: 2,
                 ),
                 child: Text(
                   "/ month",
-                  style: GoogleFonts
-                      .ibmPlexSansArabic(
-                    color: isDark
-                        ? AppColors.darkSubText
-                        : AppColors
-                            .lightSubText,
+                  style: GoogleFonts.ibmPlexSansArabic(
+                    color:
+                        isDark ? AppColors.darkSubText : AppColors.lightSubText,
                     fontSize: 11,
                   ),
                 ),

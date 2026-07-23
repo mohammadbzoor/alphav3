@@ -19,8 +19,7 @@ class MyGoalsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final goalProvider = context.watch<GoalProvider>();
-    final themeProvider =
-        context.watch<Themeprovider>();
+    final themeProvider = context.watch<Themeprovider>();
 
     final screenW = Device.width(context);
     final screenH = Device.height(context);
@@ -31,33 +30,28 @@ class MyGoalsScreen extends StatelessWidget {
       backgroundColor: themeProvider.isDark
           ? AppColors.darkBackground
           : AppColors.lightBackground,
-
       body: SafeArea(
         child: Padding(
           padding: EdgeInsets.symmetric(
             horizontal: screenW * 0.06,
           ),
           child: Column(
-            crossAxisAlignment:
-                CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               SizedBox(height: screenH * 0.025),
 
               // ================= HEADER =================
 
               Row(
-                crossAxisAlignment:
-                    CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Expanded(
                     child: Column(
-                      crossAxisAlignment:
-                          CrossAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
                           "My Goals",
-                          style: GoogleFonts
-                              .ibmPlexSansArabic(
+                          style: GoogleFonts.ibmPlexSansArabic(
                             color: themeProvider.isDark
                                 ? AppColors.darkText
                                 : AppColors.lightText,
@@ -65,15 +59,12 @@ class MyGoalsScreen extends StatelessWidget {
                             fontWeight: FontWeight.bold,
                           ),
                         ),
-
                         SizedBox(
                           height: screenH * 0.004,
                         ),
-
                         Text(
                           "${goals.length} active ${goals.length == 1 ? "goal" : "goals"}",
-                          style: GoogleFonts
-                              .ibmPlexSansArabic(
+                          style: GoogleFonts.ibmPlexSansArabic(
                             color: themeProvider.isDark
                                 ? AppColors.darkSubText
                                 : AppColors.lightSubText,
@@ -84,22 +75,21 @@ class MyGoalsScreen extends StatelessWidget {
                       ],
                     ),
                   ),
-
                   InkWell(
-                    onTap: () =>
-                     Navigator.push(context, MaterialPageRoute(builder: (context) => NewGoalScreen(),)),
-                    borderRadius:
-                        BorderRadius.circular(13),
+                    onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => NewGoalScreen(),
+                        )),
+                    borderRadius: BorderRadius.circular(13),
                     child: Container(
                       width: screenW * 0.12,
                       height: screenW * 0.12,
                       decoration: BoxDecoration(
                         color: themeProvider.isDark
                             ? const Color(0xFF203330)
-                            : AppColors.lightSecondary
-                                .withOpacity(0.12),
-                        borderRadius:
-                            BorderRadius.circular(13),
+                            : AppColors.lightSecondary.withOpacity(0.12),
+                        borderRadius: BorderRadius.circular(13),
                       ),
                       child: Icon(
                         Icons.add,
@@ -127,14 +117,19 @@ class MyGoalsScreen extends StatelessWidget {
                             "Create your first financial goal and start saving toward it.",
                         buttonText: "add your first goal",
                         icon: Icons.flag_outlined,
-                        color: themeProvider.isDark? AppColors.darkAccent: AppColors.lightAccent,
+                        color: themeProvider.isDark
+                            ? AppColors.darkAccent
+                            : AppColors.lightAccent,
                         onPressed: () {
-                       Navigator.push(context, MaterialPageRoute(builder: (context) => NewGoalScreen(),));
+                          Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => NewGoalScreen(),
+                              ));
                         },
                       )
                     : ListView(
-                        physics:
-                            const BouncingScrollPhysics(),
+                        physics: const BouncingScrollPhysics(),
                         padding: EdgeInsets.only(
                           bottom: screenH * 0.14,
                         ),
@@ -143,40 +138,43 @@ class MyGoalsScreen extends StatelessWidget {
                             (goal) => GoalCard(
                               goal: goal,
                               onDelete: () {
-                              DeleteDialog.show(
-  context: context,
-  title: "Delete Goal",
-  message:
-      'Are you sure you want to delete "${goal.title}"?',
-  onDelete: () {
-    context
-        .read<GoalProvider>()
-        .removeGoal(goal.id ?? "");
+                                DeleteDialog.show(
+                                  context: context,
+                                  title: "Delete Goal",
+                                  message:
+                                      'Are you sure you want to delete "${goal.title}"?',
+                                  onDelete: () {
+                                    context
+                                        .read<GoalProvider>()
+                                        .removeGoal(goal.id ?? "");
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          "Goal deleted successfully",
-          style: GoogleFonts.ibmPlexSansArabic(),
-        ),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
-  },
-);
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text(
+                                          "Goal deleted successfully",
+                                          style:
+                                              GoogleFonts.ibmPlexSansArabic(),
+                                        ),
+                                        behavior: SnackBarBehavior.floating,
+                                      ),
+                                    );
+                                  },
+                                );
                               },
                             ),
                           ),
-
                           DashedActionButton(
                             text: "Add a new goal",
                             icon: Icons.flag_outlined,
                             isDark: themeProvider.isDark,
                             onTap: () {
-                              Navigator.push(context, MaterialPageRoute(builder: (context) => NewGoalScreen(),));
+                              Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => NewGoalScreen(),
+                                  ));
                             },
                           ),
-
                           SizedBox(
                             height: screenH * 0.02,
                           ),
@@ -189,8 +187,4 @@ class MyGoalsScreen extends StatelessWidget {
       ),
     );
   }
-
-  
 }
-
-

@@ -42,10 +42,12 @@ Future<void> showChangePasswordDialog({
                 decoration: InputDecoration(
                   labelText: 'Current Password',
                   labelStyle: TextStyle(
-                    color: isDark ? AppColors.darkSubText : AppColors.lightSubText,
+                    color:
+                        isDark ? AppColors.darkSubText : AppColors.lightSubText,
                   ),
                   filled: true,
-                  fillColor: isDark ? AppColors.darkBackground : Colors.grey[100],
+                  fillColor:
+                      isDark ? AppColors.darkBackground : Colors.grey[100],
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: BorderSide.none,
@@ -62,10 +64,12 @@ Future<void> showChangePasswordDialog({
                 decoration: InputDecoration(
                   labelText: 'New Password',
                   labelStyle: TextStyle(
-                    color: isDark ? AppColors.darkSubText : AppColors.lightSubText,
+                    color:
+                        isDark ? AppColors.darkSubText : AppColors.lightSubText,
                   ),
                   filled: true,
-                  fillColor: isDark ? AppColors.darkBackground : Colors.grey[100],
+                  fillColor:
+                      isDark ? AppColors.darkBackground : Colors.grey[100],
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: BorderSide.none,
@@ -82,10 +86,12 @@ Future<void> showChangePasswordDialog({
                 decoration: InputDecoration(
                   labelText: 'Confirm Password',
                   labelStyle: TextStyle(
-                    color: isDark ? AppColors.darkSubText : AppColors.lightSubText,
+                    color:
+                        isDark ? AppColors.darkSubText : AppColors.lightSubText,
                   ),
                   filled: true,
-                  fillColor: isDark ? AppColors.darkBackground : Colors.grey[100],
+                  fillColor:
+                      isDark ? AppColors.darkBackground : Colors.grey[100],
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: BorderSide.none,
@@ -112,7 +118,9 @@ Future<void> showChangePasswordDialog({
               final newPassword = newPasswordController.text;
               final confirmPassword = confirmPasswordController.text;
 
-              if (currentPassword.isEmpty || newPassword.isEmpty || confirmPassword.isEmpty) {
+              if (currentPassword.isEmpty ||
+                  newPassword.isEmpty ||
+                  confirmPassword.isEmpty) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('Please fill all fields')),
                 );
@@ -136,12 +144,14 @@ Future<void> showChangePasswordDialog({
                 Navigator.pop(dialogContext, true);
               } else if (dialogContext.mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text(profileProvider.errorMessage ?? 'Failed')),
+                  SnackBar(
+                      content: Text(profileProvider.errorMessage ?? 'Failed')),
                 );
               }
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: isDark ? AppColors.darkPrimary : AppColors.lightPrimary,
+              backgroundColor:
+                  isDark ? AppColors.darkPrimary : AppColors.lightPrimary,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(10),
               ),

@@ -8,19 +8,15 @@ class GoalProvider extends ChangeNotifier {
     Future.microtask(_initialize);
   }
 
-  static const String _storageKey =
-      'alpha_saved_goals';
+  static const String _storageKey = 'alpha_saved_goals';
 
   // ================= CONTROLLERS =================
 
-  final TextEditingController customNameController =
-      TextEditingController();
+  final TextEditingController customNameController = TextEditingController();
 
-  final TextEditingController amountController =
-      TextEditingController();
+  final TextEditingController amountController = TextEditingController();
 
-  final TextEditingController targetDateController =
-      TextEditingController();
+  final TextEditingController targetDateController = TextEditingController();
 
   // ================= CREATE GOAL DATA =================
 
@@ -53,16 +49,13 @@ class GoalProvider extends ChangeNotifier {
   final List<Goal> _goals = [];
 
   List<Goal> get goals {
-    final sortedGoals =
-        List<Goal>.from(_goals);
+    final sortedGoals = List<Goal>.from(_goals);
 
     sortedGoals.sort(
       (a, b) {
-        final aDate =
-            a.targetDate ?? DateTime(9999);
+        final aDate = a.targetDate ?? DateTime(9999);
 
-        final bDate =
-            b.targetDate ?? DateTime(9999);
+        final bDate = b.targetDate ?? DateTime(9999);
 
         return aDate.compareTo(bDate);
       },
@@ -74,9 +67,7 @@ class GoalProvider extends ChangeNotifier {
   List<Goal> get activeGoals {
     return goals
         .where(
-          (goal) =>
-              goal.isActive &&
-              !goal.isCompleted,
+          (goal) => goal.isActive && !goal.isCompleted,
         )
         .toList();
   }
@@ -84,15 +75,12 @@ class GoalProvider extends ChangeNotifier {
   List<Goal> get completedGoals {
     return goals
         .where(
-          (goal) =>
-              !goal.isActive ||
-              goal.isCompleted,
+          (goal) => !goal.isActive || goal.isCompleted,
         )
         .toList();
   }
 
-  int get activeGoalsCount =>
-      activeGoals.length;
+  int get activeGoalsCount => activeGoals.length;
 
   // ================= CATEGORIES =================
 
@@ -120,8 +108,7 @@ class GoalProvider extends ChangeNotifier {
       await loadGoals();
       _isInitialized = true;
     } catch (error) {
-      _errorMessage =
-          _cleanError(error);
+      _errorMessage = _cleanError(error);
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -138,24 +125,28 @@ class GoalProvider extends ChangeNotifier {
       if (response.statusCode >= 200 && response.statusCode < 300) {
         final data = body['data'];
         final items = data['items'] ?? data;
-        
+
         if (items is List) {
-          final loadedGoals = items.map((item) {
-            final map = Map<String, dynamic>.from(item);
-            
-            // Map backend fields to what Goal.fromJson expects
-            return Goal(
-              id: map['id']?.toString(),
-              category: map['name']?.toString() ?? 'Other',
-              customName: map['name']?.toString(),
-              monthlySaving: (map['monthlyContribution'] ?? 0).toDouble(),
-              priority: (map['priority'] ?? 5).toInt(),
-              targetDate: null, // Backend does not return targetDate in getGoals
-              savedAmount: (map['currentBalance'] ?? 0).toDouble(),
-              targetAmount: (map['targetAmount'] ?? 0).toDouble(),
-              isActive: map['status'] == 'active',
-            );
-          }).where((g) => g.id != null && g.id!.isNotEmpty).toList();
+          final loadedGoals = items
+              .map((item) {
+                final map = Map<String, dynamic>.from(item);
+
+                // Map backend fields to what Goal.fromJson expects
+                return Goal(
+                  id: map['id']?.toString(),
+                  category: map['name']?.toString() ?? 'Other',
+                  customName: map['name']?.toString(),
+                  monthlySaving: (map['monthlyContribution'] ?? 0).toDouble(),
+                  priority: (map['priority'] ?? 5).toInt(),
+                  targetDate:
+                      null, // Backend does not return targetDate in getGoals
+                  savedAmount: (map['currentBalance'] ?? 0).toDouble(),
+                  targetAmount: (map['targetAmount'] ?? 0).toDouble(),
+                  isActive: map['status'] == 'active',
+                );
+              })
+              .where((g) => g.id != null && g.id!.isNotEmpty)
+              .toList();
 
           _goals.clear();
           _goals.addAll(loadedGoals);
@@ -169,9 +160,7 @@ class GoalProvider extends ChangeNotifier {
   // ================= VALUES =================
 
   double get monthlySaving {
-    final value = amountController.text
-        .trim()
-        .replaceAll(",", "");
+    final value = amountController.text.trim().replaceAll(",", "");
 
     return double.tryParse(value) ?? 0;
   }
@@ -221,8 +210,7 @@ class GoalProvider extends ChangeNotifier {
       date.day,
     );
 
-    targetDateController.text =
-        "${date.day}/${date.month}/${date.year}";
+    targetDateController.text = "${date.day}/${date.month}/${date.year}";
 
     _errorMessage = null;
 
@@ -237,25 +225,16 @@ class GoalProvider extends ChangeNotifier {
   // ================= VALIDATION =================
 
   bool get isValid {
-    final categoryValid =
-        selectedCategory != null;
+    final categoryValid = selectedCategory != null;
 
-    final customNameValid =
-        selectedCategory != "Other" ||
-            customNameController.text
-                .trim()
-                .isNotEmpty;
+    final customNameValid = selectedCategory != "Other" ||
+        customNameController.text.trim().isNotEmpty;
 
-    final amountValid =
-        monthlySaving > 0;
+    final amountValid = monthlySaving > 0;
 
-    final targetDateValid =
-        targetDate != null;
+    final targetDateValid = targetDate != null;
 
-    return categoryValid &&
-        customNameValid &&
-        amountValid &&
-        targetDateValid;
+    return categoryValid && customNameValid && amountValid && targetDateValid;
   }
 
   String? get validationMessage {
@@ -264,9 +243,7 @@ class GoalProvider extends ChangeNotifier {
     }
 
     if (selectedCategory == "Other" &&
-        customNameController.text
-            .trim()
-            .isEmpty) {
+        customNameController.text.trim().isEmpty) {
       return "Please enter the goal name";
     }
 
@@ -293,9 +270,7 @@ class GoalProvider extends ChangeNotifier {
 
     if (selectedCategory != null &&
         (selectedCategory != "Other" ||
-            customNameController.text
-                .trim()
-                .isNotEmpty)) {
+            customNameController.text.trim().isNotEmpty)) {
       completedSteps++;
     }
 
@@ -307,10 +282,7 @@ class GoalProvider extends ChangeNotifier {
       completedSteps++;
     }
 
-    final value =
-        (2 / 3) +
-            ((completedSteps / totalSteps) *
-                (1 / 3));
+    final value = (2 / 3) + ((completedSteps / totalSteps) * (1 / 3));
 
     return value.clamp(
       0.0,
@@ -322,39 +294,17 @@ class GoalProvider extends ChangeNotifier {
 
   Goal get currentGoal {
     return Goal(
-      id: DateTime.now()
-          .microsecondsSinceEpoch
-          .toString(),
-
-      category:
-          selectedCategory ?? "",
-
+      id: DateTime.now().microsecondsSinceEpoch.toString(),
+      category: selectedCategory ?? "",
       customName:
-          selectedCategory == "Other"
-              ? customNameController.text
-                  .trim()
-              : null,
-
-      monthlySaving:
-          monthlySaving,
-
-      priority:
-          priority,
-
-      targetDate:
-          targetDate,
-
-      savedAmount:
-          null,
-
-      targetAmount:
-          null,
-
-      recommendedMonthlySaving:
-          null,
-
-      isActive:
-          true,
+          selectedCategory == "Other" ? customNameController.text.trim() : null,
+      monthlySaving: monthlySaving,
+      priority: priority,
+      targetDate: targetDate,
+      savedAmount: null,
+      targetAmount: null,
+      recommendedMonthlySaving: null,
+      isActive: true,
     );
   }
 
@@ -364,16 +314,14 @@ class GoalProvider extends ChangeNotifier {
 
   Future<bool> saveCurrentGoal() async {
     if (!isValid) {
-      _errorMessage =
-          validationMessage;
+      _errorMessage = validationMessage;
 
       notifyListeners();
 
       return false;
     }
 
-    final newGoal =
-        currentGoal;
+    final newGoal = currentGoal;
 
     _goals.add(newGoal);
 
@@ -381,9 +329,14 @@ class GoalProvider extends ChangeNotifier {
 
     try {
       final response = await ApiService.post('/goals', body: {
-        'goalType': newGoal.category == 'Other' ? 'custom' : newGoal.category.toLowerCase().replaceAll(' ', '_'),
-        'targetAmount': newGoal.monthlySaving, // UI currently sets targetAmount via monthlySaving amountController
-        'planningMode': newGoal.targetDate != null ? 'deadline_based' : 'contribution_based',
+        'goalType': newGoal.category == 'Other'
+            ? 'custom'
+            : newGoal.category.toLowerCase().replaceAll(' ', '_'),
+        'targetAmount': newGoal
+            .monthlySaving, // UI currently sets targetAmount via monthlySaving amountController
+        'planningMode': newGoal.targetDate != null
+            ? 'deadline_based'
+            : 'contribution_based',
         'plannedContribution': newGoal.monthlySaving,
         'targetDate': newGoal.targetDate?.toIso8601String(),
         'priority': newGoal.priority,
@@ -393,17 +346,17 @@ class GoalProvider extends ChangeNotifier {
       if (response.statusCode >= 200 && response.statusCode < 300) {
         final body = await ApiService.parseJson(response);
         final newId = body['data']?['goalId']?.toString() ?? newGoal.id;
-        
+
         final idx = _goals.indexWhere((g) => g.id == newGoal.id);
         if (idx != -1) {
           _goals[idx] = newGoal.copyWith(id: newId);
         }
-        
+
         clearForm(notify: false);
         notifyListeners();
         return true;
       }
-      
+
       _errorMessage = 'Failed to create goal on backend';
     } catch (e) {
       _errorMessage = _cleanError(e);
@@ -427,8 +380,7 @@ class GoalProvider extends ChangeNotifier {
   Future<bool> setGoals(
     List<Goal> goals,
   ) async {
-    final backup =
-        List<Goal>.from(_goals);
+    final backup = List<Goal>.from(_goals);
 
     _goals
       ..clear()
@@ -452,9 +404,12 @@ class GoalProvider extends ChangeNotifier {
 
     try {
       final response = await ApiService.post('/goals', body: {
-        'goalType': goal.category == 'Other' ? 'custom' : goal.category.toLowerCase().replaceAll(' ', '_'),
+        'goalType': goal.category == 'Other'
+            ? 'custom'
+            : goal.category.toLowerCase().replaceAll(' ', '_'),
         'targetAmount': goal.monthlySaving,
-        'planningMode': goal.targetDate != null ? 'deadline_based' : 'contribution_based',
+        'planningMode':
+            goal.targetDate != null ? 'deadline_based' : 'contribution_based',
         'plannedContribution': goal.monthlySaving,
         'targetDate': goal.targetDate?.toIso8601String(),
         'priority': goal.priority,
@@ -464,7 +419,7 @@ class GoalProvider extends ChangeNotifier {
       if (response.statusCode >= 200 && response.statusCode < 300) {
         final body = await ApiService.parseJson(response);
         final newId = body['data']?['goalId']?.toString() ?? goal.id;
-        
+
         final idx = _goals.indexWhere((g) => g.id == goal.id);
         if (idx != -1) {
           _goals[idx] = goal.copyWith(id: newId);
@@ -485,8 +440,7 @@ class GoalProvider extends ChangeNotifier {
   Future<bool> addGoals(
     List<Goal> goals,
   ) async {
-    final backup =
-        List<Goal>.from(_goals);
+    final backup = List<Goal>.from(_goals);
 
     _goals.addAll(goals);
 
@@ -503,34 +457,33 @@ class GoalProvider extends ChangeNotifier {
   Future<bool> updateGoal(
     Goal updatedGoal,
   ) async {
-    final index =
-        _goals.indexWhere(
-      (goal) =>
-          goal.id == updatedGoal.id,
+    final index = _goals.indexWhere(
+      (goal) => goal.id == updatedGoal.id,
     );
 
     if (index == -1) {
-      _errorMessage =
-          "Goal not found";
+      _errorMessage = "Goal not found";
 
       notifyListeners();
 
       return false;
     }
 
-    final oldGoal =
-        _goals[index];
+    final oldGoal = _goals[index];
 
-    _goals[index] =
-        updatedGoal;
+    _goals[index] = updatedGoal;
 
     notifyListeners();
 
     try {
       final response = await ApiService.put('/goals/${updatedGoal.id}', body: {
-        'goalType': updatedGoal.category == 'Other' ? 'custom' : updatedGoal.category.toLowerCase().replaceAll(' ', '_'),
+        'goalType': updatedGoal.category == 'Other'
+            ? 'custom'
+            : updatedGoal.category.toLowerCase().replaceAll(' ', '_'),
         'targetAmount': updatedGoal.monthlySaving,
-        'planningMode': updatedGoal.targetDate != null ? 'deadline_based' : 'contribution_based',
+        'planningMode': updatedGoal.targetDate != null
+            ? 'deadline_based'
+            : 'contribution_based',
         'plannedContribution': updatedGoal.monthlySaving,
         'targetDate': updatedGoal.targetDate?.toIso8601String(),
         'priority': updatedGoal.priority,
@@ -557,27 +510,20 @@ class GoalProvider extends ChangeNotifier {
     required double targetAmount,
     double? recommendedMonthlySaving,
   }) async {
-    final index =
-        _goals.indexWhere(
-      (goal) =>
-          goal.id == goalId,
+    final index = _goals.indexWhere(
+      (goal) => goal.id == goalId,
     );
 
     if (index == -1) {
       return false;
     }
 
-    final oldGoal =
-        _goals[index];
+    final oldGoal = _goals[index];
 
-    _goals[index] =
-        oldGoal.copyWith(
-      savedAmount:
-          savedAmount,
-      targetAmount:
-          targetAmount,
-      recommendedMonthlySaving:
-          recommendedMonthlySaving,
+    _goals[index] = oldGoal.copyWith(
+      savedAmount: savedAmount,
+      targetAmount: targetAmount,
+      recommendedMonthlySaving: recommendedMonthlySaving,
     );
 
     notifyListeners();
@@ -597,33 +543,28 @@ class GoalProvider extends ChangeNotifier {
       return false;
     }
 
-    final index =
-        _goals.indexWhere(
-      (goal) =>
-          goal.id == goalId,
+    final index = _goals.indexWhere(
+      (goal) => goal.id == goalId,
     );
 
     if (index == -1) {
       return false;
     }
 
-    final oldGoal =
-        _goals[index];
+    final oldGoal = _goals[index];
 
-    final currentSavedAmount =
-        oldGoal.savedAmount ?? 0;
+    final currentSavedAmount = oldGoal.savedAmount ?? 0;
 
-    _goals[index] =
-        oldGoal.copyWith(
-      savedAmount:
-          currentSavedAmount + amount,
+    _goals[index] = oldGoal.copyWith(
+      savedAmount: currentSavedAmount + amount,
     );
 
     notifyListeners();
 
     // Manual contribution addition requires backend support via /goals/:id/contributions
     try {
-      final response = await ApiService.post('/goals/$goalId/contributions', body: {
+      final response =
+          await ApiService.post('/goals/$goalId/contributions', body: {
         'amount': amount,
       });
 
@@ -646,21 +587,17 @@ class GoalProvider extends ChangeNotifier {
   Future<bool> markGoalCompleted(
     String goalId,
   ) async {
-    final index =
-        _goals.indexWhere(
-      (goal) =>
-          goal.id == goalId,
+    final index = _goals.indexWhere(
+      (goal) => goal.id == goalId,
     );
 
     if (index == -1) {
       return false;
     }
 
-    final oldGoal =
-        _goals[index];
+    final oldGoal = _goals[index];
 
-    _goals[index] =
-        oldGoal.copyWith(
+    _goals[index] = oldGoal.copyWith(
       isActive: false,
     );
 
@@ -675,7 +612,8 @@ class GoalProvider extends ChangeNotifier {
       if (response.statusCode >= 200 && response.statusCode < 300) {
         return true;
       } else {
-        _errorMessage = await ApiService.getErrorMessage(response, fallback: 'Failed to complete goal');
+        _errorMessage = await ApiService.getErrorMessage(response,
+            fallback: 'Failed to complete goal');
       }
     } catch (e) {
       _errorMessage = _cleanError(e);
@@ -691,34 +629,36 @@ class GoalProvider extends ChangeNotifier {
   Future<bool> removeGoal(
     String goalId,
   ) async {
-    final index =
-        _goals.indexWhere(
-      (goal) =>
-          goal.id == goalId,
+    final index = _goals.indexWhere(
+      (goal) => goal.id == goalId,
     );
 
     if (index == -1) {
       return false;
     }
 
-    final removedGoal =
-        _goals.removeAt(index);
+    final removedGoal = _goals.removeAt(index);
 
     notifyListeners();
 
     try {
       final response = await ApiService.delete('/goals/$goalId');
-      
+
       if (response.statusCode >= 200 && response.statusCode < 300) {
         return true;
       } else {
         final body = await ApiService.parseJson(response);
-        final errorCode = body['meta']?['code']?.toString() ?? body['code']?.toString() ?? body['error']?['code']?.toString();
-        
-        if (errorCode == 'GOAL_HAS_LEDGER_HISTORY' || response.statusCode == 409) {
-          _errorMessage = 'Cannot delete a goal that has transaction history. Please archive or complete it instead.';
+        final errorCode = body['meta']?['code']?.toString() ??
+            body['code']?.toString() ??
+            body['error']?['code']?.toString();
+
+        if (errorCode == 'GOAL_HAS_LEDGER_HISTORY' ||
+            response.statusCode == 409) {
+          _errorMessage =
+              'Cannot delete a goal that has transaction history. Please archive or complete it instead.';
         } else {
-          _errorMessage = await ApiService.getErrorMessage(response, fallback: 'Failed to delete goal');
+          _errorMessage = await ApiService.getErrorMessage(response,
+              fallback: 'Failed to delete goal');
         }
       }
     } catch (e) {
@@ -733,7 +673,8 @@ class GoalProvider extends ChangeNotifier {
   // ================= ADVANCED ACTIONS =================
 
   Future<dynamic> planningPreview(Map<String, dynamic> data) async {
-    final response = await ApiService.post('/goals/planning-preview', body: data);
+    final response =
+        await ApiService.post('/goals/planning-preview', body: data);
     return _parseOrError(response);
   }
 
@@ -762,12 +703,16 @@ class GoalProvider extends ChangeNotifier {
     return _parseOrError(response);
   }
 
-  Future<bool> addContribution(String id, double amount, {String sourceType = 'manual'}) async {
-    final String idempotencyKey = DateTime.now().millisecondsSinceEpoch.toString();
+  Future<bool> addContribution(String id, double amount,
+      {String sourceType = 'manual'}) async {
+    final String idempotencyKey =
+        DateTime.now().millisecondsSinceEpoch.toString();
     final response = await ApiService.post('/goals/$id/contributions', body: {
       'amount': amount,
       'sourceType': sourceType,
-    }, headers: {'Idempotency-Key': idempotencyKey});
+    }, headers: {
+      'Idempotency-Key': idempotencyKey
+    });
     return _isSuccess(response);
   }
 
@@ -838,12 +783,18 @@ class GoalProvider extends ChangeNotifier {
   String _cleanError(
     Object error,
   ) {
-    return error
-        .toString()
-        .replaceFirst(
+    return error.toString().replaceFirst(
           'Exception: ',
           '',
         );
+  }
+
+  void clearData() {
+    _goals.clear();
+    _isLoading = false;
+    _errorMessage = null;
+    clearForm(notify: false);
+    notifyListeners();
   }
 
   // ================= DISPOSE =================

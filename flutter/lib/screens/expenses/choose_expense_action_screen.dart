@@ -14,42 +14,34 @@ class ChooseExpenseActionScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bool isDark =
-        context.watch<Themeprovider>().isDark;
+    final bool isDark = context.watch<Themeprovider>().isDark;
 
-    final double screenW =
-        Device.width(context);
+    final double screenW = Device.width(context);
 
-    final double screenH =
-        Device.height(context);
+    final double screenH = Device.height(context);
 
     return Scaffold(
-      backgroundColor: isDark
-          ? AppColors.darkBackground
-          : AppColors.lightBackground,
+      backgroundColor:
+          isDark ? AppColors.darkBackground : AppColors.lightBackground,
       body: SafeArea(
         child: SingleChildScrollView(
-          physics:
-              const BouncingScrollPhysics(),
+          physics: const BouncingScrollPhysics(),
           padding: EdgeInsets.symmetric(
             horizontal: screenW * 0.055,
           ),
           child: Column(
-            crossAxisAlignment:
-                CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               SizedBox(
                 height: screenH * 0.022,
               ),
-
               Row(
                 children: [
                   InkWell(
                     onTap: () {
                       Navigator.pop(context);
                     },
-                    borderRadius:
-                        BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(12),
                     child: Container(
                       width: screenW * 0.11,
                       height: screenW * 0.11,
@@ -59,74 +51,56 @@ class ChooseExpenseActionScreen extends StatelessWidget {
                                 0xFF203330,
                               )
                             : Colors.white,
-                        borderRadius:
-                            BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(12),
                         border: Border.all(
                           color: isDark
-                              ? Colors.white
-                                  .withOpacity(0.04)
-                              : Colors.black
-                                  .withOpacity(0.05),
+                              ? Colors.white.withOpacity(0.04)
+                              : Colors.black.withOpacity(0.05),
                         ),
                       ),
                       child: Icon(
-                        Icons
-                            .arrow_back_ios_new_rounded,
-                        color: isDark
-                            ? AppColors.darkText
-                            : AppColors.lightText,
+                        Icons.arrow_back_ios_new_rounded,
+                        color:
+                            isDark ? AppColors.darkText : AppColors.lightText,
                         size: screenW * 0.05,
                       ),
                     ),
                   ),
-
                   SizedBox(
                     width: screenW * 0.035,
                   ),
-
                   Expanded(
                     child: Text(
                       "New Activity",
-                      style: GoogleFonts
-                          .ibmPlexSansArabic(
-                        color: isDark
-                            ? AppColors.darkText
-                            : AppColors.lightText,
-                        fontSize:
-                            screenW * 0.065,
-                        fontWeight:
-                            FontWeight.bold,
+                      style: GoogleFonts.ibmPlexSansArabic(
+                        color:
+                            isDark ? AppColors.darkText : AppColors.lightText,
+                        fontSize: screenW * 0.065,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
                   ),
                 ],
               ),
-
               SizedBox(
                 height: screenH * 0.018,
               ),
-
               Text(
                 "How would you like to use Alpha today?",
-                style:
-                    GoogleFonts.ibmPlexSansArabic(
-                  color: isDark
-                      ? AppColors.darkSubText
-                      : AppColors.lightSubText,
+                style: GoogleFonts.ibmPlexSansArabic(
+                  color:
+                      isDark ? AppColors.darkSubText : AppColors.lightSubText,
                   fontSize: screenW * 0.036,
                   height: 1.5,
                 ),
               ),
-
               SizedBox(
                 height: screenH * 0.035,
               ),
-
               _ActionCard(
                 isDark: isDark,
                 screenW: screenW,
-                icon:
-                    Icons.receipt_long_outlined,
+                icon: Icons.receipt_long_outlined,
                 title: "Record Real Expense",
                 subtitle:
                     "Save an actual expense and update your spending analysis.",
@@ -136,29 +110,24 @@ class ChooseExpenseActionScreen extends StatelessWidget {
                   "Improve Alpha insights",
                   "Include it in charts and reports",
                 ],
-                accentColor:
-                    const Color(0xFF34D399),
+                accentColor: const Color(0xFF34D399),
                 buttonText: "Record Expense",
                 onTap: () {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (_) =>
-                          const NewExpenseScreen(),
+                      builder: (_) => const NewExpenseScreen(),
                     ),
                   );
                 },
               ),
-
               SizedBox(
                 height: screenH * 0.022,
               ),
-
               _ActionCard(
                 isDark: isDark,
                 screenW: screenW,
-                icon:
-                    Icons.psychology_alt_outlined,
+                icon: Icons.psychology_alt_outlined,
                 title: "Ask Financial Advice",
                 subtitle:
                     "Thinking about buying something? Ask Alpha before spending.",
@@ -168,35 +137,28 @@ class ChooseExpenseActionScreen extends StatelessWidget {
                   "Explore cheaper alternatives",
                   "No expense will be saved",
                 ],
-                accentColor:
-                    const Color(0xFFF4C95D),
+                accentColor: const Color(0xFFF4C95D),
                 buttonText: "Ask Alpha",
                 onTap: () {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (_) =>
-                          const AdviceScreen(),
+                      builder: (_) => const AdviceScreen(),
                     ),
                   );
                 },
               ),
-
               SizedBox(
                 height: screenH * 0.03,
               ),
-
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   color: isDark
-                      ? AppColors.darkSecondary
-                          .withOpacity(0.08)
-                      : AppColors.lightSecondary
-                          .withOpacity(0.08),
-                  borderRadius:
-                      BorderRadius.circular(16),
+                      ? AppColors.darkSecondary.withOpacity(0.08)
+                      : AppColors.lightSecondary.withOpacity(0.08),
+                  borderRadius: BorderRadius.circular(16),
                   border: Border.all(
                     color: const Color(
                       0xFF14B8A6,
@@ -204,8 +166,7 @@ class ChooseExpenseActionScreen extends StatelessWidget {
                   ),
                 ),
                 child: Row(
-                  crossAxisAlignment:
-                      CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Container(
                       width: 39,
@@ -214,29 +175,23 @@ class ChooseExpenseActionScreen extends StatelessWidget {
                         color: const Color(
                           0xFF14B8A6,
                         ).withOpacity(0.12),
-                        borderRadius:
-                            BorderRadius.circular(11),
+                        borderRadius: BorderRadius.circular(11),
                       ),
                       child: const Icon(
                         Icons.info_outline_rounded,
-                        color:
-                            Color(0xFF14B8A6),
+                        color: Color(0xFF14B8A6),
                         size: 21,
                       ),
                     ),
-
                     const SizedBox(width: 11),
-
                     Expanded(
                       child: Text(
                         "Recording an expense changes your actual totals. Financial advice is only a simulation and does not affect your balance.",
-                        style: GoogleFonts
-                            .ibmPlexSansArabic(
+                        style: GoogleFonts.ibmPlexSansArabic(
                           color: isDark
                               ? AppColors.darkSubText
                               : AppColors.lightSubText,
-                          fontSize:
-                              screenW * 0.031,
+                          fontSize: screenW * 0.031,
                           height: 1.55,
                         ),
                       ),
@@ -244,7 +199,6 @@ class ChooseExpenseActionScreen extends StatelessWidget {
                   ],
                 ),
               ),
-
               SizedBox(
                 height: screenH * 0.03,
               ),
@@ -285,11 +239,8 @@ class _ActionCard extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(19),
       decoration: BoxDecoration(
-        color: isDark
-            ? const Color(0xFF172624)
-            : Colors.white,
-        borderRadius:
-            BorderRadius.circular(23),
+        color: isDark ? const Color(0xFF172624) : Colors.white,
+        borderRadius: BorderRadius.circular(23),
         border: Border.all(
           color: accentColor.withOpacity(
             isDark ? 0.18 : 0.14,
@@ -299,29 +250,24 @@ class _ActionCard extends StatelessWidget {
             ? null
             : [
                 BoxShadow(
-                  color:
-                      Colors.black.withOpacity(0.04),
+                  color: Colors.black.withOpacity(0.04),
                   blurRadius: 16,
                   offset: const Offset(0, 7),
                 ),
               ],
       ),
       child: Column(
-        crossAxisAlignment:
-            CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            crossAxisAlignment:
-                CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
                 width: 55,
                 height: 55,
                 decoration: BoxDecoration(
-                  color:
-                      accentColor.withOpacity(0.13),
-                  borderRadius:
-                      BorderRadius.circular(17),
+                  color: accentColor.withOpacity(0.13),
+                  borderRadius: BorderRadius.circular(17),
                 ),
                 child: Icon(
                   icon,
@@ -329,39 +275,28 @@ class _ActionCard extends StatelessWidget {
                   size: 28,
                 ),
               ),
-
               const SizedBox(width: 14),
-
               Expanded(
                 child: Column(
-                  crossAxisAlignment:
-                      CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       title,
-                      style: GoogleFonts
-                          .ibmPlexSansArabic(
-                        color: isDark
-                            ? AppColors.darkText
-                            : AppColors.lightText,
-                        fontSize:
-                            screenW * 0.047,
-                        fontWeight:
-                            FontWeight.bold,
+                      style: GoogleFonts.ibmPlexSansArabic(
+                        color:
+                            isDark ? AppColors.darkText : AppColors.lightText,
+                        fontSize: screenW * 0.047,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
-
                     const SizedBox(height: 5),
-
                     Text(
                       subtitle,
-                      style: GoogleFonts
-                          .ibmPlexSansArabic(
+                      style: GoogleFonts.ibmPlexSansArabic(
                         color: isDark
                             ? AppColors.darkSubText
                             : AppColors.lightSubText,
-                        fontSize:
-                            screenW * 0.031,
+                        fontSize: screenW * 0.031,
                         height: 1.5,
                       ),
                     ),
@@ -370,30 +305,24 @@ class _ActionCard extends StatelessWidget {
               ),
             ],
           ),
-
           const SizedBox(height: 18),
-
           ...points.map(
             (point) {
               return Padding(
-                padding:
-                    const EdgeInsets.only(
+                padding: const EdgeInsets.only(
                   bottom: 10,
                 ),
                 child: Row(
-                  crossAxisAlignment:
-                      CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Container(
                       width: 20,
                       height: 20,
-                      margin:
-                          const EdgeInsets.only(
+                      margin: const EdgeInsets.only(
                         top: 1,
                       ),
                       decoration: BoxDecoration(
-                        color: accentColor
-                            .withOpacity(0.12),
+                        color: accentColor.withOpacity(0.12),
                         shape: BoxShape.circle,
                       ),
                       child: Icon(
@@ -402,19 +331,14 @@ class _ActionCard extends StatelessWidget {
                         size: 13,
                       ),
                     ),
-
                     const SizedBox(width: 9),
-
                     Expanded(
                       child: Text(
                         point,
-                        style: GoogleFonts
-                            .ibmPlexSansArabic(
-                          color: isDark
-                              ? AppColors.darkText
-                              : AppColors.lightText,
-                          fontSize:
-                              screenW * 0.031,
+                        style: GoogleFonts.ibmPlexSansArabic(
+                          color:
+                              isDark ? AppColors.darkText : AppColors.lightText,
+                          fontSize: screenW * 0.031,
                         ),
                       ),
                     ),
@@ -423,46 +347,33 @@ class _ActionCard extends StatelessWidget {
               );
             },
           ),
-
           const SizedBox(height: 10),
-
           SizedBox(
             width: double.infinity,
             height: 50,
             child: ElevatedButton(
               onPressed: onTap,
-              style:
-                  ElevatedButton.styleFrom(
-                backgroundColor:
-                    accentColor,
-                foregroundColor:
-                    const Color(0xFF09231E),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: accentColor,
+                foregroundColor: const Color(0xFF09231E),
                 elevation: 0,
-                shape:
-                    RoundedRectangleBorder(
-                  borderRadius:
-                      BorderRadius.circular(14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
                 ),
               ),
               child: Row(
-                mainAxisAlignment:
-                    MainAxisAlignment.center,
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
                     buttonText,
-                    style: GoogleFonts
-                        .ibmPlexSansArabic(
-                      fontWeight:
-                          FontWeight.bold,
+                    style: GoogleFonts.ibmPlexSansArabic(
+                      fontWeight: FontWeight.bold,
                       fontSize: 13,
                     ),
                   ),
-
                   const SizedBox(width: 7),
-
                   const Icon(
-                    Icons
-                        .arrow_forward_rounded,
+                    Icons.arrow_forward_rounded,
                     size: 19,
                   ),
                 ],

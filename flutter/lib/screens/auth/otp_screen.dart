@@ -1,5 +1,7 @@
 import 'dart:async';
 import 'package:alpha_app/core/utils/app_colors.dart';
+import 'package:alpha_app/core/utils/step_resolver.dart';
+import 'package:alpha_app/providers/onboarding_provider.dart';
 import 'package:alpha_app/providers/themeprovider.dart';
 import 'package:alpha_app/providers/auth_provider.dart';
 import 'package:alpha_app/widgets/app_button.dart';
@@ -7,9 +9,6 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:pinput/pinput.dart';
 import 'package:provider/provider.dart';
-
-import 'package:alpha_app/screens/main_screen.dart';
-import 'package:alpha_app/screens/profile/personal_info_screen.dart';
 
 class OtpScreen extends StatefulWidget {
   final String phoneNumber;
@@ -72,13 +71,11 @@ class _OtpScreenState extends State<OtpScreen> {
   }
 
   Future<void> _verifyOtp() async {
-    final otpCode =
-        _pinController.text.trim();
+    final otpCode = _pinController.text.trim();
 
     if (otpCode.length != 6) {
       setState(() {
-        _errorMessage =
-            'Please enter the full 6-digit code';
+        _errorMessage = 'Please enter the full 6-digit code';
       });
 
       return;
@@ -90,11 +87,9 @@ class _OtpScreenState extends State<OtpScreen> {
     });
 
     try {
-      final authProvider =
-          context.read<AuthProvider>();
+      final authProvider = context.read<AuthProvider>();
 
-      final success =
-          await authProvider.verifyPhoneOtp(
+      final success = await authProvider.verifyPhoneOtp(
         otpCode: otpCode,
       );
 
@@ -104,9 +99,7 @@ class _OtpScreenState extends State<OtpScreen> {
 
       if (!success) {
         setState(() {
-          _errorMessage =
-              authProvider.errorMessage ??
-                  'Verification failed';
+          _errorMessage = authProvider.errorMessage ?? 'Verification failed';
         });
 
         _pinController.clear();
@@ -123,37 +116,42 @@ class _OtpScreenState extends State<OtpScreen> {
               widget.isRegistration
                   ? 'Account verified successfully'
                   : 'Verified successfully',
-              style: GoogleFonts
-                  .ibmPlexSansArabic(),
+              style: GoogleFonts.ibmPlexSansArabic(),
             ),
-            backgroundColor:
-                const Color(0xFF0F766E),
-            behavior:
-                SnackBarBehavior.floating,
+            backgroundColor: const Color(0xFF0F766E),
+            behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
-              borderRadius:
-                  BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(10),
             ),
           ),
         );
 
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (_) => widget.isRegistration
-              ? const PersonalInfoScreen()
-              : const MainNavigationScreen(),
-        ),
-      );
+      final onboardingProvider = context.read<OnboardingProvider>();
+      final statusLoaded = await onboardingProvider.checkOnboardingStatus();
+
+      if (!mounted) {
+        return;
+      }
+
+      if (statusLoaded) {
+        replaceWithOnboardingStep(
+          context,
+          onboardingProvider.nextStep,
+          allocation: onboardingProvider.allocation,
+        );
+      } else {
+        setState(() {
+          _errorMessage = onboardingProvider.errorMessage ??
+              'Could not load onboarding status';
+        });
+      }
     } catch (error) {
       if (!mounted) {
         return;
       }
 
       setState(() {
-        _errorMessage = error
-            .toString()
-            .replaceFirst(
+        _errorMessage = error.toString().replaceFirst(
               'Exception: ',
               '',
             );
@@ -171,14 +169,12 @@ class _OtpScreenState extends State<OtpScreen> {
   }
 
   Future<void> _resendOtp() async {
-    if (_secondsRemaining > 0 ||
-        _isResending) {
+    if (_secondsRemaining > 0 || _isResending) {
       return;
     }
 
     setState(() {
-      _errorMessage =
-          'Resend OTP is not available yet';
+      _errorMessage = 'Resend OTP is not available yet';
     });
   }
 
@@ -251,8 +247,8 @@ class _OtpScreenState extends State<OtpScreen> {
                     color: primaryColor.withOpacity(0.10),
                     shape: BoxShape.circle,
                   ),
-                  child:
-                      Icon(Icons.mark_email_read_outlined, size: 48, color: primaryColor),
+                  child: Icon(Icons.mark_email_read_outlined,
+                      size: 48, color: primaryColor),
                 ),
 
                 const SizedBox(height: 32),
@@ -291,8 +287,7 @@ class _OtpScreenState extends State<OtpScreen> {
                     decoration: BoxDecoration(
                       color: accentColor.withOpacity(0.10),
                       borderRadius: BorderRadius.circular(12),
-                      border:
-                          Border.all(color: accentColor.withOpacity(0.30)),
+                      border: Border.all(color: accentColor.withOpacity(0.30)),
                     ),
                     child: Column(
                       children: [
@@ -358,8 +353,7 @@ class _OtpScreenState extends State<OtpScreen> {
                     decoration: BoxDecoration(
                       color: errorColor.withOpacity(0.10),
                       borderRadius: BorderRadius.circular(10),
-                      border:
-                          Border.all(color: errorColor.withOpacity(0.30)),
+                      border: Border.all(color: errorColor.withOpacity(0.30)),
                     ),
                     child: Row(
                       children: [

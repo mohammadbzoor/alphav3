@@ -51,7 +51,6 @@ class RewardModel {
   double get levelProgress {
     if (nextLevelXp <= 0) return 0;
 
-    return (currentXp / nextLevelXp)
-        .clamp(0.0, 1.0);
+    return (currentXp / nextLevelXp).clamp(0.0, 1.0);
   }
 }

@@ -43,10 +43,8 @@ class LeaderboardModel {
   LeaderboardUserModel? get winner {
     if (users.isEmpty) return null;
 
-    final sortedUsers = [...users]
-      ..sort(
-        (first, second) =>
-            second.progress.compareTo(
+    final sortedUsers = [...users]..sort(
+        (first, second) => second.progress.compareTo(
           first.progress,
         ),
       );

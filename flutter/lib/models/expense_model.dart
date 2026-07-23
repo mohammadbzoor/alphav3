@@ -1,3 +1,5 @@
+import 'package:alpha_app/core/utils/finance_mappings.dart';
+
 enum ExpenseType {
   need,
   want,
@@ -70,8 +72,7 @@ class ExpenseModel {
   });
 
   bool get isRecurring {
-    return movementType ==
-        ExpenseMovementType.recurring;
+    return movementType == ExpenseMovementType.recurring;
   }
 
   int get coverageDays {
@@ -118,26 +119,15 @@ class ExpenseModel {
       category: category ?? this.category,
       amount: amount ?? this.amount,
       date: date ?? this.date,
-      paymentMethod:
-          paymentMethod ?? this.paymentMethod,
-      note: clearNote
-          ? null
-          : note ?? this.note,
-      expenseType:
-          expenseType ?? this.expenseType,
+      paymentMethod: paymentMethod ?? this.paymentMethod,
+      note: clearNote ? null : note ?? this.note,
+      expenseType: expenseType ?? this.expenseType,
       source: source ?? this.source,
-      movementType:
-          movementType ?? this.movementType,
-      coveragePeriod:
-          coveragePeriod ?? this.coveragePeriod,
-      aiInsight: clearAiInsight
-          ? null
-          : aiInsight ?? this.aiInsight,
-      confidence: clearConfidence
-          ? null
-          : confidence ?? this.confidence,
-      createdAt:
-          createdAt ?? this.createdAt,
+      movementType: movementType ?? this.movementType,
+      coveragePeriod: coveragePeriod ?? this.coveragePeriod,
+      aiInsight: clearAiInsight ? null : aiInsight ?? this.aiInsight,
+      confidence: clearConfidence ? null : confidence ?? this.confidence,
+      createdAt: createdAt ?? this.createdAt,
     );
   }
 
@@ -146,77 +136,83 @@ class ExpenseModel {
   ) {
     return ExpenseModel(
       id: json['id']?.toString() ?? '',
-      title:
-          json['description']?.toString() ?? json['title']?.toString() ?? '',
-      category:
-          json['category']?.toString() ??
-              'other',
+      title: json['description']?.toString() ?? json['title']?.toString() ?? '',
+      category: FinanceMappings.getCategoryLabel(
+          json['category']?.toString() ?? 'other'),
       amount: _toDouble(
         json['amount'],
       ),
       date: DateTime.tryParse(
-            json['date']?.toString() ?? '',
+            json['date']?.toString() ?? json['expenseDate']?.toString() ?? '',
           ) ??
           DateTime.now(),
-      paymentMethod:
-          json['paymentMethod']
-                  ?.toString() ?? json['payment_method']?.toString() ??
-              'cash',
+      paymentMethod: FinanceMappings.getPaymentMethodLabel(
+          json['paymentMethod']?.toString() ??
+              json['payment_method']?.toString() ??
+              'cash'),
       note: json['note']?.toString(),
-      expenseType:
-          _expenseTypeFromString(
+      expenseType: _expenseTypeFromString(
         json['bucket']?.toString() ?? json['expense_type']?.toString(),
       ),
-      source:
-          _expenseSourceFromString(
+      source: _expenseSourceFromString(
         json['sourceType']?.toString() ?? json['source']?.toString(),
       ),
-      movementType:
-          _movementTypeFromString(
+      movementType: _movementTypeFromString(
         json['movement_type']?.toString(),
       ),
-      coveragePeriod:
-          _coveragePeriodFromString(
-        json['coverage_period']
-            ?.toString(),
+      coveragePeriod: _coveragePeriodFromString(
+        json['coverage_period']?.toString(),
       ),
-      aiInsight:
-          json['ai_insight']?.toString(),
-      confidence:
-          json['confidence'] == null
-              ? null
-              : _toDouble(
-                  json['confidence'],
-                ),
+      aiInsight: json['ai_insight']?.toString(),
+      confidence: json['confidence'] == null
+          ? null
+          : _toDouble(
+              json['confidence'],
+            ),
       createdAt: DateTime.tryParse(
-            json['created_at']
-                    ?.toString() ??
-                '',
+            json['created_at']?.toString() ?? '',
           ) ??
           DateTime.now(),
     );
   }
 
-  Map<String, dynamic> toJson() {
+  Map<String, dynamic> toExpenseJson() {
+    String formattedDate =
+        '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+
+    // Create combined description if note exists
+    String finalDescription = title;
+    if (note != null && note!.isNotEmpty) {
+      finalDescription = '$title - $note';
+    }
+
     return {
-      if (id.isNotEmpty) 'id': id,
-      'description': title,
-      'category': category,
       'amount': amount,
-      'date': date.toIso8601String(),
-      'paymentMethod': paymentMethod,
       'bucket': expenseType == ExpenseType.want ? 'wants' : 'needs',
+      'category': category,
+      'paymentMethod': paymentMethod,
       'sourceType': source.name,
-      'movement_type':
-          movementType.name,
-      'coverage_period':
-          coveragePeriod.name,
-      if (note != null) 'note': note,
-      if (aiInsight != null) 'ai_insight': aiInsight,
-      if (confidence != null) 'confidence': confidence,
-      'created_at':
-          createdAt.toIso8601String(),
+      'expenseDate': formattedDate,
+      'description': finalDescription,
     };
+  }
+
+  Map<String, dynamic> toCommitmentJson(String frequency, String flexibility) {
+    String formattedDate =
+        '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+
+    return {
+      'amount': amount,
+      'name': title,
+      'frequency': frequency,
+      'flexibility': flexibility,
+      'nextDueDate': formattedDate,
+      'sourceType': source.name,
+    };
+  }
+
+  Map<String, dynamic> toJson() {
+    return toExpenseJson();
   }
 
   static double _toDouble(
@@ -233,8 +229,7 @@ class ExpenseModel {
     return double.tryParse(cleanString) ?? 0.0;
   }
 
-  static ExpenseType
-      _expenseTypeFromString(
+  static ExpenseType _expenseTypeFromString(
     String? value,
   ) {
     final lower = value?.toLowerCase();
@@ -250,8 +245,7 @@ class ExpenseModel {
     }
   }
 
-  static ExpenseSource
-      _expenseSourceFromString(
+  static ExpenseSource _expenseSourceFromString(
     String? value,
   ) {
     switch (value) {
@@ -270,8 +264,7 @@ class ExpenseModel {
     }
   }
 
-  static ExpenseMovementType
-      _movementTypeFromString(
+  static ExpenseMovementType _movementTypeFromString(
     String? value,
   ) {
     switch (value) {
@@ -284,8 +277,7 @@ class ExpenseModel {
     }
   }
 
-  static ExpenseCoveragePeriod
-      _coveragePeriodFromString(
+  static ExpenseCoveragePeriod _coveragePeriodFromString(
     String? value,
   ) {
     switch (value) {

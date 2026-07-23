@@ -14,26 +14,33 @@ class ReceiptParserService {
     if (response.statusCode >= 200 && response.statusCode < 300) {
       final body = await ApiService.parseJson(response);
       final data = body['data'];
-      
+
       if (data == null) {
         throw Exception('No data returned from OCR backend');
       }
 
       // Map backend response to local model
       final List<dynamic> rawItems = data['items'] ?? [];
-      
+
       return ParsedReceiptModel(
-        storeName: data['storeName']?.toString() ?? data['merchantName']?.toString() ?? 'Unknown Store',
-        date: DateTime.tryParse(data['date']?.toString() ?? '') ?? DateTime.now(),
+        storeName: data['storeName']?.toString() ??
+            data['merchantName']?.toString() ??
+            'Unknown Store',
+        date:
+            DateTime.tryParse(data['date']?.toString() ?? '') ?? DateTime.now(),
         suggestedCategory: data['category']?.toString() ?? 'Shopping',
         confidence: (data['confidence'] ?? 0.9).toDouble(),
         inputType: ReceiptInputType.image,
-        extractedText: data['rawText']?.toString() ?? 'Extracted via Backend OCR',
+        extractedText:
+            data['rawText']?.toString() ?? 'Extracted via Backend OCR',
         items: rawItems.map((item) {
           final map = Map<String, dynamic>.from(item);
           return ReceiptItemModel(
-            id: map['id']?.toString() ?? DateTime.now().microsecondsSinceEpoch.toString(),
-            name: map['description']?.toString() ?? map['name']?.toString() ?? 'Item',
+            id: map['id']?.toString() ??
+                DateTime.now().microsecondsSinceEpoch.toString(),
+            name: map['description']?.toString() ??
+                map['name']?.toString() ??
+                'Item',
             category: map['category']?.toString() ?? 'Other',
             amount: (map['amount'] ?? map['price'] ?? 0).toDouble(),
           );
@@ -45,6 +52,7 @@ class ReceiptParserService {
       throw Exception(error);
     }
   }
+
   Future<ParsedReceiptModel> parseText({
     required String text,
     required ReceiptInputType inputType,
@@ -66,10 +74,7 @@ class ReceiptParserService {
           : 'National Supermarket',
       date: DateTime.now(),
       suggestedCategory: 'Shopping',
-      confidence:
-          inputType == ReceiptInputType.image
-              ? 0.97
-              : 0.92,
+      confidence: inputType == ReceiptInputType.image ? 0.97 : 0.92,
       inputType: inputType,
       extractedText: text,
       items: const [

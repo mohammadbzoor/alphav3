@@ -83,7 +83,9 @@ class ProfileProvider extends ChangeNotifier {
           id: user['id']?.toString(),
           name: user['fullName']?.toString() ?? '',
           email: user['email']?.toString() ?? '',
-          joinedAt: user['memberSince'] != null ? DateTime.parse(user['memberSince']) : null,
+          joinedAt: user['memberSince'] != null
+              ? DateTime.parse(user['memberSince'])
+              : null,
           photoUrl: user['avatarUrl'],
         );
 
@@ -93,7 +95,8 @@ class ProfileProvider extends ChangeNotifier {
         _confirmedCycleExpensesCount = stats['confirmedCycleExpenses'] ?? 0;
 
         if (data['profileCompletion'] != null) {
-          _profileCompletion = ProfileCompletionModel.fromJson(data['profileCompletion']);
+          _profileCompletion =
+              ProfileCompletionModel.fromJson(data['profileCompletion']);
         }
 
         _errorMessage = null;
@@ -103,7 +106,8 @@ class ProfileProvider extends ChangeNotifier {
         try {
           final body = jsonDecode(response.body);
           _errorCode = body['code'];
-          _errorMessage = body['message'] ?? 'Account not verified. Please verify your email.';
+          _errorMessage = body['message'] ??
+              'Account not verified. Please verify your email.';
         } catch (_) {
           _errorCode = 'ACCOUNT_NOT_VERIFIED';
           _errorMessage = 'Account not verified. Please verify your email.';
@@ -114,7 +118,8 @@ class ProfileProvider extends ChangeNotifier {
         _errorMessage = 'Your session has expired. Please log in again.';
       } else {
         _errorCode = 'LOAD_FAILED';
-        _errorMessage = 'Failed to load profile summary (${response.statusCode})';
+        _errorMessage =
+            'Failed to load profile summary (${response.statusCode})';
       }
     } catch (e) {
       _errorCode = 'NETWORK_ERROR';
@@ -160,7 +165,7 @@ class ProfileProvider extends ChangeNotifier {
     } catch (e) {
       _errorMessage = 'Error loading full profile: $e';
     }
-    
+
     _isLoading = false;
     notifyListeners();
     return false;
@@ -184,10 +189,12 @@ class ProfileProvider extends ChangeNotifier {
       if (email != null) updateData['email'] = email;
       if (phone != null) updateData['phone'] = phone;
       if (gender != null) updateData['gender'] = gender;
-      if (birthDate != null) updateData['birthDate'] = birthDate.toIso8601String().split('T').first;
+      if (birthDate != null)
+        updateData['birthDate'] = birthDate.toIso8601String().split('T').first;
 
-      final response = await ApiService.patch('/users/profile', body: updateData);
-      
+      final response =
+          await ApiService.patch('/users/profile', body: updateData);
+
       if (response.statusCode >= 200 && response.statusCode < 300) {
         // Success — reload both full profile and summary (for completion)
         await loadFullProfile();
@@ -203,7 +210,7 @@ class ProfileProvider extends ChangeNotifier {
     } catch (e) {
       _errorMessage = 'Error updating profile: $e';
     }
-    
+
     _isSaving = false;
     notifyListeners();
     return false;
@@ -236,7 +243,7 @@ class ProfileProvider extends ChangeNotifier {
     } catch (e) {
       _errorMessage = 'Network error during password change';
     }
-    
+
     _isSaving = false;
     notifyListeners();
     return false;

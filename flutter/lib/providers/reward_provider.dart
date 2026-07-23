@@ -6,8 +6,7 @@ class RewardProvider extends ChangeNotifier {
 
   bool _isLoading = false;
 
-  RewardModel? get rewardData =>
-      _rewardData;
+  RewardModel? get rewardData => _rewardData;
 
   bool get isLoading => _isLoading;
 
@@ -60,14 +59,12 @@ class RewardProvider extends ChangeNotifier {
         ),
         AchievementModel(
           id: "2",
-          title:
-              "A full week on budget",
+          title: "A full week on budget",
           isCompleted: true,
         ),
         AchievementModel(
           id: "3",
-          title:
-              "3 months of consistent saving",
+          title: "3 months of consistent saving",
           isCompleted: false,
         ),
       ],
@@ -82,12 +79,10 @@ class RewardProvider extends ChangeNotifier {
   ) {
     if (_rewardData == null) return;
 
-    final newXp =
-        _rewardData!.currentXp + amount;
+    final newXp = _rewardData!.currentXp + amount;
 
     var newLevel = _rewardData!.level;
-    var newNextLevelXp =
-        _rewardData!.nextLevelXp;
+    var newNextLevelXp = _rewardData!.nextLevelXp;
     var finalXp = newXp;
 
     if (newXp >= newNextLevelXp) {
@@ -101,12 +96,10 @@ class RewardProvider extends ChangeNotifier {
       levelTitle: _rewardData!.levelTitle,
       currentXp: finalXp,
       nextLevelXp: newNextLevelXp,
-      badgeCount:
-          _rewardData!.badgeCount,
+      badgeCount: _rewardData!.badgeCount,
       streak: _rewardData!.streak,
       badges: _rewardData!.badges,
-      achievements:
-          _rewardData!.achievements,
+      achievements: _rewardData!.achievements,
     );
 
     notifyListeners();

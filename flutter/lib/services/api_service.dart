@@ -5,6 +5,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:http_parser/http_parser.dart';
 
 class ApiService {
   static String get baseUrl {
@@ -27,8 +28,7 @@ class ApiService {
     return Uri.parse('$baseUrl$p');
   }
 
-  static const Duration _timeoutDuration =
-      Duration(seconds: 90);
+  static const Duration _timeoutDuration = Duration(seconds: 90);
 
   // =====================================================
   // TOKEN REFRESH STATE
@@ -48,27 +48,22 @@ class ApiService {
     ) requestFunction, {
     bool skipRetry = false,
   }) async {
-    final SharedPreferences preferences =
-        await SharedPreferences.getInstance();
+    final SharedPreferences preferences = await SharedPreferences.getInstance();
 
-    final String accessToken =
-        preferences.getString(
+    final String accessToken = preferences.getString(
           'access_token',
         ) ??
         '';
 
-    final http.Response response =
-        await requestFunction(
+    final http.Response response = await requestFunction(
       accessToken,
     );
 
-    if (skipRetry ||
-        !_isTokenExpired(response)) {
+    if (skipRetry || !_isTokenExpired(response)) {
       return response;
     }
 
-    final bool refreshed =
-        await _refreshAccessToken();
+    final bool refreshed = await _refreshAccessToken();
 
     if (!refreshed) {
       return response;
@@ -77,8 +72,7 @@ class ApiService {
     final SharedPreferences updatedPreferences =
         await SharedPreferences.getInstance();
 
-    final String updatedAccessToken =
-        updatedPreferences.getString(
+    final String updatedAccessToken = updatedPreferences.getString(
           'access_token',
         ) ??
         '';
@@ -92,11 +86,9 @@ class ApiService {
   // REFRESH TOKEN HANDLING
   // =====================================================
 
-  static Future<bool>
-      _refreshAccessToken() async {
+  static Future<bool> _refreshAccessToken() async {
     if (_isRefreshing) {
-      final Completer<bool>? completer =
-          _refreshCompleter;
+      final Completer<bool>? completer = _refreshCompleter;
 
       if (completer == null) {
         return false;
@@ -110,15 +102,12 @@ class ApiService {
     }
 
     _isRefreshing = true;
-    _refreshCompleter =
-        Completer<bool>();
+    _refreshCompleter = Completer<bool>();
 
     try {
-      final bool success =
-          await _doRefreshToken();
+      final bool success = await _doRefreshToken();
 
-      if (!_refreshCompleter!
-          .isCompleted) {
+      if (!_refreshCompleter!.isCompleted) {
         _refreshCompleter!.complete(
           success,
         );
@@ -126,8 +115,7 @@ class ApiService {
 
       return success;
     } catch (error) {
-      if (!_refreshCompleter!
-          .isCompleted) {
+      if (!_refreshCompleter!.isCompleted) {
         _refreshCompleter!.complete(
           false,
         );
@@ -152,51 +140,41 @@ class ApiService {
     }
 
     try {
-      final dynamic decoded =
-          jsonDecode(response.body);
+      final dynamic decoded = jsonDecode(response.body);
 
       if (decoded is! Map) {
         return true;
       }
 
-      final Map<String, dynamic> body =
-          Map<String, dynamic>.from(
+      final Map<String, dynamic> body = Map<String, dynamic>.from(
         decoded,
       );
 
-      final dynamic rawError =
-          body['error'];
+      final dynamic rawError = body['error'];
 
-      final Map<String, dynamic>? error =
-          rawError is Map
-              ? Map<String, dynamic>.from(
-                  rawError,
-                )
-              : null;
+      final Map<String, dynamic>? error = rawError is Map
+          ? Map<String, dynamic>.from(
+              rawError,
+            )
+          : null;
 
       final String? code =
-          error?['code']?.toString() ??
-              body['code']?.toString();
+          error?['code']?.toString() ?? body['code']?.toString();
 
-      return code == 'TOKEN_EXPIRED' ||
-          code == 'UNAUTHORIZED';
+      return code == 'TOKEN_EXPIRED' || code == 'UNAUTHORIZED';
     } catch (_) {
       return true;
     }
   }
 
-  static Future<bool>
-      _doRefreshToken() async {
-    final SharedPreferences preferences =
-        await SharedPreferences.getInstance();
+  static Future<bool> _doRefreshToken() async {
+    final SharedPreferences preferences = await SharedPreferences.getInstance();
 
-    final String? refreshToken =
-        preferences.getString(
+    final String? refreshToken = preferences.getString(
       'refresh_token',
     );
 
-    if (refreshToken == null ||
-        refreshToken.isEmpty) {
+    if (refreshToken == null || refreshToken.isEmpty) {
       return false;
     }
 
@@ -206,24 +184,20 @@ class ApiService {
       'POST URL: $uri',
     );
 
-    final http.Response response =
-        await http
-            .post(
-              uri,
-              headers: const {
-                'Content-Type':
-                    'application/json',
-                'Accept':
-                    'application/json',
-              },
-              body: jsonEncode({
-                'refreshToken':
-                    refreshToken,
-              }),
-            )
-            .timeout(
-              _timeoutDuration,
-            );
+    final http.Response response = await http
+        .post(
+          uri,
+          headers: const {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+          },
+          body: jsonEncode({
+            'refreshToken': refreshToken,
+          }),
+        )
+        .timeout(
+          _timeoutDuration,
+        );
 
     debugPrint(
       'STATUS CODE: ${response.statusCode}',
@@ -231,44 +205,33 @@ class ApiService {
 
     // response body redacted
 
-    if (response.statusCode < 200 ||
-        response.statusCode >= 300) {
+    if (response.statusCode < 200 || response.statusCode >= 300) {
       return false;
     }
 
-    final Map<String, dynamic> body =
-        await parseJson(response);
+    final Map<String, dynamic> body = await parseJson(response);
 
-    final dynamic rawData =
-        body['data'];
+    final dynamic rawData = body['data'];
 
-    final Map<String, dynamic>? data =
-        rawData is Map
-            ? Map<String, dynamic>.from(
-                rawData,
-              )
-            : null;
+    final Map<String, dynamic>? data = rawData is Map
+        ? Map<String, dynamic>.from(
+            rawData,
+          )
+        : null;
 
-    final dynamic rawTokens =
-        data?['tokens'];
+    final dynamic rawTokens = data?['tokens'];
 
-    final Map<String, dynamic>? tokens =
-        rawTokens is Map
-            ? Map<String, dynamic>.from(
-                rawTokens,
-              )
-            : null;
+    final Map<String, dynamic>? tokens = rawTokens is Map
+        ? Map<String, dynamic>.from(
+            rawTokens,
+          )
+        : null;
 
-    final String? newAccessToken =
-        tokens?['accessToken']
-            ?.toString();
+    final String? newAccessToken = tokens?['accessToken']?.toString();
 
-    final String? newRefreshToken =
-        tokens?['refreshToken']
-            ?.toString();
+    final String? newRefreshToken = tokens?['refreshToken']?.toString();
 
-    if (newAccessToken == null ||
-        newAccessToken.isEmpty) {
+    if (newAccessToken == null || newAccessToken.isEmpty) {
       return false;
     }
 
@@ -282,8 +245,7 @@ class ApiService {
       newAccessToken,
     );
 
-    if (newRefreshToken != null &&
-        newRefreshToken.isNotEmpty) {
+    if (newRefreshToken != null && newRefreshToken.isNotEmpty) {
       await preferences.setString(
         'refresh_token',
         newRefreshToken,
@@ -305,24 +267,21 @@ class ApiService {
     return _requestWithRetry(
       (String token) async {
         final Uri uri = _buildUri(path).replace(
-          queryParameters:
-              queryParameters,
+          queryParameters: queryParameters,
         );
 
         debugPrint(
           'GET URL: $uri',
         );
 
-        final http.Response response =
-            await http
-                .get(
-                  uri,
-                  headers:
-                      _headers(token),
-                )
-                .timeout(
-                  _timeoutDuration,
-                );
+        final http.Response response = await http
+            .get(
+              uri,
+              headers: _headers(token),
+            )
+            .timeout(
+              _timeoutDuration,
+            );
 
         _logResponse(response);
 
@@ -346,9 +305,7 @@ class ApiService {
       (String token) async {
         final Uri uri = _buildUri(path);
 
-        final Map<String, dynamic>
-            requestBody =
-            body ?? <String, dynamic>{};
+        final Map<String, dynamic> requestBody = body ?? <String, dynamic>{};
 
         debugPrint(
           'POST URL: $uri',
@@ -361,18 +318,17 @@ class ApiService {
           allHeaders.addAll(headers);
         }
 
-        final http.Response response =
-            await http
-                .post(
-                  uri,
-                  headers: allHeaders,
-                  body: jsonEncode(
-                    requestBody,
-                  ),
-                )
-                .timeout(
-                  _timeoutDuration,
-                );
+        final http.Response response = await http
+            .post(
+              uri,
+              headers: allHeaders,
+              body: jsonEncode(
+                requestBody,
+              ),
+            )
+            .timeout(
+              _timeoutDuration,
+            );
 
         _logResponse(response);
 
@@ -395,9 +351,7 @@ class ApiService {
       (String token) async {
         final Uri uri = _buildUri(path);
 
-        final Map<String, dynamic>
-            requestBody =
-            body ?? <String, dynamic>{};
+        final Map<String, dynamic> requestBody = body ?? <String, dynamic>{};
 
         debugPrint(
           'PATCH URL: $uri',
@@ -405,19 +359,17 @@ class ApiService {
 
         debugPrint('PATCH BODY: [REDACTED]');
 
-        final http.Response response =
-            await http
-                .patch(
-                  uri,
-                  headers:
-                      _headers(token),
-                  body: jsonEncode(
-                    requestBody,
-                  ),
-                )
-                .timeout(
-                  _timeoutDuration,
-                );
+        final http.Response response = await http
+            .patch(
+              uri,
+              headers: _headers(token),
+              body: jsonEncode(
+                requestBody,
+              ),
+            )
+            .timeout(
+              _timeoutDuration,
+            );
 
         _logResponse(response);
 
@@ -440,9 +392,7 @@ class ApiService {
       (String token) async {
         final Uri uri = _buildUri(path);
 
-        final Map<String, dynamic>
-            requestBody =
-            body ?? <String, dynamic>{};
+        final Map<String, dynamic> requestBody = body ?? <String, dynamic>{};
 
         debugPrint(
           'PUT URL: $uri',
@@ -450,19 +400,17 @@ class ApiService {
 
         debugPrint('PUT BODY: [REDACTED]');
 
-        final http.Response response =
-            await http
-                .put(
-                  uri,
-                  headers:
-                      _headers(token),
-                  body: jsonEncode(
-                    requestBody,
-                  ),
-                )
-                .timeout(
-                  _timeoutDuration,
-                );
+        final http.Response response = await http
+            .put(
+              uri,
+              headers: _headers(token),
+              body: jsonEncode(
+                requestBody,
+              ),
+            )
+            .timeout(
+              _timeoutDuration,
+            );
 
         _logResponse(response);
 
@@ -493,8 +441,7 @@ class ApiService {
           debugPrint('DELETE BODY: [REDACTED]');
         }
 
-        final http.Request request =
-            http.Request(
+        final http.Request request = http.Request(
           'DELETE',
           uri,
         );
@@ -504,21 +451,15 @@ class ApiService {
         );
 
         if (body != null) {
-          request.body =
-              jsonEncode(body);
+          request.body = jsonEncode(body);
         }
 
-        final http.StreamedResponse
-            streamedResponse =
-            await request
-                .send()
-                .timeout(
+        final http.StreamedResponse streamedResponse =
+            await request.send().timeout(
                   _timeoutDuration,
                 );
 
-        final http.Response response =
-            await http.Response
-                .fromStream(
+        final http.Response response = await http.Response.fromStream(
           streamedResponse,
         );
 
@@ -539,12 +480,13 @@ class ApiService {
     required String fileField,
     required String filePath,
     Map<String, String>? fields,
+    MediaType? contentType,
     bool skipRetry = false,
   }) async {
     return _requestWithRetry(
       (String token) async {
         final Uri uri = _buildUri(endpoint);
-        
+
         debugPrint('UPLOAD URL: $uri');
 
         final http.MultipartRequest request =
@@ -559,9 +501,21 @@ class ApiService {
           request.fields.addAll(fields);
         }
 
-        request.files.add(
-          await http.MultipartFile.fromPath(fileField, filePath),
+        final file = await http.MultipartFile.fromPath(
+          fileField,
+          filePath,
+          contentType: contentType,
         );
+
+        if (endpoint.contains('voice')) {
+          debugPrint('VOICE fileExtension=.${filePath.split('.').last}');
+          debugPrint('VOICE inferredMimeType=${file.contentType?.mimeType}');
+          debugPrint(
+              'VOICE multipartContentType=${file.contentType?.mimeType}');
+          debugPrint('VOICE fileSize=${file.length}');
+        }
+
+        request.files.add(file);
 
         final http.StreamedResponse streamedResponse =
             await request.send().timeout(_timeoutDuration);
@@ -581,16 +535,14 @@ class ApiService {
   // PARSE JSON
   // =====================================================
 
-  static Future<Map<String, dynamic>>
-      parseJson(
+  static Future<Map<String, dynamic>> parseJson(
     http.Response response,
   ) async {
     if (response.body.trim().isEmpty) {
       return <String, dynamic>{};
     }
 
-    final dynamic decoded =
-        jsonDecode(response.body);
+    final dynamic decoded = jsonDecode(response.body);
 
     if (decoded is Map) {
       return Map<String, dynamic>.from(
@@ -609,25 +561,19 @@ class ApiService {
 
   static Future<String> getErrorMessage(
     http.Response response, {
-    String fallback =
-        'Something went wrong',
+    String fallback = 'Something went wrong',
   }) async {
     try {
-      final Map<String, dynamic> body =
-          await parseJson(response);
+      final Map<String, dynamic> body = await parseJson(response);
 
-      final dynamic rawError =
-          body['error'];
+      final dynamic rawError = body['error'];
 
-      if (rawError is Map &&
-          rawError['message'] != null) {
-        return rawError['message']
-            .toString();
+      if (rawError is Map && rawError['message'] != null) {
+        return rawError['message'].toString();
       }
 
       if (body['message'] != null) {
-        return body['message']
-            .toString();
+        return body['message'].toString();
       }
 
       return '$fallback (${response.statusCode})';
@@ -644,13 +590,9 @@ class ApiService {
     String token,
   ) {
     return <String, String>{
-      'Content-Type':
-          'application/json',
-      'Accept':
-          'application/json',
-      if (token.isNotEmpty)
-        'Authorization':
-            'Bearer $token',
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+      if (token.isNotEmpty) 'Authorization': 'Bearer $token',
     };
   }
 

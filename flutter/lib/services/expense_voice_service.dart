@@ -66,13 +66,11 @@ class ExpenseVoiceService {
       pauseFor: const Duration(seconds: 4),
       cancelOnError: false,
       onResult: (result) {
-        _currentSessionText =
-            result.recognizedWords.trim();
+        _currentSessionText = result.recognizedWords.trim();
 
         final combined = [
           if (_savedText.isNotEmpty) _savedText,
-          if (_currentSessionText.isNotEmpty)
-            _currentSessionText,
+          if (_currentSessionText.isNotEmpty) _currentSessionText,
         ].join(' ').trim();
 
         _onResultCallback?.call(combined);
@@ -91,10 +89,8 @@ class ExpenseVoiceService {
     }
 
     final combined = [
-      if (_savedText.trim().isNotEmpty)
-        _savedText.trim(),
-      if (_currentSessionText.trim().isNotEmpty)
-        _currentSessionText.trim(),
+      if (_savedText.trim().isNotEmpty) _savedText.trim(),
+      if (_currentSessionText.trim().isNotEmpty) _currentSessionText.trim(),
     ].join(' ').trim();
 
     _savedText = combined;

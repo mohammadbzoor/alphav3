@@ -11,24 +11,19 @@ class FinancialAnalysisProvider extends ChangeNotifier {
     Future.microtask(_initialize);
   }
 
-  static const String _storageKey =
-      'latest_financial_analysis';
+  static const String _storageKey = 'latest_financial_analysis';
 
   final AudioPlayer _audioPlayer = AudioPlayer();
 
-  StreamSubscription<PlayerState>?
-      _playerStateSubscription;
+  StreamSubscription<PlayerState>? _playerStateSubscription;
 
-  StreamSubscription<Duration>?
-      _positionSubscription;
+  StreamSubscription<Duration>? _positionSubscription;
 
-  StreamSubscription<Duration?>?
-      _durationSubscription;
+  StreamSubscription<Duration?>? _durationSubscription;
 
   FinancialAnalysisModel? _analysis;
 
-  FinancialAnalysisModel? get analysis =>
-      _analysis;
+  FinancialAnalysisModel? get analysis => _analysis;
 
   bool _isLoading = false;
 
@@ -36,13 +31,11 @@ class FinancialAnalysisProvider extends ChangeNotifier {
 
   bool _isInitialized = false;
 
-  bool get isInitialized =>
-      _isInitialized;
+  bool get isInitialized => _isInitialized;
 
   bool _isAudioLoading = false;
 
-  bool get isAudioLoading =>
-      _isAudioLoading;
+  bool get isAudioLoading => _isAudioLoading;
 
   bool _isPlaying = false;
 
@@ -58,8 +51,7 @@ class FinancialAnalysisProvider extends ChangeNotifier {
 
   String? _errorMessage;
 
-  String? get errorMessage =>
-      _errorMessage;
+  String? get errorMessage => _errorMessage;
 
   String? _loadedAudioUrl;
 
@@ -67,14 +59,10 @@ class FinancialAnalysisProvider extends ChangeNotifier {
 
   bool _disposed = false;
 
-  bool get hasAnalysis =>
-      _analysis != null;
+  bool get hasAnalysis => _analysis != null;
 
   bool get hasAudio {
-    return _analysis?.audio.url
-            .trim()
-            .isNotEmpty ==
-        true;
+    return _analysis?.audio.url.trim().isNotEmpty == true;
   }
 
   double get audioProgress {
@@ -82,8 +70,7 @@ class FinancialAnalysisProvider extends ChangeNotifier {
       return 0;
     }
 
-    return (_position.inMilliseconds /
-            _duration.inMilliseconds)
+    return (_position.inMilliseconds / _duration.inMilliseconds)
         .clamp(0.0, 1.0);
   }
 
@@ -106,8 +93,7 @@ class FinancialAnalysisProvider extends ChangeNotifier {
 
       _isInitialized = true;
     } catch (error) {
-      _errorMessage =
-          'Could not load analysis: '
+      _errorMessage = 'Could not load analysis: '
           '${_cleanError(error)}';
     } finally {
       _isLoading = false;
@@ -116,13 +102,11 @@ class FinancialAnalysisProvider extends ChangeNotifier {
   }
 
   void _listenToAudioPlayer() {
-    _playerStateSubscription ??=
-        _audioPlayer.playerStateStream.listen(
+    _playerStateSubscription ??= _audioPlayer.playerStateStream.listen(
       (state) async {
         _isPlaying = state.playing;
 
-        if (state.processingState ==
-            ProcessingState.completed) {
+        if (state.processingState == ProcessingState.completed) {
           _isPlaying = false;
           _position = Duration.zero;
 
@@ -138,12 +122,10 @@ class FinancialAnalysisProvider extends ChangeNotifier {
         _safeNotify();
       },
       onError: (Object error) {
-        final message =
-            error.toString().toLowerCase();
+        final message = error.toString().toLowerCase();
 
         if (!_isInterruptedError(message)) {
-          _errorMessage =
-              'Audio error: '
+          _errorMessage = 'Audio error: '
               '${_cleanError(error)}';
 
           _safeNotify();
@@ -151,16 +133,14 @@ class FinancialAnalysisProvider extends ChangeNotifier {
       },
     );
 
-    _positionSubscription ??=
-        _audioPlayer.positionStream.listen(
+    _positionSubscription ??= _audioPlayer.positionStream.listen(
       (value) {
         _position = value;
         _safeNotify();
       },
     );
 
-    _durationSubscription ??=
-        _audioPlayer.durationStream.listen(
+    _durationSubscription ??= _audioPlayer.durationStream.listen(
       (value) {
         if (value == null) {
           return;
@@ -185,27 +165,22 @@ class FinancialAnalysisProvider extends ChangeNotifier {
     _safeNotify();
 
     try {
-      final status =
-          json['status']?.toString();
+      final status = json['status']?.toString();
 
-      if (status != null &&
-          status != 'success') {
+      if (status != null && status != 'success') {
         throw Exception(
           'Analysis request was not successful',
         );
       }
 
-      final newAnalysis =
-          FinancialAnalysisModel.fromJson(
+      final newAnalysis = FinancialAnalysisModel.fromJson(
         json,
       );
 
       // إذا تغيّر رابط الصوت، نصفر حالة المشغل.
-      final oldUrl =
-          _analysis?.audio.url.trim();
+      final oldUrl = _analysis?.audio.url.trim();
 
-      final newUrl =
-          newAnalysis.audio.url.trim();
+      final newUrl = newAnalysis.audio.url.trim();
 
       _analysis = newAnalysis;
 
@@ -221,8 +196,7 @@ class FinancialAnalysisProvider extends ChangeNotifier {
 
       return true;
     } catch (error) {
-      _errorMessage =
-          'Could not load analysis: '
+      _errorMessage = 'Could not load analysis: '
           '${_cleanError(error)}';
 
       return false;
@@ -237,21 +211,17 @@ class FinancialAnalysisProvider extends ChangeNotifier {
   // =====================================================
 
   Future<void> loadSavedAnalysis() async {
-    final preferences =
-        await SharedPreferences.getInstance();
+    final preferences = await SharedPreferences.getInstance();
 
-    final savedValue =
-        preferences.getString(
+    final savedValue = preferences.getString(
       _storageKey,
     );
 
-    if (savedValue == null ||
-        savedValue.trim().isEmpty) {
+    if (savedValue == null || savedValue.trim().isEmpty) {
       return;
     }
 
-    final decoded =
-        jsonDecode(savedValue);
+    final decoded = jsonDecode(savedValue);
 
     if (decoded is! Map) {
       throw const FormatException(
@@ -259,8 +229,7 @@ class FinancialAnalysisProvider extends ChangeNotifier {
       );
     }
 
-    _analysis =
-        FinancialAnalysisModel.fromJson(
+    _analysis = FinancialAnalysisModel.fromJson(
       Map<String, dynamic>.from(
         decoded,
       ),
@@ -270,11 +239,9 @@ class FinancialAnalysisProvider extends ChangeNotifier {
   Future<void> _saveAnalysis(
     FinancialAnalysisModel analysis,
   ) async {
-    final preferences =
-        await SharedPreferences.getInstance();
+    final preferences = await SharedPreferences.getInstance();
 
-    final saved =
-        await preferences.setString(
+    final saved = await preferences.setString(
       _storageKey,
       jsonEncode(
         analysis.toJson(),
@@ -293,35 +260,28 @@ class FinancialAnalysisProvider extends ChangeNotifier {
   // =====================================================
 
   Future<bool> _ensureAudioPrepared() {
-    final currentPreparation =
-        _audioPreparationFuture;
+    final currentPreparation = _audioPreparationFuture;
 
     if (currentPreparation != null) {
       return currentPreparation;
     }
 
-    final future =
-        _prepareAudioOnce();
+    final future = _prepareAudioOnce();
 
-    _audioPreparationFuture =
-        future;
+    _audioPreparationFuture = future;
 
     future.whenComplete(() {
-      _audioPreparationFuture =
-          null;
+      _audioPreparationFuture = null;
     });
 
     return future;
   }
 
   Future<bool> _prepareAudioOnce() async {
-    final url =
-        _analysis?.audio.url.trim() ??
-            '';
+    final url = _analysis?.audio.url.trim() ?? '';
 
     if (url.isEmpty) {
-      _errorMessage =
-          'Audio is unavailable';
+      _errorMessage = 'Audio is unavailable';
 
       _safeNotify();
 
@@ -330,8 +290,7 @@ class FinancialAnalysisProvider extends ChangeNotifier {
 
     // نفس الرابط محمل بالفعل.
     if (_loadedAudioUrl == url &&
-        _audioPlayer.processingState !=
-            ProcessingState.idle) {
+        _audioPlayer.processingState != ProcessingState.idle) {
       _errorMessage = null;
 
       return true;
@@ -343,22 +302,16 @@ class FinancialAnalysisProvider extends ChangeNotifier {
     _safeNotify();
 
     try {
-      final loadedDuration =
-          await _audioPlayer.setUrl(
+      final loadedDuration = await _audioPlayer.setUrl(
         url,
       );
 
       _loadedAudioUrl = url;
 
-      _duration =
-          loadedDuration ??
+      _duration = loadedDuration ??
           _audioPlayer.duration ??
           Duration(
-            milliseconds:
-                ((_analysis?.audio.duration ??
-                            0) *
-                        1000)
-                    .round(),
+            milliseconds: ((_analysis?.audio.duration ?? 0) * 1000).round(),
           );
 
       _position = Duration.zero;
@@ -366,15 +319,13 @@ class FinancialAnalysisProvider extends ChangeNotifier {
 
       return true;
     } catch (error) {
-      final message =
-          error.toString().toLowerCase();
+      final message = error.toString().toLowerCase();
 
       if (_isInterruptedError(message)) {
         // لا نعرض Loading interrupted للمستخدم.
         _errorMessage = null;
       } else {
-        _errorMessage =
-            'Could not load audio: '
+        _errorMessage = 'Could not load audio: '
             '${_cleanError(error)}';
       }
 
@@ -424,8 +375,7 @@ class FinancialAnalysisProvider extends ChangeNotifier {
   // =====================================================
 
   Future<void> toggleAudio() async {
-    if (!hasAudio ||
-        _isAudioLoading) {
+    if (!hasAudio || _isAudioLoading) {
       return;
     }
 
@@ -439,16 +389,13 @@ class FinancialAnalysisProvider extends ChangeNotifier {
         return;
       }
 
-      final prepared =
-          await _ensureAudioPrepared();
+      final prepared = await _ensureAudioPrepared();
 
       if (!prepared) {
         return;
       }
 
-      if (_audioPlayer
-              .processingState ==
-          ProcessingState.completed) {
+      if (_audioPlayer.processingState == ProcessingState.completed) {
         await _audioPlayer.seek(
           Duration.zero,
         );
@@ -458,12 +405,10 @@ class FinancialAnalysisProvider extends ChangeNotifier {
 
       _errorMessage = null;
     } catch (error) {
-      final message =
-          error.toString().toLowerCase();
+      final message = error.toString().toLowerCase();
 
       if (!_isInterruptedError(message)) {
-        _errorMessage =
-            'Could not play audio: '
+        _errorMessage = 'Could not play audio: '
             '${_cleanError(error)}';
       }
 
@@ -472,8 +417,7 @@ class FinancialAnalysisProvider extends ChangeNotifier {
   }
 
   Future<void> replayAudio() async {
-    if (!hasAudio ||
-        _isAudioLoading) {
+    if (!hasAudio || _isAudioLoading) {
       return;
     }
 
@@ -481,8 +425,7 @@ class FinancialAnalysisProvider extends ChangeNotifier {
     _safeNotify();
 
     try {
-      final prepared =
-          await _ensureAudioPrepared();
+      final prepared = await _ensureAudioPrepared();
 
       if (!prepared) {
         return;
@@ -496,12 +439,10 @@ class FinancialAnalysisProvider extends ChangeNotifier {
 
       _errorMessage = null;
     } catch (error) {
-      final message =
-          error.toString().toLowerCase();
+      final message = error.toString().toLowerCase();
 
       if (!_isInterruptedError(message)) {
-        _errorMessage =
-            'Could not replay audio: '
+        _errorMessage = 'Could not replay audio: '
             '${_cleanError(error)}';
       }
 
@@ -517,23 +458,16 @@ class FinancialAnalysisProvider extends ChangeNotifier {
     }
 
     try {
-      final prepared =
-          await _ensureAudioPrepared();
+      final prepared = await _ensureAudioPrepared();
 
-      if (!prepared ||
-          _duration.inMilliseconds <= 0) {
+      if (!prepared || _duration.inMilliseconds <= 0) {
         return;
       }
 
-      final safeValue =
-          value.clamp(0.0, 1.0);
+      final safeValue = value.clamp(0.0, 1.0);
 
-      final target =
-          Duration(
-        milliseconds:
-            (_duration.inMilliseconds *
-                    safeValue)
-                .round(),
+      final target = Duration(
+        milliseconds: (_duration.inMilliseconds * safeValue).round(),
       );
 
       await _audioPlayer.seek(
@@ -542,12 +476,10 @@ class FinancialAnalysisProvider extends ChangeNotifier {
 
       _errorMessage = null;
     } catch (error) {
-      final message =
-          error.toString().toLowerCase();
+      final message = error.toString().toLowerCase();
 
       if (!_isInterruptedError(message)) {
-        _errorMessage =
-            'Could not change audio position: '
+        _errorMessage = 'Could not change audio position: '
             '${_cleanError(error)}';
       }
 
@@ -584,8 +516,7 @@ class FinancialAnalysisProvider extends ChangeNotifier {
     _analysis = null;
     _errorMessage = null;
 
-    final preferences =
-        await SharedPreferences.getInstance();
+    final preferences = await SharedPreferences.getInstance();
 
     await preferences.remove(
       _storageKey,
@@ -607,11 +538,9 @@ class FinancialAnalysisProvider extends ChangeNotifier {
   String formatDuration(
     Duration value,
   ) {
-    final minutes =
-        value.inMinutes;
+    final minutes = value.inMinutes;
 
-    final seconds =
-        value.inSeconds.remainder(
+    final seconds = value.inSeconds.remainder(
       60,
     );
 
@@ -620,10 +549,7 @@ class FinancialAnalysisProvider extends ChangeNotifier {
   }
 
   String get analysisTitleDate {
-    final date =
-        _analysis
-            ?.metadata
-            .analysisAsOfDate;
+    final date = _analysis?.metadata.analysisAsOfDate;
 
     if (date == null) {
       return '';
@@ -643,15 +569,13 @@ class FinancialAnalysisProvider extends ChangeNotifier {
       {
         'status': 'success',
         'User': {
-          'userId':
-              'user_demo_001',
+          'userId': 'user_demo_001',
           'name': 'mohammad',
           'displayName': 'محمد',
           'language': 'ar',
           'locale': 'ar-JO',
           'currency': 'JOD',
-          'timezone':
-              'Asia/Amman',
+          'timezone': 'Asia/Amman',
         },
         'data': {
           'content': {
@@ -697,12 +621,9 @@ class FinancialAnalysisProvider extends ChangeNotifier {
           },
         },
         'metadata': {
-          'requestId':
-              'req_analyze_001',
-          'analysisAsOfDate':
-              '2026-07-17',
-          'generatedAt':
-              '2026-07-18T14:41:49.655Z',
+          'requestId': 'req_analyze_001',
+          'analysisAsOfDate': '2026-07-17',
+          'generatedAt': '2026-07-18T14:41:49.655Z',
         },
       },
     );
@@ -715,9 +636,7 @@ class FinancialAnalysisProvider extends ChangeNotifier {
   String _cleanError(
     Object error,
   ) {
-    return error
-        .toString()
-        .replaceFirst(
+    return error.toString().replaceFirst(
           'Exception: ',
           '',
         );

@@ -16,8 +16,7 @@ class ChallengesScreen extends StatefulWidget {
   });
 
   @override
-  State<ChallengesScreen> createState() =>
-      _ChallengesScreenState();
+  State<ChallengesScreen> createState() => _ChallengesScreenState();
 }
 
 class _ChallengesScreenState extends State<ChallengesScreen> {
@@ -35,48 +34,36 @@ class _ChallengesScreenState extends State<ChallengesScreen> {
       (_) async {
         if (!mounted) return;
 
-        await context
-            .read<ChallengeProvider>()
-            .loadChallenges();
+        await context.read<ChallengeProvider>().loadChallenges();
 
         if (!mounted) return;
 
-        await context
-            .read<RewardProvider>()
-            .loadRewards();
+        await context.read<RewardProvider>().loadRewards();
       },
     );
   }
 
   Future<void> _refreshData() async {
-    await context
-        .read<ChallengeProvider>()
-        .loadChallenges();
+    await context.read<ChallengeProvider>().loadChallenges();
 
     if (!mounted) return;
 
-    await context
-        .read<RewardProvider>()
-        .loadRewards();
+    await context.read<RewardProvider>().loadRewards();
   }
 
   @override
   Widget build(BuildContext context) {
-    final themeProvider =
-        context.watch<Themeprovider>();
+    final themeProvider = context.watch<Themeprovider>();
 
-    final challengeProvider =
-        context.watch<ChallengeProvider>();
+    final challengeProvider = context.watch<ChallengeProvider>();
 
-    final rewardProvider =
-        context.watch<RewardProvider>();
+    final rewardProvider = context.watch<RewardProvider>();
 
     final bool isDark = themeProvider.isDark;
 
     return Scaffold(
-      backgroundColor: isDark
-          ? AppColors.darkBackground
-          : AppColors.lightBackground,
+      backgroundColor:
+          isDark ? AppColors.darkBackground : AppColors.lightBackground,
       body: SafeArea(
         child: RefreshIndicator(
           color: const Color(0xFF34D399),
@@ -97,28 +84,19 @@ class _ChallengesScreenState extends State<ChallengesScreen> {
                 _Header(
                   isDark: isDark,
                 ),
-
                 const SizedBox(height: 22),
-
                 _ChallengeTypeSelector(
-                  selectedType:
-                      challengeProvider.selectedType,
+                  selectedType: challengeProvider.selectedType,
                   isDark: isDark,
                   onSelected: challengeProvider.selectType,
                 ),
-
                 const SizedBox(height: 14),
-
                 _ChallengeStatusSelector(
-                  selectedStatus:
-                      challengeProvider.selectedStatus,
+                  selectedStatus: challengeProvider.selectedStatus,
                   isDark: isDark,
-                  onSelected:
-                      challengeProvider.selectStatus,
+                  onSelected: challengeProvider.selectStatus,
                 ),
-
                 const SizedBox(height: 18),
-
                 _ChallengesContent(
                   provider: challengeProvider,
                   isDark: isDark,
@@ -136,23 +114,16 @@ class _ChallengesScreenState extends State<ChallengesScreen> {
                     _acceptChallenge(challenge);
                   },
                 ),
-
                 const SizedBox(height: 18),
-
                 _RewardSummarySection(
-                  badgeCount: rewardProvider
-                          .rewardData?.badgeCount ??
-                      0,
-                  streak: rewardProvider
-                          .rewardData?.streak ??
-                      0,
+                  badgeCount: rewardProvider.rewardData?.badgeCount ?? 0,
+                  streak: rewardProvider.rewardData?.streak ?? 0,
                   isDark: isDark,
                   onRewardsTap: () {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) =>
-                            const RewardScreen(),
+                        builder: (_) => const RewardScreen(),
                       ),
                     );
                   },
@@ -160,8 +131,7 @@ class _ChallengesScreenState extends State<ChallengesScreen> {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) =>
-                            const LeaderboardScreen(),
+                        builder: (_) => const LeaderboardScreen(),
                       ),
                     );
                   },
@@ -177,9 +147,7 @@ class _ChallengesScreenState extends State<ChallengesScreen> {
   void _acceptChallenge(
     ChallengeModel challenge,
   ) {
-    context
-        .read<ChallengeProvider>()
-        .acceptChallenge(challenge.id);
+    context.read<ChallengeProvider>().acceptChallenge(challenge.id);
 
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
@@ -235,9 +203,7 @@ class _Header extends StatelessWidget {
         Text(
           "Challenges",
           style: GoogleFonts.ibmPlexSansArabic(
-            color: isDark
-                ? AppColors.darkText
-                : AppColors.lightText,
+            color: isDark ? AppColors.darkText : AppColors.lightText,
             fontSize: 25,
             fontWeight: FontWeight.bold,
           ),
@@ -246,9 +212,7 @@ class _Header extends StatelessWidget {
         Text(
           "Raise your score, earn rewards",
           style: GoogleFonts.ibmPlexSansArabic(
-            color: isDark
-                ? AppColors.darkSubText
-                : AppColors.lightSubText,
+            color: isDark ? AppColors.darkSubText : AppColors.lightSubText,
             fontSize: 13,
           ),
         ),
@@ -278,9 +242,7 @@ class _ChallengeTypeSelector extends StatelessWidget {
       height: 50,
       padding: const EdgeInsets.all(5),
       decoration: BoxDecoration(
-        color: isDark
-            ? const Color(0xFF20312E)
-            : const Color(0xFFE6ECE9),
+        color: isDark ? const Color(0xFF20312E) : const Color(0xFFE6ECE9),
         borderRadius: BorderRadius.circular(28),
       ),
       child: Row(
@@ -289,8 +251,7 @@ class _ChallengeTypeSelector extends StatelessWidget {
             child: _TypeButton(
               title: "Individual",
               icon: Icons.person_outline_rounded,
-              isSelected:
-                  selectedType == ChallengeType.individual,
+              isSelected: selectedType == ChallengeType.individual,
               isDark: isDark,
               onTap: () {
                 onSelected(
@@ -304,8 +265,7 @@ class _ChallengeTypeSelector extends StatelessWidget {
             child: _TypeButton(
               title: "Team",
               icon: Icons.groups_2_outlined,
-              isSelected:
-                  selectedType == ChallengeType.team,
+              isSelected: selectedType == ChallengeType.team,
               isDark: isDark,
               onTap: () {
                 onSelected(
@@ -345,9 +305,7 @@ class _TypeButton extends StatelessWidget {
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 220),
           decoration: BoxDecoration(
-            color: isSelected
-                ? const Color(0xFF34D399)
-                : Colors.transparent,
+            color: isSelected ? const Color(0xFF34D399) : Colors.transparent,
             borderRadius: BorderRadius.circular(24),
           ),
           child: Row(
@@ -405,8 +363,7 @@ class _ChallengeStatusSelector extends StatelessWidget {
         Expanded(
           child: _StatusButton(
             title: "Current",
-            isSelected:
-                selectedStatus == ChallengeStatus.current,
+            isSelected: selectedStatus == ChallengeStatus.current,
             isDark: isDark,
             onTap: () {
               onSelected(
@@ -419,8 +376,7 @@ class _ChallengeStatusSelector extends StatelessWidget {
         Expanded(
           child: _StatusButton(
             title: "Completed",
-            isSelected:
-                selectedStatus == ChallengeStatus.completed,
+            isSelected: selectedStatus == ChallengeStatus.completed,
             isDark: isDark,
             onTap: () {
               onSelected(
@@ -433,8 +389,7 @@ class _ChallengeStatusSelector extends StatelessWidget {
         Expanded(
           child: _StatusButton(
             title: "Available",
-            isSelected:
-                selectedStatus == ChallengeStatus.available,
+            isSelected: selectedStatus == ChallengeStatus.available,
             isDark: isDark,
             onTap: () {
               onSelected(
@@ -480,9 +435,7 @@ class _StatusButton extends StatelessWidget {
                     : Colors.white,
             borderRadius: BorderRadius.circular(13),
             border: Border.all(
-              color: isSelected
-                  ? const Color(0xFF14B8A6)
-                  : Colors.transparent,
+              color: isSelected ? const Color(0xFF14B8A6) : Colors.transparent,
             ),
           ),
           child: FittedBox(
@@ -514,11 +467,9 @@ class _ChallengesContent extends StatelessWidget {
   final ChallengeProvider provider;
   final bool isDark;
 
-  final ValueChanged<ChallengeModel>
-      onChallengeTap;
+  final ValueChanged<ChallengeModel> onChallengeTap;
 
-  final ValueChanged<ChallengeModel>
-      onAccept;
+  final ValueChanged<ChallengeModel> onAccept;
 
   const _ChallengesContent({
     required this.provider,
@@ -529,8 +480,7 @@ class _ChallengesContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (provider.isLoading &&
-        provider.challenges.isEmpty) {
+    if (provider.isLoading && provider.challenges.isEmpty) {
       return const Padding(
         padding: EdgeInsets.symmetric(vertical: 70),
         child: Center(
@@ -541,8 +491,7 @@ class _ChallengesContent extends StatelessWidget {
       );
     }
 
-    if (provider.errorMessage != null &&
-        provider.challenges.isEmpty) {
+    if (provider.errorMessage != null && provider.challenges.isEmpty) {
       return _ErrorView(
         message: provider.errorMessage!,
         isDark: isDark,
@@ -550,15 +499,13 @@ class _ChallengesContent extends StatelessWidget {
       );
     }
 
-    if (provider.selectedType ==
-        ChallengeType.team) {
+    if (provider.selectedType == ChallengeType.team) {
       return _TeamChallengeView(
         isDark: isDark,
       );
     }
 
-    final challenges =
-        provider.filteredChallenges;
+    final challenges = provider.filteredChallenges;
 
     if (challenges.isEmpty) {
       return _EmptyChallengesView(
@@ -569,14 +516,11 @@ class _ChallengesContent extends StatelessWidget {
 
     return ListView.separated(
       shrinkWrap: true,
-      physics:
-          const NeverScrollableScrollPhysics(),
+      physics: const NeverScrollableScrollPhysics(),
       itemCount: challenges.length,
-      separatorBuilder: (_, __) =>
-          const SizedBox(height: 14),
+      separatorBuilder: (_, __) => const SizedBox(height: 14),
       itemBuilder: (context, index) {
-        final challenge =
-            challenges[index];
+        final challenge = challenges[index];
 
         return _ChallengeCard(
           challenge: challenge,
@@ -612,18 +556,13 @@ class _ChallengeCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bool isAvailable =
-        challenge.status ==
-            ChallengeStatus.available;
+    final bool isAvailable = challenge.status == ChallengeStatus.available;
 
-    final bool isCompleted =
-        challenge.isCompleted;
+    final bool isCompleted = challenge.isCompleted;
 
-    final progress =
-        challenge.progress.clamp(0.0, 1.0);
+    final progress = challenge.progress.clamp(0.0, 1.0);
 
-    final progressColor =
-        _getProgressColor();
+    final progressColor = _getProgressColor();
 
     return Material(
       color: Colors.transparent,
@@ -634,9 +573,7 @@ class _ChallengeCard extends StatelessWidget {
           width: double.infinity,
           padding: const EdgeInsets.all(19),
           decoration: BoxDecoration(
-            color: isDark
-                ? const Color(0xFF172824)
-                : Colors.white,
+            color: isDark ? const Color(0xFF172824) : Colors.white,
             borderRadius: BorderRadius.circular(24),
             border: Border.all(
               color: isDark
@@ -647,16 +584,14 @@ class _ChallengeCard extends StatelessWidget {
                 ? null
                 : [
                     BoxShadow(
-                      color: Colors.black
-                          .withOpacity(0.04),
+                      color: Colors.black.withOpacity(0.04),
                       blurRadius: 16,
                       offset: const Offset(0, 7),
                     ),
                   ],
           ),
           child: Column(
-            crossAxisAlignment:
-                CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
                 children: [
@@ -667,8 +602,7 @@ class _ChallengeCard extends StatelessWidget {
                   if (!isCompleted)
                     Text(
                       "${challenge.daysLeft} days left",
-                      style: GoogleFonts
-                          .ibmPlexSansArabic(
+                      style: GoogleFonts.ibmPlexSansArabic(
                         color: isDark
                             ? AppColors.darkSubText
                             : AppColors.lightSubText,
@@ -678,32 +612,25 @@ class _ChallengeCard extends StatelessWidget {
                   if (isCompleted)
                     Text(
                       "+${challenge.xpReward} XP",
-                      style: GoogleFonts
-                          .ibmPlexSansArabic(
-                        color:
-                            const Color(0xFFF4C95D),
+                      style: GoogleFonts.ibmPlexSansArabic(
+                        color: const Color(0xFFF4C95D),
                         fontSize: 11,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
                 ],
               ),
-
               const SizedBox(height: 14),
-
               Row(
-                crossAxisAlignment:
-                    CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Container(
                     width: 48,
                     height: 48,
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
-                      color: progressColor
-                          .withOpacity(0.12),
-                      borderRadius:
-                          BorderRadius.circular(15),
+                      color: progressColor.withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(15),
                     ),
                     child: Text(
                       challenge.icon,
@@ -712,43 +639,32 @@ class _ChallengeCard extends StatelessWidget {
                       ),
                     ),
                   ),
-
                   const SizedBox(width: 13),
-
                   Expanded(
                     child: Column(
-                      crossAxisAlignment:
-                          CrossAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
                           challenge.title,
-                          style: GoogleFonts
-                              .ibmPlexSansArabic(
+                          style: GoogleFonts.ibmPlexSansArabic(
                             color: isDark
                                 ? AppColors.darkText
                                 : AppColors.lightText,
                             fontSize: 15,
                             height: 1.4,
-                            fontWeight:
-                                FontWeight.bold,
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
-                        if (challenge.description
-                            .trim()
-                            .isNotEmpty) ...[
+                        if (challenge.description.trim().isNotEmpty) ...[
                           const SizedBox(height: 5),
                           Text(
                             challenge.description,
                             maxLines: 2,
-                            overflow:
-                                TextOverflow.ellipsis,
-                            style: GoogleFonts
-                                .ibmPlexSansArabic(
+                            overflow: TextOverflow.ellipsis,
+                            style: GoogleFonts.ibmPlexSansArabic(
                               color: isDark
-                                  ? AppColors
-                                      .darkSubText
-                                  : AppColors
-                                      .lightSubText,
+                                  ? AppColors.darkSubText
+                                  : AppColors.lightSubText,
                               fontSize: 11,
                               height: 1.5,
                             ),
@@ -759,31 +675,24 @@ class _ChallengeCard extends StatelessWidget {
                   ),
                 ],
               ),
-
               const SizedBox(height: 17),
-
               if (isAvailable)
                 SizedBox(
                   width: double.infinity,
                   height: 45,
                   child: ElevatedButton(
                     onPressed: onAccept,
-                    style:
-                        ElevatedButton.styleFrom(
-                      backgroundColor:
-                          const Color(0xFF34D399),
-                      foregroundColor:
-                          const Color(0xFF09231E),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF34D399),
+                      foregroundColor: const Color(0xFF09231E),
                       elevation: 0,
                       shape: RoundedRectangleBorder(
-                        borderRadius:
-                            BorderRadius.circular(14),
+                        borderRadius: BorderRadius.circular(14),
                       ),
                     ),
                     child: Text(
                       "Accept Challenge",
-                      style: GoogleFonts
-                          .ibmPlexSansArabic(
+                      style: GoogleFonts.ibmPlexSansArabic(
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
                       ),
@@ -792,16 +701,14 @@ class _ChallengeCard extends StatelessWidget {
                 )
               else ...[
                 ClipRRect(
-                  borderRadius:
-                      BorderRadius.circular(20),
+                  borderRadius: BorderRadius.circular(20),
                   child: LinearProgressIndicator(
                     value: progress,
                     minHeight: 8,
                     backgroundColor: isDark
                         ? const Color(0xFF253A35)
                         : const Color(0xFFE8EEEC),
-                    valueColor:
-                        AlwaysStoppedAnimation<Color>(
+                    valueColor: AlwaysStoppedAnimation<Color>(
                       progressColor,
                     ),
                   ),
@@ -810,11 +717,8 @@ class _ChallengeCard extends StatelessWidget {
                 Row(
                   children: [
                     Text(
-                      isCompleted
-                          ? "Challenge completed"
-                          : "Keep going",
-                      style: GoogleFonts
-                          .ibmPlexSansArabic(
+                      isCompleted ? "Challenge completed" : "Keep going",
+                      style: GoogleFonts.ibmPlexSansArabic(
                         color: isDark
                             ? AppColors.darkSubText
                             : AppColors.lightSubText,
@@ -826,8 +730,7 @@ class _ChallengeCard extends StatelessWidget {
                       isCompleted
                           ? "Completed"
                           : "${challenge.progressPercentage}%",
-                      style: GoogleFonts
-                          .ibmPlexSansArabic(
+                      style: GoogleFonts.ibmPlexSansArabic(
                         color: progressColor,
                         fontSize: 11,
                         fontWeight: FontWeight.bold,
@@ -871,8 +774,7 @@ class _ChallengeStatusBadge extends StatelessWidget {
     if (challenge.isCompleted) {
       text = "Completed";
       color = const Color(0xFF34D399);
-    } else if (challenge.status ==
-        ChallengeStatus.available) {
+    } else if (challenge.status == ChallengeStatus.available) {
       text = "Available";
       color = const Color(0xFF14B8A6);
     } else {
@@ -986,9 +888,7 @@ class _SummaryCard extends StatelessWidget {
           height: 118,
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            color: isDark
-                ? const Color(0xFF172824)
-                : Colors.white,
+            color: isDark ? const Color(0xFF172824) : Colors.white,
             borderRadius: BorderRadius.circular(22),
             border: Border.all(
               color: isDark
@@ -1009,11 +909,8 @@ class _SummaryCard extends StatelessWidget {
               Text(
                 title,
                 textAlign: TextAlign.center,
-                style: GoogleFonts
-                    .ibmPlexSansArabic(
-                  color: isDark
-                      ? AppColors.darkText
-                      : AppColors.lightText,
+                style: GoogleFonts.ibmPlexSansArabic(
+                  color: isDark ? AppColors.darkText : AppColors.lightText,
                   fontSize: 11,
                   fontWeight: FontWeight.w600,
                 ),
@@ -1022,11 +919,9 @@ class _SummaryCard extends StatelessWidget {
               Text(
                 value,
                 textAlign: TextAlign.center,
-                style: GoogleFonts
-                    .ibmPlexSansArabic(
-                  color: isDark
-                      ? AppColors.darkSubText
-                      : AppColors.lightSubText,
+                style: GoogleFonts.ibmPlexSansArabic(
+                  color:
+                      isDark ? AppColors.darkSubText : AppColors.lightSubText,
                   fontSize: 10,
                 ),
               ),
@@ -1060,13 +955,10 @@ class _LeaderboardButton extends StatelessWidget {
             horizontal: 17,
           ),
           decoration: BoxDecoration(
-            color: isDark
-                ? const Color(0xFF172824)
-                : Colors.white,
+            color: isDark ? const Color(0xFF172824) : Colors.white,
             borderRadius: BorderRadius.circular(20),
             border: Border.all(
-              color: const Color(0xFFF4C95D)
-                  .withOpacity(0.14),
+              color: const Color(0xFFF4C95D).withOpacity(0.14),
             ),
           ),
           child: Row(
@@ -1076,10 +968,8 @@ class _LeaderboardButton extends StatelessWidget {
                 height: 39,
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF4C95D)
-                      .withOpacity(0.13),
-                  borderRadius:
-                      BorderRadius.circular(12),
+                  color: const Color(0xFFF4C95D).withOpacity(0.13),
+                  borderRadius: BorderRadius.circular(12),
                 ),
                 child: const Text(
                   "🏆",
@@ -1090,11 +980,8 @@ class _LeaderboardButton extends StatelessWidget {
               Expanded(
                 child: Text(
                   "View Leaderboard",
-                  style: GoogleFonts
-                      .ibmPlexSansArabic(
-                    color: isDark
-                        ? AppColors.darkText
-                        : AppColors.lightText,
+                  style: GoogleFonts.ibmPlexSansArabic(
+                    color: isDark ? AppColors.darkText : AppColors.lightText,
                     fontSize: 13,
                     fontWeight: FontWeight.bold,
                   ),
@@ -1103,9 +990,7 @@ class _LeaderboardButton extends StatelessWidget {
               Icon(
                 Icons.arrow_forward_ios_rounded,
                 size: 15,
-                color: isDark
-                    ? AppColors.darkSubText
-                    : AppColors.lightSubText,
+                color: isDark ? AppColors.darkSubText : AppColors.lightSubText,
               ),
             ],
           ),
@@ -1135,9 +1020,7 @@ class _TeamChallengeView extends StatelessWidget {
         vertical: 38,
       ),
       decoration: BoxDecoration(
-        color: isDark
-            ? const Color(0xFF172824)
-            : Colors.white,
+        color: isDark ? const Color(0xFF172824) : Colors.white,
         borderRadius: BorderRadius.circular(24),
       ),
       child: Column(
@@ -1146,8 +1029,7 @@ class _TeamChallengeView extends StatelessWidget {
             width: 68,
             height: 68,
             decoration: BoxDecoration(
-              color: const Color(0xFF14B8A6)
-                  .withOpacity(0.13),
+              color: const Color(0xFF14B8A6).withOpacity(0.13),
               shape: BoxShape.circle,
             ),
             child: const Icon(
@@ -1160,9 +1042,7 @@ class _TeamChallengeView extends StatelessWidget {
           Text(
             "Team Challenges",
             style: GoogleFonts.ibmPlexSansArabic(
-              color: isDark
-                  ? AppColors.darkText
-                  : AppColors.lightText,
+              color: isDark ? AppColors.darkText : AppColors.lightText,
               fontSize: 18,
               fontWeight: FontWeight.bold,
             ),
@@ -1172,9 +1052,7 @@ class _TeamChallengeView extends StatelessWidget {
             "Create a team, invite friends and complete financial challenges together.",
             textAlign: TextAlign.center,
             style: GoogleFonts.ibmPlexSansArabic(
-              color: isDark
-                  ? AppColors.darkSubText
-                  : AppColors.lightSubText,
+              color: isDark ? AppColors.darkSubText : AppColors.lightSubText,
               fontSize: 12,
               height: 1.6,
             ),
@@ -1186,8 +1064,7 @@ class _TeamChallengeView extends StatelessWidget {
               vertical: 8,
             ),
             decoration: BoxDecoration(
-              color: const Color(0xFFF4C95D)
-                  .withOpacity(0.13),
+              color: const Color(0xFFF4C95D).withOpacity(0.13),
               borderRadius: BorderRadius.circular(20),
             ),
             child: Text(
@@ -1234,15 +1111,13 @@ class _EmptyChallengesView extends StatelessWidget {
 
       case ChallengeStatus.completed:
         title = "No completed challenges";
-        description =
-            "Your completed challenges will appear here.";
+        description = "Your completed challenges will appear here.";
         icon = Icons.emoji_events_outlined;
         break;
 
       case ChallengeStatus.available:
         title = "No available challenges";
-        description =
-            "New challenges will be added soon.";
+        description = "New challenges will be added soon.";
         icon = Icons.explore_outlined;
         break;
     }
@@ -1254,9 +1129,7 @@ class _EmptyChallengesView extends StatelessWidget {
         vertical: 44,
       ),
       decoration: BoxDecoration(
-        color: isDark
-            ? const Color(0xFF172824)
-            : Colors.white,
+        color: isDark ? const Color(0xFF172824) : Colors.white,
         borderRadius: BorderRadius.circular(24),
       ),
       child: Column(
@@ -1271,9 +1144,7 @@ class _EmptyChallengesView extends StatelessWidget {
             title,
             textAlign: TextAlign.center,
             style: GoogleFonts.ibmPlexSansArabic(
-              color: isDark
-                  ? AppColors.darkText
-                  : AppColors.lightText,
+              color: isDark ? AppColors.darkText : AppColors.lightText,
               fontSize: 17,
               fontWeight: FontWeight.bold,
             ),
@@ -1283,9 +1154,7 @@ class _EmptyChallengesView extends StatelessWidget {
             description,
             textAlign: TextAlign.center,
             style: GoogleFonts.ibmPlexSansArabic(
-              color: isDark
-                  ? AppColors.darkSubText
-                  : AppColors.lightSubText,
+              color: isDark ? AppColors.darkSubText : AppColors.lightSubText,
               fontSize: 12,
               height: 1.6,
             ),
@@ -1317,9 +1186,7 @@ class _ErrorView extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(30),
       decoration: BoxDecoration(
-        color: isDark
-            ? const Color(0xFF172824)
-            : Colors.white,
+        color: isDark ? const Color(0xFF172824) : Colors.white,
         borderRadius: BorderRadius.circular(24),
       ),
       child: Column(
@@ -1334,9 +1201,7 @@ class _ErrorView extends StatelessWidget {
             message,
             textAlign: TextAlign.center,
             style: GoogleFonts.ibmPlexSansArabic(
-              color: isDark
-                  ? AppColors.darkText
-                  : AppColors.lightText,
+              color: isDark ? AppColors.darkText : AppColors.lightText,
               fontSize: 14,
             ),
           ),
@@ -1348,10 +1213,8 @@ class _ErrorView extends StatelessWidget {
             ),
             label: const Text("Try Again"),
             style: ElevatedButton.styleFrom(
-              backgroundColor:
-                  const Color(0xFF34D399),
-              foregroundColor:
-                  const Color(0xFF09231E),
+              backgroundColor: const Color(0xFF34D399),
+              foregroundColor: const Color(0xFF09231E),
               elevation: 0,
             ),
           ),
@@ -1378,9 +1241,7 @@ class _ChallengeDetailsSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bool isAvailable =
-        challenge.status ==
-            ChallengeStatus.available;
+    final bool isAvailable = challenge.status == ChallengeStatus.available;
 
     return Container(
       padding: EdgeInsets.fromLTRB(
@@ -1390,33 +1251,26 @@ class _ChallengeDetailsSheet extends StatelessWidget {
         MediaQuery.paddingOf(context).bottom + 25,
       ),
       decoration: BoxDecoration(
-        color: isDark
-            ? const Color(0xFF10201C)
-            : AppColors.lightBackground,
+        color: isDark ? const Color(0xFF10201C) : AppColors.lightBackground,
         borderRadius: const BorderRadius.vertical(
           top: Radius.circular(30),
         ),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment:
-            CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Center(
             child: Container(
               width: 45,
               height: 5,
               decoration: BoxDecoration(
-                color: isDark
-                    ? Colors.white24
-                    : Colors.black12,
+                color: isDark ? Colors.white24 : Colors.black12,
                 borderRadius: BorderRadius.circular(10),
               ),
             ),
           ),
-
           const SizedBox(height: 22),
-
           Row(
             children: [
               Container(
@@ -1424,10 +1278,8 @@ class _ChallengeDetailsSheet extends StatelessWidget {
                 height: 57,
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF34D399)
-                      .withOpacity(0.12),
-                  borderRadius:
-                      BorderRadius.circular(17),
+                  color: const Color(0xFF34D399).withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(17),
                 ),
                 child: Text(
                   challenge.icon,
@@ -1439,16 +1291,13 @@ class _ChallengeDetailsSheet extends StatelessWidget {
               const SizedBox(width: 13),
               Expanded(
                 child: Column(
-                  crossAxisAlignment:
-                      CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       challenge.title,
-                      style: GoogleFonts
-                          .ibmPlexSansArabic(
-                        color: isDark
-                            ? AppColors.darkText
-                            : AppColors.lightText,
+                      style: GoogleFonts.ibmPlexSansArabic(
+                        color:
+                            isDark ? AppColors.darkText : AppColors.lightText,
                         fontSize: 17,
                         fontWeight: FontWeight.bold,
                       ),
@@ -1456,10 +1305,8 @@ class _ChallengeDetailsSheet extends StatelessWidget {
                     const SizedBox(height: 4),
                     Text(
                       "+${challenge.xpReward} XP reward",
-                      style: GoogleFonts
-                          .ibmPlexSansArabic(
-                        color:
-                            const Color(0xFFF4C95D),
+                      style: GoogleFonts.ibmPlexSansArabic(
+                        color: const Color(0xFFF4C95D),
                         fontSize: 11,
                       ),
                     ),
@@ -1468,44 +1315,32 @@ class _ChallengeDetailsSheet extends StatelessWidget {
               ),
             ],
           ),
-
           const SizedBox(height: 20),
-
           Text(
             "About this challenge",
             style: GoogleFonts.ibmPlexSansArabic(
-              color: isDark
-                  ? AppColors.darkText
-                  : AppColors.lightText,
+              color: isDark ? AppColors.darkText : AppColors.lightText,
               fontSize: 14,
               fontWeight: FontWeight.bold,
             ),
           ),
-
           const SizedBox(height: 8),
-
           Text(
             challenge.description,
             style: GoogleFonts.ibmPlexSansArabic(
-              color: isDark
-                  ? AppColors.darkSubText
-                  : AppColors.lightSubText,
+              color: isDark ? AppColors.darkSubText : AppColors.lightSubText,
               fontSize: 12,
               height: 1.7,
             ),
           ),
-
           const SizedBox(height: 20),
-
           Row(
             children: [
               Expanded(
                 child: _DetailItem(
                   label: "Duration",
-                  value:
-                      "${challenge.totalDays} days",
-                  icon:
-                      Icons.calendar_today_outlined,
+                  value: "${challenge.totalDays} days",
+                  icon: Icons.calendar_today_outlined,
                   isDark: isDark,
                 ),
               ),
@@ -1513,16 +1348,13 @@ class _ChallengeDetailsSheet extends StatelessWidget {
               Expanded(
                 child: _DetailItem(
                   label: "Progress",
-                  value:
-                      "${challenge.progressPercentage}%",
-                  icon:
-                      Icons.trending_up_rounded,
+                  value: "${challenge.progressPercentage}%",
+                  icon: Icons.trending_up_rounded,
                   isDark: isDark,
                 ),
               ),
             ],
           ),
-
           if (isAvailable) ...[
             const SizedBox(height: 22),
             SizedBox(
@@ -1531,20 +1363,16 @@ class _ChallengeDetailsSheet extends StatelessWidget {
               child: ElevatedButton(
                 onPressed: onAccept,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor:
-                      const Color(0xFF34D399),
-                  foregroundColor:
-                      const Color(0xFF09231E),
+                  backgroundColor: const Color(0xFF34D399),
+                  foregroundColor: const Color(0xFF09231E),
                   elevation: 0,
                   shape: RoundedRectangleBorder(
-                    borderRadius:
-                        BorderRadius.circular(15),
+                    borderRadius: BorderRadius.circular(15),
                   ),
                 ),
                 child: Text(
                   "Accept Challenge",
-                  style: GoogleFonts
-                      .ibmPlexSansArabic(
+                  style: GoogleFonts.ibmPlexSansArabic(
                     fontSize: 13,
                     fontWeight: FontWeight.bold,
                   ),
@@ -1576,9 +1404,7 @@ class _DetailItem extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: isDark
-            ? const Color(0xFF172824)
-            : Colors.white,
+        color: isDark ? const Color(0xFF172824) : Colors.white,
         borderRadius: BorderRadius.circular(17),
       ),
       child: Row(
@@ -1591,26 +1417,20 @@ class _DetailItem extends StatelessWidget {
           const SizedBox(width: 9),
           Expanded(
             child: Column(
-              crossAxisAlignment:
-                  CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   label,
-                  style: GoogleFonts
-                      .ibmPlexSansArabic(
-                    color: isDark
-                        ? AppColors.darkSubText
-                        : AppColors.lightSubText,
+                  style: GoogleFonts.ibmPlexSansArabic(
+                    color:
+                        isDark ? AppColors.darkSubText : AppColors.lightSubText,
                     fontSize: 9,
                   ),
                 ),
                 Text(
                   value,
-                  style: GoogleFonts
-                      .ibmPlexSansArabic(
-                    color: isDark
-                        ? AppColors.darkText
-                        : AppColors.lightText,
+                  style: GoogleFonts.ibmPlexSansArabic(
+                    color: isDark ? AppColors.darkText : AppColors.lightText,
                     fontSize: 11,
                     fontWeight: FontWeight.bold,
                   ),

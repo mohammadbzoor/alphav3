@@ -7,24 +7,19 @@ class ChallengeProvider extends ChangeNotifier {
   bool _isLoading = false;
   String? _errorMessage;
 
-  ChallengeType _selectedType =
-      ChallengeType.individual;
+  ChallengeType _selectedType = ChallengeType.individual;
 
-  ChallengeStatus _selectedStatus =
-      ChallengeStatus.current;
+  ChallengeStatus _selectedStatus = ChallengeStatus.current;
 
   bool get isLoading => _isLoading;
 
   String? get errorMessage => _errorMessage;
 
-  ChallengeType get selectedType =>
-      _selectedType;
+  ChallengeType get selectedType => _selectedType;
 
-  ChallengeStatus get selectedStatus =>
-      _selectedStatus;
+  ChallengeStatus get selectedStatus => _selectedStatus;
 
-  List<ChallengeModel> get challenges =>
-      List.unmodifiable(_challenges);
+  List<ChallengeModel> get challenges => List.unmodifiable(_challenges);
 
   List<ChallengeModel> get filteredChallenges {
     return _challenges.where((challenge) {
@@ -35,8 +30,7 @@ class ChallengeProvider extends ChangeNotifier {
 
   List<ChallengeModel> get activeChallenges {
     return _challenges.where((challenge) {
-      return challenge.status ==
-              ChallengeStatus.current &&
+      return challenge.status == ChallengeStatus.current &&
           challenge.isAccepted;
     }).toList();
   }
@@ -65,10 +59,8 @@ class ChallengeProvider extends ChangeNotifier {
           const [
             ChallengeModel(
               id: "1",
-              title:
-                  "Cut your spending by 20% this week",
-              description:
-                  "Spend less than your previous weekly average.",
+              title: "Cut your spending by 20% this week",
+              description: "Spend less than your previous weekly average.",
               type: ChallengeType.individual,
               status: ChallengeStatus.current,
               progress: 0.80,
@@ -80,10 +72,8 @@ class ChallengeProvider extends ChangeNotifier {
             ),
             ChallengeModel(
               id: "2",
-              title:
-                  "A week with no coffee shops",
-              description:
-                  "Avoid spending at coffee shops for seven days.",
+              title: "A week with no coffee shops",
+              description: "Avoid spending at coffee shops for seven days.",
               type: ChallengeType.individual,
               status: ChallengeStatus.current,
               progress: 0.55,
@@ -95,10 +85,8 @@ class ChallengeProvider extends ChangeNotifier {
             ),
             ChallengeModel(
               id: "3",
-              title:
-                  "Save 25 JD this week",
-              description:
-                  "Build a small saving habit.",
+              title: "Save 25 JD this week",
+              description: "Build a small saving habit.",
               type: ChallengeType.individual,
               status: ChallengeStatus.available,
               progress: 0,
@@ -110,10 +98,8 @@ class ChallengeProvider extends ChangeNotifier {
             ),
             ChallengeModel(
               id: "4",
-              title:
-                  "Record expenses every day",
-              description:
-                  "Add at least one expense per day.",
+              title: "Record expenses every day",
+              description: "Add at least one expense per day.",
               type: ChallengeType.individual,
               status: ChallengeStatus.completed,
               progress: 1,
@@ -126,8 +112,7 @@ class ChallengeProvider extends ChangeNotifier {
           ],
         );
     } catch (error) {
-      _errorMessage =
-          "Unable to load challenges";
+      _errorMessage = "Unable to load challenges";
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -152,14 +137,12 @@ class ChallengeProvider extends ChangeNotifier {
     String challengeId,
   ) {
     final index = _challenges.indexWhere(
-      (challenge) =>
-          challenge.id == challengeId,
+      (challenge) => challenge.id == challengeId,
     );
 
     if (index == -1) return;
 
-    _challenges[index] =
-        _challenges[index].copyWith(
+    _challenges[index] = _challenges[index].copyWith(
       isAccepted: true,
       status: ChallengeStatus.current,
     );
@@ -172,24 +155,19 @@ class ChallengeProvider extends ChangeNotifier {
     required double progress,
   }) {
     final index = _challenges.indexWhere(
-      (challenge) =>
-          challenge.id == challengeId,
+      (challenge) => challenge.id == challengeId,
     );
 
     if (index == -1) return;
 
-    final safeProgress =
-        progress.clamp(0.0, 1.0);
+    final safeProgress = progress.clamp(0.0, 1.0);
 
-    _challenges[index] =
-        _challenges[index].copyWith(
+    _challenges[index] = _challenges[index].copyWith(
       progress: safeProgress,
       status: safeProgress >= 1
           ? ChallengeStatus.completed
           : ChallengeStatus.current,
-      daysLeft: safeProgress >= 1
-          ? 0
-          : _challenges[index].daysLeft,
+      daysLeft: safeProgress >= 1 ? 0 : _challenges[index].daysLeft,
     );
 
     notifyListeners();
@@ -199,8 +177,7 @@ class ChallengeProvider extends ChangeNotifier {
     String challengeId,
   ) {
     _challenges.removeWhere(
-      (challenge) =>
-          challenge.id == challengeId,
+      (challenge) => challenge.id == challengeId,
     );
 
     notifyListeners();

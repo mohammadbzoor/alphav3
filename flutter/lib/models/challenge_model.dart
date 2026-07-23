@@ -46,8 +46,7 @@ class ChallengeModel {
   }
 
   bool get isCompleted {
-    return status == ChallengeStatus.completed ||
-        progress >= 1;
+    return status == ChallengeStatus.completed || progress >= 1;
   }
 
   ChallengeModel copyWith({

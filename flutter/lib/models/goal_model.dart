@@ -75,9 +75,7 @@ class Goal {
   // ================= PROGRESS =================
 
   bool get hasProgressData {
-    return savedAmount != null &&
-        targetAmount != null &&
-        targetAmount! > 0;
+    return savedAmount != null && targetAmount != null && targetAmount! > 0;
   }
 
   double get progress {
@@ -135,19 +133,15 @@ class Goal {
       id: json["id"]?.toString(),
       category: json["category"]?.toString() ?? "",
       customName: json["custom_name"]?.toString(),
-      monthlySaving:
-          (json["monthly_saving"] as num?)?.toDouble() ?? 0,
+      monthlySaving: (json["monthly_saving"] as num?)?.toDouble() ?? 0,
       priority: (json["priority"] as num?)?.toInt() ?? 5,
       targetDate: json["target_date"] != null
           ? DateTime.tryParse(json["target_date"].toString())
           : null,
-      savedAmount:
-          (json["saved_amount"] as num?)?.toDouble(),
-      targetAmount:
-          (json["target_amount"] as num?)?.toDouble(),
+      savedAmount: (json["saved_amount"] as num?)?.toDouble(),
+      targetAmount: (json["target_amount"] as num?)?.toDouble(),
       recommendedMonthlySaving:
-          (json["recommended_monthly_saving"] as num?)
-              ?.toDouble(),
+          (json["recommended_monthly_saving"] as num?)?.toDouble(),
       isActive: json["is_active"] as bool? ?? true,
     );
   }
@@ -176,8 +170,7 @@ class Goal {
       savedAmount: savedAmount ?? this.savedAmount,
       targetAmount: targetAmount ?? this.targetAmount,
       recommendedMonthlySaving:
-          recommendedMonthlySaving ??
-          this.recommendedMonthlySaving,
+          recommendedMonthlySaving ?? this.recommendedMonthlySaving,
       isActive: isActive ?? this.isActive,
     );
   }

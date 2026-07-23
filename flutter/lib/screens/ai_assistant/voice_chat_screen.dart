@@ -39,7 +39,6 @@ class _VoiceChatScreenState extends State<VoiceChatScreen>
     final screenH = Device.height(context);
     final themeprovider = Provider.of<Themeprovider>(context);
 
-
     return PopScope(
       onPopInvokedWithResult: (didPop, result) {
         if (didPop) {
@@ -47,13 +46,15 @@ class _VoiceChatScreenState extends State<VoiceChatScreen>
         }
       },
       child: Scaffold(
-        backgroundColor: themeprovider.isDark ? AppColors.darkBackground : AppColors.lightBackground,
+        backgroundColor: themeprovider.isDark
+            ? AppColors.darkBackground
+            : AppColors.lightBackground,
         body: SafeArea(
           child: Padding(
             padding: EdgeInsets.symmetric(horizontal: screenW * 0.05),
             child: Column(
               children: [
-               SizedBox(height: screenH * 0.03),
+                SizedBox(height: screenH * 0.03),
                 Align(
                   alignment: Alignment.topLeft,
                   child: IconButton(
@@ -61,24 +62,28 @@ class _VoiceChatScreenState extends State<VoiceChatScreen>
                       chatbotProvider.stopListening();
                       Navigator.pop(context);
                     },
-                    icon:  Icon(Icons.close, color: themeprovider.isDark ? AppColors.darkSubText : AppColors.lightSubText),
+                    icon: Icon(Icons.close,
+                        color: themeprovider.isDark
+                            ? AppColors.darkSubText
+                            : AppColors.lightSubText),
                   ),
                 ),
-        
                 Expanded(
                   child: SingleChildScrollView(
                     child: Column(
                       children: [
-                       SizedBox(height: screenH * 0.03),
+                        SizedBox(height: screenH * 0.03),
                         Text(
                           "Talk to Alpha",
                           style: GoogleFonts.ibmPlexSansArabic(
-                            color: themeprovider.isDark ? AppColors.darkText : AppColors.lightText,
+                            color: themeprovider.isDark
+                                ? AppColors.darkText
+                                : AppColors.lightText,
                             fontSize: screenW * 0.08,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
-                       SizedBox(height: screenH * 0.05),
+                        SizedBox(height: screenH * 0.05),
                         Stack(
                           alignment: Alignment.center,
                           children: [
@@ -88,10 +93,15 @@ class _VoiceChatScreenState extends State<VoiceChatScreen>
                                 builder: (context, child) {
                                   return Container(
                                     width: 220 + animationController.value * 30,
-                                    height: 220 + animationController.value * 30,
+                                    height:
+                                        220 + animationController.value * 30,
                                     decoration: BoxDecoration(
                                       shape: BoxShape.circle,
-                                      color: themeprovider.isDark ? AppColors.darkPrimary.withOpacity(0.3) : AppColors.lightPrimary.withOpacity(0.3),
+                                      color: themeprovider.isDark
+                                          ? AppColors.darkPrimary
+                                              .withOpacity(0.3)
+                                          : AppColors.lightPrimary
+                                              .withOpacity(0.3),
                                     ),
                                   );
                                 },
@@ -99,9 +109,11 @@ class _VoiceChatScreenState extends State<VoiceChatScreen>
                             Container(
                               width: 160,
                               height: 160,
-                              decoration:  BoxDecoration(
+                              decoration: BoxDecoration(
                                 shape: BoxShape.circle,
-                                color: themeprovider.isDark ? AppColors.darkPrimary : AppColors.lightPrimary,
+                                color: themeprovider.isDark
+                                    ? AppColors.darkPrimary
+                                    : AppColors.lightPrimary,
                               ),
                               child: IconButton(
                                 onPressed: () {
@@ -110,7 +122,9 @@ class _VoiceChatScreenState extends State<VoiceChatScreen>
                                       : chatbotProvider.startListening();
                                 },
                                 icon: Icon(
-                                  chatbotProvider.isListening ? Icons.graphic_eq : Icons.mic,
+                                  chatbotProvider.isListening
+                                      ? Icons.graphic_eq
+                                      : Icons.mic,
                                   color: Colors.white,
                                   size: 60,
                                 ),
@@ -120,21 +134,26 @@ class _VoiceChatScreenState extends State<VoiceChatScreen>
                         ),
                         SizedBox(height: screenH * 0.05),
                         Text(
-                          chatbotProvider.isListening ? "Listening..." : "Tap microphone",
+                          chatbotProvider.isListening
+                              ? "Listening..."
+                              : "Tap microphone",
                           style: GoogleFonts.ibmPlexSansArabic(
-                                 fontSize: screenW*0.05,
-                                fontWeight: FontWeight.w500,
-                                 color: themeprovider.isDark
-                    ? AppColors.darkSubText
-                    : AppColors.lightSubText,
-                               ),
+                            fontSize: screenW * 0.05,
+                            fontWeight: FontWeight.w500,
+                            color: themeprovider.isDark
+                                ? AppColors.darkSubText
+                                : AppColors.lightSubText,
+                          ),
                         ),
-                         SizedBox(height: screenH * 0.05),
+                        SizedBox(height: screenH * 0.05),
                         Container(
                           width: screenW * 0.8,
-                          padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 15, vertical: 10),
                           decoration: BoxDecoration(
-                            color:  themeprovider.isDark ? AppColors.darkBorder : AppColors.lightBorder,
+                            color: themeprovider.isDark
+                                ? AppColors.darkBorder
+                                : AppColors.lightBorder,
                             borderRadius: BorderRadius.circular(15),
                           ),
                           child: TextField(
@@ -142,13 +161,18 @@ class _VoiceChatScreenState extends State<VoiceChatScreen>
                             minLines: 1,
                             maxLines: 5,
                             style: TextStyle(
-                              color: themeprovider.isDark ? AppColors.darkText : AppColors.lightText,
-                                fontWeight: FontWeight.w400,
-
+                              color: themeprovider.isDark
+                                  ? AppColors.darkText
+                                  : AppColors.lightText,
+                              fontWeight: FontWeight.w400,
                             ),
-                            decoration:  InputDecoration(
+                            decoration: InputDecoration(
                               hintText: "Your message will appear here",
-                              hintStyle: TextStyle( color: themeprovider.isDark ? AppColors.darkSubText : AppColors.lightSubText,),
+                              hintStyle: TextStyle(
+                                color: themeprovider.isDark
+                                    ? AppColors.darkSubText
+                                    : AppColors.lightSubText,
+                              ),
                               border: InputBorder.none,
                             ),
                           ),
@@ -157,40 +181,42 @@ class _VoiceChatScreenState extends State<VoiceChatScreen>
                     ),
                   ),
                 ),
-               SizedBox(height: screenH * 0.03),
+                SizedBox(height: screenH * 0.03),
                 Padding(
                   padding: EdgeInsets.only(bottom: screenH * 0.02),
                   child: ElevatedButton(
                     onPressed: chatbotProvider.voiceText.isEmpty
                         ? null
                         : () {
-                            chatbotProvider.sendMessage(chatbotProvider.voiceController.text);
+                            chatbotProvider.sendMessage(
+                                chatbotProvider.voiceController.text);
                             chatbotProvider.clearVoice();
                             chatbotProvider.stopListening();
                             Navigator.pop(context);
                           },
-                    
-                     style: ButtonStyle(
-                       backgroundColor: WidgetStatePropertyAll(
-             themeprovider.isDark
-                 ? AppColors.darkPrimary
-                 : AppColors.lightPrimary,
-                       ),
-                       fixedSize: WidgetStatePropertyAll(
-             Size(screenW * 0.8, screenH * 0.065),
-                       ),
-                       shape: WidgetStatePropertyAll(
-             RoundedRectangleBorder(
-               borderRadius: BorderRadius.circular(10),
-             ),
-                       ),
-                     ),
-                    child:Text("Send", style: TextStyle(fontSize: screenW * 0.055,
-             color: AppColors.darkBorder,
-             fontWeight: FontWeight.w600,)),
+                    style: ButtonStyle(
+                      backgroundColor: WidgetStatePropertyAll(
+                        themeprovider.isDark
+                            ? AppColors.darkPrimary
+                            : AppColors.lightPrimary,
+                      ),
+                      fixedSize: WidgetStatePropertyAll(
+                        Size(screenW * 0.8, screenH * 0.065),
+                      ),
+                      shape: WidgetStatePropertyAll(
+                        RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                    ),
+                    child: Text("Send",
+                        style: TextStyle(
+                          fontSize: screenW * 0.055,
+                          color: AppColors.darkBorder,
+                          fontWeight: FontWeight.w600,
+                        )),
                   ),
                 ),
-               
               ],
             ),
           ),

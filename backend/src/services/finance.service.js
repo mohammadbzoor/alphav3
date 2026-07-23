@@ -73,7 +73,7 @@ class FinanceService {
     }
 
     const amount = this.normalizeMoney(data.amount, 'amount');
-    
+
     const bucket = data.bucket;
     if (!bucket || !['needs', 'wants'].includes(bucket)) {
       throw new AppError('Bucket must be either needs or wants', 400, 'INVALID_BUCKET');
@@ -100,13 +100,13 @@ class FinanceService {
 
     const expenseDate = this.normalizeDate(data.expenseDate, 'expenseDate') || new Date().toISOString().split('T')[0];
     const description = data.description ? String(data.description).trim() : null;
-    
+
     let originalImageUrl = null;
     if (data.originalImageUrl) {
       originalImageUrl = String(data.originalImageUrl).trim();
       if (originalImageUrl.length > 255) throw new AppError('originalImageUrl too long', 400, 'INVALID_PAYLOAD');
     }
-    
+
     let originalTranscript = null;
     if (data.originalTranscript) {
       originalTranscript = String(data.originalTranscript).trim();
@@ -148,7 +148,7 @@ class FinanceService {
     try {
       await conn.beginTransaction();
       transactionActive = true;
-      
+
       const txLock = await FinanceRepository.lockTransactionForMutation(conn, userId, expenseId, 'expense');
       if (!txLock) {
         throw new AppError('Expense not found or unauthorized', 404, 'NOT_FOUND');
@@ -156,7 +156,7 @@ class FinanceService {
       if (txLock.cycle_status !== 'open') {
         throw new AppError('Cannot delete transactions in a closed cycle.', 409, 'CLOSED_CYCLE_IMMUTABLE');
       }
-      
+
       const success = await FinanceRepository.deleteExpense(conn, userId, expenseId);
       if (!success) {
         throw new AppError('Expense not found or unauthorized', 404, 'NOT_FOUND');
@@ -199,7 +199,7 @@ class FinanceService {
     const description = data.description ? String(data.description).trim() : null;
     const incomeDate = this.normalizeDate(data.incomeDate, 'incomeDate') || new Date().toISOString().split('T')[0];
     const isRecurring = !!data.isRecurring;
-    
+
     const sourceType = data.sourceType || 'manual';
     if (!['manual', 'image', 'voice'].includes(sourceType)) {
       throw new AppError('Invalid source type', 400, 'INVALID_SOURCE_TYPE');
@@ -210,7 +210,7 @@ class FinanceService {
       originalImageUrl = String(data.originalImageUrl).trim();
       if (originalImageUrl.length > 255) throw new AppError('originalImageUrl too long', 400, 'INVALID_PAYLOAD');
     }
-    
+
     let originalTranscript = null;
     if (data.originalTranscript) {
       originalTranscript = String(data.originalTranscript).trim();
@@ -306,8 +306,8 @@ class FinanceService {
 
   static planningPreview(data) {
     const targetAmount = this.normalizeMoney(data.targetAmount, 'targetAmount');
-    const plannedContribution = data.plannedContribution !== undefined 
-      ? this.normalizeMoney(data.plannedContribution, 'plannedContribution', { allowZero: true }) 
+    const plannedContribution = data.plannedContribution !== undefined
+      ? this.normalizeMoney(data.plannedContribution, 'plannedContribution', { allowZero: true })
       : 0;
 
     const result = {
@@ -388,7 +388,7 @@ class FinanceService {
     }
 
     const customName = data.customName ? String(data.customName).trim() : null;
-    
+
     return {
       goalType: data.goalType,
       customName,
@@ -465,7 +465,7 @@ class FinanceService {
       if (!Number.isSafeInteger(targetAmount) || !Number.isSafeInteger(currentBalance) || targetAmount <= 0 || currentBalance < 0) {
         throw new AppError('Goal financial data invalid', 500, 'GOAL_FINANCIAL_DATA_INVALID');
       }
-      
+
       const remainingAmount = targetAmount - currentBalance;
 
       if (amount > remainingAmount) {
@@ -588,7 +588,7 @@ class FinanceService {
 
   static async executeGoal(userId, goalId, idempotencyKeyParam) {
     const idempotencyKey = this.normalizeIdempotencyKey(idempotencyKeyParam, true);
-    
+
     const requestHash = crypto.createHash('sha256')
       .update(JSON.stringify({ operation: 'execute', userId, goalId }))
       .digest('hex');
@@ -631,7 +631,7 @@ class FinanceService {
       if (!Number.isSafeInteger(ledgerBalance) || ledgerBalance < 0) {
         throw new AppError('Ledger balance invalid', 500, 'GOAL_FINANCIAL_DATA_INVALID');
       }
-      
+
       if (ledgerBalance < targetAmount) {
         throw new AppError('Goal balance is less than target amount', 400, 'BAD_REQUEST');
       }
@@ -769,7 +769,7 @@ class FinanceService {
       if (!Number.isSafeInteger(destTarget) || destTarget <= 0) {
         throw new AppError('Goal target amount invalid', 500, 'GOAL_FINANCIAL_DATA_INVALID');
       }
-      
+
       if (destBalance + amount > destTarget) {
         throw new AppError('Reallocation amount causes destination overfunding', 400, 'BAD_REQUEST');
       }
@@ -905,7 +905,7 @@ class FinanceService {
       throw new AppError('userId must not be provided in payload', 400, 'INVALID_PAYLOAD');
     }
     const idempotencyKey = this.normalizeIdempotencyKey(data.idempotencyKey, true);
-    
+
     const savingsAmount = this.normalizeMoney(data.savingsAmount, 'savingsAmount', { allowZero: true });
     const emergencyFundRate = Number(data.emergencyFundRate !== undefined ? data.emergencyFundRate : 10.0);
     if (!Number.isFinite(emergencyFundRate) || emergencyFundRate < 0 || emergencyFundRate > 100) {
@@ -961,7 +961,7 @@ class FinanceService {
         const goal = await FinanceRepository.findGoalForUpdate(connection, gid, userId);
         if (!goal) throw new AppError(`Goal ${gid} not found`, 404, 'NOT_FOUND');
         if (goal.status !== 'active') throw new AppError(`Cannot allocate to ${goal.status} goal`, 400, 'INVALID_GOAL_STATUS');
-        
+
         const remaining = Number(goal.target_amount) - Number(goal.current_balance);
         const planned = providedAmounts[gid];
         if (planned > remaining) {
@@ -1140,9 +1140,9 @@ class FinanceService {
   // ---------------------------------------------------------
   static async getAllocation(userId) {
     const openCycle = await FinanceRepository.findOpenCycleForUser(null, userId);
-    
+
     let income, needsBps, wantsBps, savingsBps, tier;
-    
+
     if (openCycle) {
       const snapshot = await CycleRepository.findSnapshotByCycleId(null, userId, openCycle.id);
       if (snapshot) {
@@ -1153,12 +1153,12 @@ class FinanceService {
         savingsBps = Number(snapshot.savings_bps);
       }
     }
-    
+
     if (!income) {
       const profileRows = await db.execute('SELECT expected_monthly_income, detected_tier FROM financial_profiles WHERE user_id = ?', [userId]);
       const prefRows = await db.execute('SELECT needs_bps, wants_bps, savings_bps FROM allocation_preferences WHERE user_id = ?', [userId]);
       if (profileRows[0].length === 0 || prefRows[0].length === 0) return null;
-      
+
       const profile = profileRows[0][0];
       const pref = prefRows[0][0];
 
@@ -1201,51 +1201,128 @@ class FinanceService {
     };
   }
 
+  static async getFinancialProfile(userId) {
+    const { OnboardingService } = require('./onboarding.service');
+    const { OnboardingRepository } = require('../repositories/onboarding.repository');
+
+    const status = await OnboardingService.getStatus(userId);
+    const financial = await OnboardingRepository.findFinancialProfile(null, userId);
+
+    return {
+      expectedMonthlyIncome: financial ? Number(financial.expected_monthly_income || 0) : null,
+      paymentDay: financial ? financial.payment_day : null,
+      currency: financial ? financial.currency : null,
+      timezone: financial ? financial.timezone : null,
+      relationshipWithMoney: status.profile?.relationship_with_money || null,
+      primaryFinancialGoal: status.profile?.primary_financial_goal || null,
+      monthlyExtraSavingsGoal: status.profile?.monthly_extra_savings_goal ? Number(status.profile.monthly_extra_savings_goal) : null,
+      incomeSources: this.parseJsonArray(status.profile?.income_sources),
+      fixedExpenses: this.parseJsonArray(status.profile?.fixed_expenses),
+      variableExpenses: this.parseJsonArray(status.profile?.variable_expenses),
+      allocation: status.allocation || null,
+      financialProfileComplete: status.financialProfileComplete,
+      missingFinancialFields: status.missingFinancialFields,
+      canCreateCycle: status.canCreateCycle
+    };
+  }
+
+  static parseJsonArray(value) {
+    if (value === null || value === undefined || value === '') return [];
+    if (typeof value === 'object') return Array.isArray(value) ? value : [value];
+    if (typeof value === 'string') {
+      try {
+        const parsed = JSON.parse(value);
+        return Array.isArray(parsed) ? parsed : [parsed];
+      } catch (e) {
+        const AppError = require('../utils/app-error');
+        throw new AppError('Invalid JSON format in database', 500, 'INTERNAL_SERVER_ERROR');
+      }
+    }
+    return [];
+  }
+
   static async updateFinancialProfile(userId, data) {
-    const { AllocationService } = require('./allocation.service');
-    
+    if (data.expectedMonthlyIncome !== undefined || data.monthlyIncome !== undefined || data.incomeSources !== undefined || data.regularSalary !== undefined) {
+      throw new AppError('Income changes require allocation review.', 400, 'ALLOCATION_REVIEW_REQUIRED');
+    }
+
+    const { OnboardingService } = require('./onboarding.service');
+
     const connection = await db.getConnection();
     let transactionActive = false;
     try {
       await connection.beginTransaction();
       transactionActive = true;
 
-      const [existing] = await connection.execute('SELECT id, expected_monthly_income, payment_day FROM financial_profiles WHERE user_id = ? FOR UPDATE', [userId]);
+      // Update descriptive profile fields if present
+      const profileUpdates = {};
+      if (data.relationshipWithMoney !== undefined) profileUpdates.relationshipWithMoney = data.relationshipWithMoney;
+      if (data.primaryFinancialGoal !== undefined) profileUpdates.primaryFinancialGoal = data.primaryFinancialGoal;
+      if (data.monthlyExtraSavingsGoal !== undefined) profileUpdates.monthlyExtraSavingsGoal = data.monthlyExtraSavingsGoal;
+      if (data.monthlyExtraSavingsGoal !== undefined) profileUpdates.monthlyExtraSavingsGoal = data.monthlyExtraSavingsGoal;
+      if (data.fixedExpenses !== undefined) profileUpdates.fixedExpenses = data.fixedExpenses;
+      if (data.variableExpenses !== undefined) profileUpdates.variableExpenses = data.variableExpenses;
+
+      if (Object.keys(profileUpdates).length > 0) {
+        const normalized = OnboardingService.normalizeUserProfileData(profileUpdates);
+
+        const [existingProfile] = await connection.execute('SELECT user_id FROM user_profiles WHERE user_id = ? FOR UPDATE', [userId]);
+        if (existingProfile.length === 0) {
+          const cols = Object.keys(normalized);
+          const vals = Object.values(normalized);
+          const placeholders = cols.map(() => '?').join(', ');
+          await connection.execute(`INSERT INTO user_profiles (user_id, ${cols.join(', ')}) VALUES (?, ${placeholders})`, [userId, ...vals]);
+        } else {
+          const sets = [];
+          const vals = [];
+          for (const [k, v] of Object.entries(normalized)) {
+            sets.push(`${k} = ?`);
+            vals.push(v);
+          }
+          if (sets.length > 0) {
+            vals.push(userId);
+            await connection.execute(`UPDATE user_profiles SET ${sets.join(', ')} WHERE user_id = ?`, vals);
+          }
+        }
+      }
+
+      // Update future plan fields if present
+      const [existing] = await connection.execute('SELECT id, expected_monthly_income, payment_day, currency, timezone FROM financial_profiles WHERE user_id = ? FOR UPDATE', [userId]);
       const isNew = existing.length === 0;
 
-      if (isNew && (data.expectedIncome === undefined || data.salaryPaymentDay === undefined)) {
-        throw new AppError('Financial profile incomplete. Both expectedIncome and salaryPaymentDay are required for new profiles.', 422, 'FINANCIAL_PROFILE_INCOMPLETE');
-      }
+      // Removed expectedIncome assignment because it is protected now
 
-      let expectedIncome;
-      if (data.expectedIncome !== undefined) {
-        expectedIncome = this.normalizeMoney(data.expectedIncome);
-        if (expectedIncome <= 0) throw new AppError('Expected income must be positive', 400, 'BAD_REQUEST');
-      }
-
-      let salaryPaymentDay;
-      if (data.salaryPaymentDay !== undefined) {
-        salaryPaymentDay = Number(data.salaryPaymentDay);
-        if (!Number.isSafeInteger(salaryPaymentDay) || salaryPaymentDay < 1 || salaryPaymentDay > 31) {
+      let paymentDay;
+      if (data.paymentDay !== undefined) {
+        paymentDay = Number(data.paymentDay);
+        if (!Number.isSafeInteger(paymentDay) || paymentDay < 1 || paymentDay > 31) {
           throw new AppError('Salary payment day must be between 1 and 31', 400, 'BAD_REQUEST');
         }
       }
 
+      let currency = data.currency;
+      let timezone = data.timezone;
+
       if (isNew) {
         await connection.execute(
-          'INSERT INTO financial_profiles (user_id, expected_monthly_income, payment_day) VALUES (?, ?, ?)',
-          [userId, expectedIncome, salaryPaymentDay]
+          'INSERT INTO financial_profiles (user_id, payment_day, currency, timezone) VALUES (?, ?, ?, ?)',
+          [userId, paymentDay || null, currency || null, timezone || null]
         );
       } else {
         const updates = [];
         const values = [];
-        if (expectedIncome !== undefined) {
-          updates.push('expected_monthly_income = ?');
-          values.push(expectedIncome);
-        }
-        if (salaryPaymentDay !== undefined) {
+
+        if (paymentDay !== undefined) {
           updates.push('payment_day = ?');
-          values.push(salaryPaymentDay);
+          values.push(paymentDay);
+        }
+        if (currency !== undefined) {
+          updates.push('currency = ?');
+          values.push(currency);
+        }
+        if (timezone !== undefined) {
+          updates.push('timezone = ?');
+          values.push(timezone);
         }
         if (updates.length > 0) {
           values.push(userId);
@@ -1266,19 +1343,34 @@ class FinanceService {
 
   static async financialProfileAllocationPreview(userId, data) {
     const { AllocationService } = require('./allocation.service');
-    const expectedIncome = this.normalizeMoney(data.expectedIncome);
-    
+    const expectedIncome = this.normalizeMoney(data.expectedMonthlyIncome);
+
+    if (expectedIncome <= 0) {
+      throw new AppError('Expected income must be positive', 400, 'BAD_REQUEST');
+    }
+
+    if (data.incomeSources && Array.isArray(data.incomeSources)) {
+      let sourcesTotal = 0;
+      for (const source of data.incomeSources) {
+        sourcesTotal += this.normalizeMoney(source.amount || 0);
+      }
+      // If there are sources, their sum must match expectedMonthlyIncome
+      if (sourcesTotal > 0 && Math.abs(sourcesTotal - expectedIncome) >= 0.01) {
+        throw new AppError('Total of income sources must match expected monthly income', 400, 'INCOME_TOTAL_MISMATCH');
+      }
+    }
+
     const { tier, needs_bps, wants_bps, savings_bps } = AllocationService.calculateTierAndBps(expectedIncome);
     const amounts = AllocationService.calculateAmounts(expectedIncome, needs_bps, wants_bps, savings_bps);
-    
+
     const activeCommitments = await FinanceRepository.getCommitments(userId);
     let reservedAmount = 0;
     for (const comm of activeCommitments) reservedAmount += Number(comm.amount || 0);
-    
+
     const availableVariableNeeds = Math.max(0, amounts.needsAmount - reservedAmount);
 
     return {
-      expectedIncome,
+      income: expectedIncome,
       tier,
       allocation: {
         needsBps: needs_bps,
@@ -1286,7 +1378,9 @@ class FinanceService {
         wantsBps: wants_bps,
         wantsAmount: amounts.wantsAmount,
         savingsBps: savings_bps,
-        savingsAmount: amounts.savingsAmount
+        savingsAmount: amounts.savingsAmount,
+        source: 'system_tier',
+        isCustomized: false
       },
       commitments: { reservedAmount, availableVariableNeeds }
     };
@@ -1294,8 +1388,22 @@ class FinanceService {
 
   static async approveFinancialProfileAllocation(userId, data) {
     const { AllocationService } = require('./allocation.service');
-    const expectedIncome = this.normalizeMoney(data.expectedIncome);
-    
+    const expectedIncome = this.normalizeMoney(data.expectedMonthlyIncome);
+
+    if (expectedIncome <= 0) {
+      throw new AppError('Expected income must be positive', 400, 'BAD_REQUEST');
+    }
+
+    if (data.incomeSources && Array.isArray(data.incomeSources)) {
+      let sourcesTotal = 0;
+      for (const source of data.incomeSources) {
+        sourcesTotal += this.normalizeMoney(source.amount || 0);
+      }
+      if (sourcesTotal > 0 && Math.abs(sourcesTotal - expectedIncome) >= 0.01) {
+        throw new AppError('Total of income sources must match expected monthly income', 400, 'INCOME_TOTAL_MISMATCH');
+      }
+    }
+
     const needsBps = Number(data.needsBps);
     const wantsBps = Number(data.wantsBps);
     const savingsBps = Number(data.savingsBps);
@@ -1307,7 +1415,13 @@ class FinanceService {
       throw new AppError('Allocation percentages must total exactly 100%', 400, 'BAD_REQUEST');
     }
 
-    const { tier } = AllocationService.calculateTierAndBps(expectedIncome);
+    const { tier, needs_bps: sysNeeds, wants_bps: sysWants, savings_bps: sysSavings } = AllocationService.calculateTierAndBps(expectedIncome);
+    const source = (needsBps === sysNeeds && wantsBps === sysWants && savingsBps === sysSavings) ? 'system_tier' : 'user_adjusted';
+
+    let paymentDay = data.paymentDay ? Number(data.paymentDay) : null;
+    if (paymentDay !== null && (!Number.isSafeInteger(paymentDay) || paymentDay < 1 || paymentDay > 31)) {
+      throw new AppError('Salary payment day must be between 1 and 31', 400, 'BAD_REQUEST');
+    }
 
     const connection = await db.getConnection();
     let transactionActive = false;
@@ -1315,17 +1429,41 @@ class FinanceService {
       await connection.beginTransaction();
       transactionActive = true;
 
-      await connection.execute(`
-        INSERT INTO allocation_preferences (user_id, needs_bps, wants_bps, savings_bps, source, based_on_income)
-        VALUES (?, ?, ?, ?, "user_adjusted", ?)
-        ON DUPLICATE KEY UPDATE needs_bps = VALUES(needs_bps), wants_bps = VALUES(wants_bps), savings_bps = VALUES(savings_bps), source = VALUES(source), based_on_income = VALUES(based_on_income)
-      `, [userId, needsBps, wantsBps, savingsBps, expectedIncome]);
+      // Lock user_profiles
+      await connection.execute('SELECT user_id FROM user_profiles WHERE user_id = ? FOR UPDATE', [userId]);
+      // Lock financial_profiles
+      await connection.execute('SELECT user_id FROM financial_profiles WHERE user_id = ? FOR UPDATE', [userId]);
+      // Lock allocation_preferences
+      await connection.execute('SELECT user_id FROM allocation_preferences WHERE user_id = ? FOR UPDATE', [userId]);
+
+      if (data.incomeSources !== undefined) {
+        await connection.execute('UPDATE user_profiles SET income_sources = ? WHERE user_id = ?', [JSON.stringify(data.incomeSources), userId]);
+      }
 
       await connection.execute(`
-        INSERT INTO financial_profiles (user_id, expected_monthly_income, detected_tier)
-        VALUES (?, ?, ?)
-        ON DUPLICATE KEY UPDATE expected_monthly_income = VALUES(expected_monthly_income), detected_tier = VALUES(detected_tier)
-      `, [userId, expectedIncome, tier]);
+        INSERT INTO allocation_preferences (user_id, needs_bps, wants_bps, savings_bps, source, based_on_income)
+        VALUES (?, ?, ?, ?, ?, ?)
+        ON DUPLICATE KEY UPDATE needs_bps = VALUES(needs_bps), wants_bps = VALUES(wants_bps), savings_bps = VALUES(savings_bps), source = VALUES(source), based_on_income = VALUES(based_on_income)
+      `, [userId, needsBps, wantsBps, savingsBps, source, expectedIncome]);
+
+      const finUpdates = ['expected_monthly_income = ?', 'detected_tier = ?'];
+      const finVals = [expectedIncome, tier];
+
+      if (paymentDay !== null) {
+        finUpdates.push('payment_day = ?');
+        finVals.push(paymentDay);
+      }
+      if (data.currency) {
+        finUpdates.push('currency = ?');
+        finVals.push(data.currency);
+      }
+      if (data.timezone) {
+        finUpdates.push('timezone = ?');
+        finVals.push(data.timezone);
+      }
+      finVals.push(userId);
+
+      await connection.execute(`UPDATE financial_profiles SET ${finUpdates.join(', ')} WHERE user_id = ?`, finVals);
 
       await connection.execute('UPDATE users SET is_onboarded = 1 WHERE id = ?', [userId]);
 

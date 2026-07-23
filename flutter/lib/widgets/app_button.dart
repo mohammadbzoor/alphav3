@@ -30,29 +30,28 @@ class AppButton extends StatelessWidget {
       child: ElevatedButton(
         onPressed: isLoading ? null : onPressed,
         style: ElevatedButton.styleFrom(
-          backgroundColor: isDark
-              ? AppColors.darkPrimary
-              : AppColors.lightPrimary,
+          backgroundColor:
+              isDark ? AppColors.darkPrimary : AppColors.lightPrimary,
           foregroundColor: AppColors.darkBorder,
           elevation: 0,
           shape: RoundedRectangleBorder(
-            borderRadius:
-                BorderRadius.circular(borderRadius),
+            borderRadius: BorderRadius.circular(borderRadius),
           ),
         ),
         child: isLoading
             ? SizedBox(
                 width: 22,
                 height: 22,
-                child:
-                    CircularProgressIndicator(
+                child: CircularProgressIndicator(
                   strokeWidth: 2.5,
-                  color: isDark? AppColors.darkPrimary : AppColors.lightPrimary,
+                  color:
+                      isDark ? AppColors.darkPrimary : AppColors.lightPrimary,
                 ),
               )
             : Text(
                 text,
-                style: TextStyle( color: isDark? AppColors.darkText : AppColors.lightText,
+                style: TextStyle(
+                  color: isDark ? AppColors.darkText : AppColors.lightText,
                   fontSize: 18,
                   fontWeight: FontWeight.w600,
                 ),

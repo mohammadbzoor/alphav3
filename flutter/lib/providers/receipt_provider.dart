@@ -9,49 +9,39 @@ import 'package:speech_to_text/speech_to_text.dart';
 class ReceiptProvider extends ChangeNotifier {
   final ImagePicker _imagePicker = ImagePicker();
 
-  final ReceiptOcrService _ocrService =
-      ReceiptOcrService();
+  final ReceiptOcrService _ocrService = ReceiptOcrService();
 
-  final ExpenseVoiceService _voiceService =
-      ExpenseVoiceService();
+  final ExpenseVoiceService _voiceService = ExpenseVoiceService();
 
-  final ReceiptParserService _parserService =
-      ReceiptParserService();
+  final ReceiptParserService _parserService = ReceiptParserService();
 
   ParsedReceiptModel? _parsedReceipt;
 
-  ParsedReceiptModel? get parsedReceipt =>
-      _parsedReceipt;
+  ParsedReceiptModel? get parsedReceipt => _parsedReceipt;
 
   XFile? _selectedImage;
 
-  XFile? get selectedImage =>
-      _selectedImage;
+  XFile? get selectedImage => _selectedImage;
 
   bool _isProcessing = false;
 
-  bool get isProcessing =>
-      _isProcessing;
+  bool get isProcessing => _isProcessing;
 
   bool _isListening = false;
 
-  bool get isListening =>
-      _isListening;
+  bool get isListening => _isListening;
 
   String _voiceText = '';
 
-  String get voiceText =>
-      _voiceText;
+  String get voiceText => _voiceText;
 
   String _selectedVoiceLocale = 'ar_JO';
 
-  String get selectedVoiceLocale =>
-      _selectedVoiceLocale;
+  String get selectedVoiceLocale => _selectedVoiceLocale;
 
   String? _errorMessage;
 
-  String? get errorMessage =>
-      _errorMessage;
+  String? get errorMessage => _errorMessage;
 
   // =====================================================
   // CAMERA IMAGE
@@ -83,13 +73,11 @@ class ReceiptProvider extends ChangeNotifier {
   // GALLERY
   // =====================================================
 
-  Future<ParsedReceiptModel?>
-      pickReceiptFromGallery() async {
+  Future<ParsedReceiptModel?> pickReceiptFromGallery() async {
     try {
       _startProcessing();
 
-      final image =
-          await _imagePicker.pickImage(
+      final image = await _imagePicker.pickImage(
         source: ImageSource.gallery,
         imageQuality: 85,
       );
@@ -149,65 +137,62 @@ class ReceiptProvider extends ChangeNotifier {
   // =====================================================
 
   Future<void> startVoiceInput() async {
-  if (_isListening) return;
+    if (_isListening) return;
 
-  _errorMessage = null;
-  _isListening = true;
+    _errorMessage = null;
+    _isListening = true;
 
-  notifyListeners();
+    notifyListeners();
 
-  await _voiceService.startListening(
-    localeId: _selectedVoiceLocale,
+    await _voiceService.startListening(
+      localeId: _selectedVoiceLocale,
 
-    // مهم: يحتفظ بالكلام السابق.
-    existingText: _voiceText,
+      // مهم: يحتفظ بالكلام السابق.
+      existingText: _voiceText,
 
-    onResult: (text) {
-      _voiceText = text;
-      notifyListeners();
-    },
+      onResult: (text) {
+        _voiceText = text;
+        notifyListeners();
+      },
 
-    onStatus: (status) {
-      debugPrint('Voice status: $status');
+      onStatus: (status) {
+        debugPrint('Voice status: $status');
 
-      if (status == SpeechToText.doneStatus ||
-          status ==
-              SpeechToText.notListeningStatus) {
+        if (status == SpeechToText.doneStatus ||
+            status == SpeechToText.notListeningStatus) {
+          _isListening = false;
+          notifyListeners();
+        }
+      },
+
+      onError: (error) {
+        _errorMessage = error;
         _isListening = false;
         notifyListeners();
-      }
-    },
-
-    onError: (error) {
-      _errorMessage = error;
-      _isListening = false;
-      notifyListeners();
-    },
-  );
-}
+      },
+    );
+  }
 
   // =====================================================
   // STOP VOICE WITHOUT PARSING
   // =====================================================
 
   Future<void> stopVoiceInput() async {
-  final finalText =
-      await _voiceService.stopListening();
+    final finalText = await _voiceService.stopListening();
 
-  if (finalText.trim().isNotEmpty) {
-    _voiceText = finalText;
+    if (finalText.trim().isNotEmpty) {
+      _voiceText = finalText;
+    }
+
+    _isListening = false;
+
+    notifyListeners();
   }
-
-  _isListening = false;
-
-  notifyListeners();
-}
   // =====================================================
   // STOP AND PARSE VOICE
   // =====================================================
 
-  Future<ParsedReceiptModel?>
-      stopAndParseVoice() async {
+  Future<ParsedReceiptModel?> stopAndParseVoice() async {
     try {
       if (_isListening) {
         await _voiceService.stopListening();
@@ -217,8 +202,7 @@ class ReceiptProvider extends ChangeNotifier {
 
       notifyListeners();
 
-      final text =
-          _voiceText.trim();
+      final text = _voiceText.trim();
 
       if (text.isEmpty) {
         throw Exception(
@@ -228,8 +212,7 @@ class ReceiptProvider extends ChangeNotifier {
 
       _startProcessing();
 
-      _parsedReceipt =
-          await _parserService.parseText(
+      _parsedReceipt = await _parserService.parseText(
         text: text,
         inputType: ReceiptInputType.voice,
       );
@@ -250,11 +233,9 @@ class ReceiptProvider extends ChangeNotifier {
   // PARSE EDITED VOICE TEXT
   // =====================================================
 
-  Future<ParsedReceiptModel?>
-      parseEditedVoiceText() async {
+  Future<ParsedReceiptModel?> parseEditedVoiceText() async {
     try {
-      final text =
-          _voiceText.trim();
+      final text = _voiceText.trim();
 
       if (text.isEmpty) {
         throw Exception(
@@ -264,8 +245,7 @@ class ReceiptProvider extends ChangeNotifier {
 
       _startProcessing();
 
-      _parsedReceipt =
-          await _parserService.parseText(
+      _parsedReceipt = await _parserService.parseText(
         text: text,
         inputType: ReceiptInputType.voice,
       );
@@ -304,8 +284,7 @@ class ReceiptProvider extends ChangeNotifier {
   ) {
     if (_parsedReceipt == null) return;
 
-    _parsedReceipt =
-        _parsedReceipt!.copyWith(
+    _parsedReceipt = _parsedReceipt!.copyWith(
       storeName: value,
     );
 
@@ -321,8 +300,7 @@ class ReceiptProvider extends ChangeNotifier {
   ) {
     if (_parsedReceipt == null) return;
 
-    _parsedReceipt =
-        _parsedReceipt!.copyWith(
+    _parsedReceipt = _parsedReceipt!.copyWith(
       date: value,
     );
 
@@ -338,8 +316,7 @@ class ReceiptProvider extends ChangeNotifier {
   ) {
     if (_parsedReceipt == null) return;
 
-    _parsedReceipt =
-        _parsedReceipt!.copyWith(
+    _parsedReceipt = _parsedReceipt!.copyWith(
       suggestedCategory: value,
     );
 
@@ -358,8 +335,7 @@ class ReceiptProvider extends ChangeNotifier {
   }) {
     if (_parsedReceipt == null) return;
 
-    final updatedItems =
-        _parsedReceipt!.items.map(
+    final updatedItems = _parsedReceipt!.items.map(
       (item) {
         if (item.id != itemId) {
           return item;
@@ -373,8 +349,7 @@ class ReceiptProvider extends ChangeNotifier {
       },
     ).toList();
 
-    final updatedTotal =
-        updatedItems.fold<double>(
+    final updatedTotal = updatedItems.fold<double>(
       0,
       (
         sum,
@@ -383,8 +358,7 @@ class ReceiptProvider extends ChangeNotifier {
           sum + item.amount,
     );
 
-    _parsedReceipt =
-        _parsedReceipt!.copyWith(
+    _parsedReceipt = _parsedReceipt!.copyWith(
       items: updatedItems,
       total: updatedTotal,
     );
@@ -401,16 +375,13 @@ class ReceiptProvider extends ChangeNotifier {
   ) {
     if (_parsedReceipt == null) return;
 
-    final updatedItems =
-        _parsedReceipt!.items
-            .where(
-              (item) =>
-                  item.id != itemId,
-            )
-            .toList();
+    final updatedItems = _parsedReceipt!.items
+        .where(
+          (item) => item.id != itemId,
+        )
+        .toList();
 
-    final updatedTotal =
-        updatedItems.fold<double>(
+    final updatedTotal = updatedItems.fold<double>(
       0,
       (
         sum,
@@ -419,8 +390,7 @@ class ReceiptProvider extends ChangeNotifier {
           sum + item.amount,
     );
 
-    _parsedReceipt =
-        _parsedReceipt!.copyWith(
+    _parsedReceipt = _parsedReceipt!.copyWith(
       items: updatedItems,
       total: updatedTotal,
     );
@@ -442,8 +412,7 @@ class ReceiptProvider extends ChangeNotifier {
       item,
     ];
 
-    final updatedTotal =
-        updatedItems.fold<double>(
+    final updatedTotal = updatedItems.fold<double>(
       0,
       (
         sum,
@@ -452,8 +421,7 @@ class ReceiptProvider extends ChangeNotifier {
           sum + currentItem.amount,
     );
 
-    _parsedReceipt =
-        _parsedReceipt!.copyWith(
+    _parsedReceipt = _parsedReceipt!.copyWith(
       items: updatedItems,
       total: updatedTotal,
     );
@@ -555,11 +523,10 @@ class ReceiptProvider extends ChangeNotifier {
   void _setError(
     String error,
   ) {
-    _errorMessage = error
-        .replaceFirst(
-          'Exception: ',
-          '',
-        );
+    _errorMessage = error.replaceFirst(
+      'Exception: ',
+      '',
+    );
 
     _isProcessing = false;
     _isListening = false;
@@ -572,10 +539,10 @@ class ReceiptProvider extends ChangeNotifier {
   // =====================================================
 
   @override
-void dispose() {
-  _voiceService.dispose();
-  _ocrService.dispose();
+  void dispose() {
+    _voiceService.dispose();
+    _ocrService.dispose();
 
-  super.dispose();
-}
+    super.dispose();
+  }
 }

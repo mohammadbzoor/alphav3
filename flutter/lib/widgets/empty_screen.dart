@@ -50,60 +50,48 @@ class EmptyStateView extends StatelessWidget {
                 size: screenW * 0.13,
               ),
             ),
-
             const SizedBox(height: 20),
-
             Text(
               title,
               textAlign: TextAlign.center,
               style: GoogleFonts.ibmPlexSansArabic(
-                color: isDark
-                    ? AppColors.darkText
-                    : AppColors.lightText,
+                color: isDark ? AppColors.darkText : AppColors.lightText,
                 fontSize: screenW * 0.052,
                 fontWeight: FontWeight.bold,
               ),
             ),
-
             const SizedBox(height: 8),
-
             Text(
               description,
               textAlign: TextAlign.center,
               style: GoogleFonts.ibmPlexSansArabic(
-                color: isDark
-                    ? AppColors.darkSubText
-                    : AppColors.lightSubText,
+                color: isDark ? AppColors.darkSubText : AppColors.lightSubText,
                 fontSize: screenW * 0.034,
                 height: 1.6,
               ),
             ),
-
             SizedBox(height: 22),
-
             ElevatedButton.icon(
               onPressed: onPressed,
-              icon:  Icon( color: isDark ? AppColors.darkText : AppColors.lightText,
+              icon: Icon(
+                color: isDark ? AppColors.darkText : AppColors.lightText,
                 Icons.add_rounded,
               ),
               label: Text(
                 buttonText,
                 style: GoogleFonts.ibmPlexSansArabic(
-                  fontWeight: FontWeight.bold,
-                  color: isDark ? AppColors.darkText : AppColors.lightText
-                ),
+                    fontWeight: FontWeight.bold,
+                    color: isDark ? AppColors.darkText : AppColors.lightText),
               ),
               style: ElevatedButton.styleFrom(
                 backgroundColor: color,
-               
                 elevation: 0,
                 padding: const EdgeInsets.symmetric(
                   horizontal: 20,
                   vertical: 13,
                 ),
                 shape: RoundedRectangleBorder(
-                  borderRadius:
-                      BorderRadius.circular(14),
+                  borderRadius: BorderRadius.circular(14),
                 ),
               ),
             ),

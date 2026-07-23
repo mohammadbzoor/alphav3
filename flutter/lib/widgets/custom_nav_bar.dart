@@ -4,8 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 
-class CustomBottomNavigationBar
-    extends StatelessWidget {
+class CustomBottomNavigationBar extends StatelessWidget {
   final int currentIndex;
   final ValueChanged<int> onTap;
 
@@ -17,8 +16,7 @@ class CustomBottomNavigationBar
 
   @override
   Widget build(BuildContext context) {
-    final themeProvider =
-        context.watch<Themeprovider>();
+    final themeProvider = context.watch<Themeprovider>();
 
     final isDark = themeProvider.isDark;
 
@@ -32,12 +30,9 @@ class CustomBottomNavigationBar
       ),
       child: Container(
         height: 72,
-        padding:
-            const EdgeInsets.symmetric(horizontal: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 8),
         decoration: BoxDecoration(
-          color: isDark
-              ? const Color(0xFF10201F)
-              : Colors.white,
+          color: isDark ? const Color(0xFF10201F) : Colors.white,
           borderRadius: BorderRadius.circular(24),
           border: Border.all(
             color: isDark
@@ -66,7 +61,6 @@ class CustomBottomNavigationBar
                 onTap: () => onTap(0),
               ),
             ),
-
             Expanded(
               child: _NavigationItem(
                 icon: Icons.receipt_long_outlined,
@@ -77,14 +71,12 @@ class CustomBottomNavigationBar
                 onTap: () => onTap(1),
               ),
             ),
-
             Expanded(
               child: _BasiraNavigationItem(
                 isSelected: currentIndex == 2,
                 onTap: () => onTap(2),
               ),
             ),
-
             Expanded(
               child: _NavigationItem(
                 icon: Icons.track_changes_outlined,
@@ -95,7 +87,6 @@ class CustomBottomNavigationBar
                 onTap: () => onTap(3),
               ),
             ),
-
             Expanded(
               child: _NavigationItem(
                 icon: Icons.person_outline,
@@ -136,13 +127,11 @@ class _NavigationItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final selectedColor = isDark
-        ? AppColors.darkSecondary
-        : AppColors.lightSecondary;
+    final selectedColor =
+        isDark ? AppColors.darkSecondary : AppColors.lightSecondary;
 
-    final unselectedColor = isDark
-        ? AppColors.darkSubText
-        : AppColors.lightSubText;
+    final unselectedColor =
+        isDark ? AppColors.darkSubText : AppColors.lightSubText;
 
     return InkWell(
       onTap: onTap,
@@ -150,31 +139,22 @@ class _NavigationItem extends StatelessWidget {
       child: SizedBox(
         height: double.infinity,
         child: Column(
-          mainAxisAlignment:
-              MainAxisAlignment.center,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
               isSelected ? selectedIcon : icon,
               size: 25,
-              color: isSelected
-                  ? selectedColor
-                  : unselectedColor,
+              color: isSelected ? selectedColor : unselectedColor,
             ),
-
             const SizedBox(height: 5),
-
             Text(
               label,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: GoogleFonts.ibmPlexSansArabic(
-                color: isSelected
-                    ? selectedColor
-                    : unselectedColor,
+                color: isSelected ? selectedColor : unselectedColor,
                 fontSize: 10,
-                fontWeight: isSelected
-                    ? FontWeight.bold
-                    : FontWeight.w500,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
               ),
             ),
           ],
@@ -205,8 +185,7 @@ class _BasiraNavigationItem extends StatelessWidget {
         onTap: onTap,
         customBorder: const CircleBorder(),
         child: AnimatedContainer(
-          duration:
-              const Duration(milliseconds: 250),
+          duration: const Duration(milliseconds: 250),
           width: 58,
           height: 58,
           decoration: BoxDecoration(
@@ -221,8 +200,7 @@ class _BasiraNavigationItem extends StatelessWidget {
             ),
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFF34D399)
-                    .withOpacity(
+                color: const Color(0xFF34D399).withOpacity(
                   isSelected ? 0.45 : 0.25,
                 ),
                 blurRadius: isSelected ? 22 : 15,
@@ -238,7 +216,7 @@ class _BasiraNavigationItem extends StatelessWidget {
           ),
           child: Center(
             child: Icon(
-            Icons.psychology_alt_outlined,
+              Icons.psychology_alt_outlined,
               color: const Color(0xFF0B4A3E),
               size: isSelected ? 38 : 35,
             ),

@@ -41,63 +41,80 @@ class SetGoalScreen extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               SizedBox(height: screenW * 0.03),
-Text( 
-                               "Step 3 of 3",
-                               style: GoogleFonts.ibmPlexSansArabic(
-                                 fontSize: screenW*0.04,
-                                fontWeight: FontWeight.w500,
-                                 color: themeProvider.isDark
-                    ? AppColors.darkAccent
-                    : AppColors.lightAccent,
-                               ),
-                             ),
-                             SizedBox(height: screenH*0.02,),
+              Text(
+                "Step 3 of 3",
+                style: GoogleFonts.ibmPlexSansArabic(
+                  fontSize: screenW * 0.04,
+                  fontWeight: FontWeight.w500,
+                  color: themeProvider.isDark
+                      ? AppColors.darkAccent
+                      : AppColors.lightAccent,
+                ),
+              ),
+              SizedBox(
+                height: screenH * 0.02,
+              ),
               Text(
                 "Set your first goal",
                 style: GoogleFonts.ibmPlexSansArabic(
                   color: themeProvider.isDark
                       ? AppColors.darkText
                       : AppColors.lightText,
-                 fontSize: screenW*0.075,
+                  fontSize: screenW * 0.075,
                   fontWeight: FontWeight.bold,
                 ),
               ),
 
-            SizedBox(height: screenH*0.01,),
+              SizedBox(
+                height: screenH * 0.01,
+              ),
 
               Text(
                 "You can add more anytime later",
-               style: GoogleFonts.ibmPlexSansArabic(
-                               fontSize: screenW*0.035,
-                              fontWeight: FontWeight.w500,
-                               color: themeProvider.isDark
-                  ? AppColors.darkSubText
-                  : AppColors.lightSubText,
-                             ),
+                style: GoogleFonts.ibmPlexSansArabic(
+                  fontSize: screenW * 0.035,
+                  fontWeight: FontWeight.w500,
+                  color: themeProvider.isDark
+                      ? AppColors.darkSubText
+                      : AppColors.lightSubText,
+                ),
               ),
 
               const SizedBox(height: 25),
 
               // ================= PROGRESS =================
 
-              LinearPercentIndicator( 
-                           lineHeight: screenH*0.02, // سماكة الشريط
-                           percent: provider.pageProgress, // النسبة المئوية للتقدم
-                           backgroundColor: themeProvider.isDark ? AppColors.darkBorder : AppColors.lightBorder, 
-                           progressColor:  themeProvider.isDark ? AppColors.darkSecondary : AppColors.lightSecondary,
-                           barRadius: Radius.circular(10), 
-                           animation: false, 
-                           animationDuration: 1000, 
-                         ),
+              LinearPercentIndicator(
+                lineHeight: screenH * 0.02, // سماكة الشريط
+                percent: provider.pageProgress, // النسبة المئوية للتقدم
+                backgroundColor: themeProvider.isDark
+                    ? AppColors.darkBorder
+                    : AppColors.lightBorder,
+                progressColor: themeProvider.isDark
+                    ? AppColors.darkSecondary
+                    : AppColors.lightSecondary,
+                barRadius: Radius.circular(10),
+                animation: false,
+                animationDuration: 1000,
+              ),
 
-              SizedBox(height: screenH*0.03,),
+              SizedBox(
+                height: screenH * 0.03,
+              ),
 
               Text(
                 "Choose your goal",
-                style: TextStyle(fontSize: screenW*0.04 ,  color: themeProvider.isDark ? AppColors.darkSubText:AppColors.lightSubText , fontWeight: FontWeight.bold),
+                style: TextStyle(
+                    fontSize: screenW * 0.04,
+                    color: themeProvider.isDark
+                        ? AppColors.darkSubText
+                        : AppColors.lightSubText,
+                    fontWeight: FontWeight.bold),
               ),
 
-              SizedBox(height: screenH*0.01,),
+              SizedBox(
+                height: screenH * 0.01,
+              ),
 
               MultiSelectChip(
                 items: provider.goalCategories,
@@ -107,7 +124,9 @@ Text(
                 onTap: provider.setCategory,
               ),
 
-              SizedBox(height: screenH*0.02,),
+              SizedBox(
+                height: screenH * 0.02,
+              ),
 
               // ================= OTHER NAME =================
 
@@ -115,10 +134,17 @@ Text(
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    SizedBox(height: screenH*0.02,),
+                    SizedBox(
+                      height: screenH * 0.02,
+                    ),
                     Text(
                       "Goal name",
-                     style: TextStyle(fontSize: screenW*0.04 ,  color: themeProvider.isDark ? AppColors.darkSubText:AppColors.lightSubText , fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                          fontSize: screenW * 0.04,
+                          color: themeProvider.isDark
+                              ? AppColors.darkSubText
+                              : AppColors.lightSubText,
+                          fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 10),
                     CustomTextfield(
@@ -132,21 +158,29 @@ Text(
                   ],
                 ),
 
-              SizedBox(height: screenH*0.02,),
+              SizedBox(
+                height: screenH * 0.02,
+              ),
 
               Text(
                 "Monthly saving amount",
-               style: TextStyle(fontSize: screenW*0.04 ,  color: themeProvider.isDark ? AppColors.darkSubText:AppColors.lightSubText , fontWeight: FontWeight.bold),
+                style: TextStyle(
+                    fontSize: screenW * 0.04,
+                    color: themeProvider.isDark
+                        ? AppColors.darkSubText
+                        : AppColors.lightSubText,
+                    fontWeight: FontWeight.bold),
               ),
 
-              SizedBox(height: screenH*0.01,),
+              SizedBox(
+                height: screenH * 0.01,
+              ),
 
               CustomTextfield(
-               suffix: const Padding(
-                        padding:
-                            EdgeInsets.all(12),
-                        child: Text("JOD"),
-                      ),
+                suffix: const Padding(
+                  padding: EdgeInsets.all(12),
+                  child: Text("JOD"),
+                ),
                 controller: provider.amountController,
                 hint: "Amount per month",
                 type: TextFieldType.number,
@@ -156,7 +190,9 @@ Text(
                 },
               ),
 
-              SizedBox(height: screenH*0.02,),
+              SizedBox(
+                height: screenH * 0.02,
+              ),
 
               Text(
                 "Priority",
@@ -186,40 +222,43 @@ Text(
 
               Text(
                 "Target date",
-                style: TextStyle(fontSize: screenW*0.04 ,  color: themeProvider.isDark ? AppColors.darkSubText:AppColors.lightSubText , fontWeight: FontWeight.bold),
+                style: TextStyle(
+                    fontSize: screenW * 0.04,
+                    color: themeProvider.isDark
+                        ? AppColors.darkSubText
+                        : AppColors.lightSubText,
+                    fontWeight: FontWeight.bold),
               ),
 
-              SizedBox(height: screenH * 0.01,),
+              SizedBox(
+                height: screenH * 0.01,
+              ),
 
-               CustomTextfield(
- controller: provider.targetDateController,
- hint: "Select your target date",
- icon: Icons.calendar_month,
- type: TextFieldType.date,
- readOnly: true,
+              CustomTextfield(
+                controller: provider.targetDateController,
+                hint: "Select your target date",
+                icon: Icons.calendar_month,
+                type: TextFieldType.date,
+                readOnly: true,
+                onTap: () async {
+                  final date = await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => GoalDateScreen(
+                        initialDate: provider.targetDate,
+                      ),
+                    ),
+                  );
 
- onTap: () async {
+                  if (date != null) {
+                    provider.setDate(date);
+                  }
+                },
+              ),
 
-   final date = await Navigator.push(
-     context,
-     MaterialPageRoute(
-       builder: (_) => GoalDateScreen(
-         initialDate: provider.targetDate,
-       ),
-     ),
-   );
-
-
-   if(date != null){
-
-     provider.setDate(date);
-
-   }
-
- },
-),
-
-             SizedBox(height: screenH*0.02,),
+              SizedBox(
+                height: screenH * 0.02,
+              ),
 
               // ============== BASIRA SUGGESTION ==============
 
@@ -256,55 +295,49 @@ Text(
               ),
 
               SizedBox(height: screenH * 0.03),
-Padding(
-  padding: EdgeInsets.only(
-    bottom: screenH * 0.02,
-  ),
-  child: AppButton(
-    text: "Finish",
-    isDark: themeProvider.isDark,
-    width: screenW,
-    height: screenH * 0.065,
-    isLoading: provider.isSaving,
-    onPressed: () async {
-      if (provider.isValid) {
-        final saved =
-            await provider.saveCurrentGoal();
+              Padding(
+                padding: EdgeInsets.only(
+                  bottom: screenH * 0.02,
+                ),
+                child: AppButton(
+                  text: "Finish",
+                  isDark: themeProvider.isDark,
+                  width: screenW,
+                  height: screenH * 0.065,
+                  isLoading: provider.isSaving,
+                  onPressed: () async {
+                    if (provider.isValid) {
+                      final saved = await provider.saveCurrentGoal();
 
-        if (saved) {
-          Navigator.pushAndRemoveUntil(
-            context,
-            MaterialPageRoute(
-              builder: (_) =>
-                  const MainNavigationScreen(),
-            ),
-            (route) => false,
-          );
-        }
-      } else {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(
-          SnackBar(
-            backgroundColor:
-                themeProvider.isDark
-                    ? AppColors.darkError
-                    : AppColors.lightError,
-            content: Text(
-              "Please complete all required fields",
-              style: TextStyle(
-                fontSize: screenW * 0.04,
-                fontWeight:
-                    FontWeight.w500,
+                      if (saved) {
+                        Navigator.pushAndRemoveUntil(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const MainNavigationScreen(),
+                          ),
+                          (route) => false,
+                        );
+                      }
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          backgroundColor: themeProvider.isDark
+                              ? AppColors.darkError
+                              : AppColors.lightError,
+                          content: Text(
+                            "Please complete all required fields",
+                            style: TextStyle(
+                              fontSize: screenW * 0.04,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          duration: const Duration(seconds: 2),
+                        ),
+                      );
+                    }
+                  },
+                ),
               ),
-            ),
-            duration:
-                const Duration(seconds: 2),
-          ),
-        );
-      }
-    },
-  ),
-),
             ],
           ),
         ),

@@ -33,42 +33,32 @@ class QuickActionsGrid extends StatelessWidget {
           title: 'Add Expense',
           subtitle: 'Track your spending',
           icon: Icons.account_balance_wallet_outlined,
-          iconColor: isDark
-              ? AppColors.darkError
-              : AppColors.lightError,
+          iconColor: isDark ? AppColors.darkError : AppColors.lightError,
           isDark: isDark,
           onTap: onAddExpense,
         ),
-
         QuickActionCard(
           title: 'Analytics',
           subtitle: 'View spending trends',
           icon: Icons.bar_chart_rounded,
-          iconColor: isDark
-              ? AppColors.darkPrimary
-              : AppColors.lightPrimary,
+          iconColor: isDark ? AppColors.darkPrimary : AppColors.lightPrimary,
           isDark: isDark,
           onTap: onAnalytics,
         ),
-
         QuickActionCard(
           title: 'Scan Receipt',
           subtitle: 'Capture expenses',
           icon: Icons.document_scanner_outlined,
-          iconColor: isDark
-              ? AppColors.darkSecondary
-              : AppColors.lightSecondary,
+          iconColor:
+              isDark ? AppColors.darkSecondary : AppColors.lightSecondary,
           isDark: isDark,
           onTap: onScanReceipt,
         ),
-
         QuickActionCard(
           title: 'Challenges',
           subtitle: 'Build good habits',
           icon: Icons.emoji_events_outlined,
-          iconColor: isDark
-              ? AppColors.darkAccent
-              : AppColors.lightAccent,
+          iconColor: isDark ? AppColors.darkAccent : AppColors.lightAccent,
           isDark: isDark,
           onTap: onChallenges,
         ),
@@ -99,11 +89,10 @@ class QuickActionCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final Color cardColor = isDark
         ? AppColors.darkBorder.withOpacity(0.4)
-            :AppColors.lightBorder.withOpacity(0.4);
+        : AppColors.lightBorder.withOpacity(0.4);
 
-    final Color borderColor = isDark
-        ? AppColors.darkBorder
-        : AppColors.lightBorder;
+    final Color borderColor =
+        isDark ? AppColors.darkBorder : AppColors.lightBorder;
 
     return Material(
       color: Colors.transparent,
@@ -138,34 +127,27 @@ class QuickActionCard extends StatelessWidget {
                   size: 25,
                 ),
               ),
-
               const SizedBox(height: 12),
-
               Text(
                 title,
                 textAlign: TextAlign.center,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: GoogleFonts.ibmPlexSansArabic(
-                  color: isDark
-                      ? AppColors.darkText
-                      : AppColors.lightText,
+                  color: isDark ? AppColors.darkText : AppColors.lightText,
                   fontSize: 13,
                   fontWeight: FontWeight.bold,
                 ),
               ),
-
               const SizedBox(height: 5),
-
               Text(
                 subtitle,
                 textAlign: TextAlign.center,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: GoogleFonts.ibmPlexSansArabic(
-                  color: isDark
-                      ? AppColors.darkSubText
-                      : AppColors.lightSubText,
+                  color:
+                      isDark ? AppColors.darkSubText : AppColors.lightSubText,
                   fontSize: 10,
                   height: 1.3,
                 ),

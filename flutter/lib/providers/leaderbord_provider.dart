@@ -2,14 +2,12 @@ import 'package:alpha_app/models/leader_board.dart';
 
 import 'package:flutter/material.dart';
 
-class LeaderboardProvider
-    extends ChangeNotifier {
+class LeaderboardProvider extends ChangeNotifier {
   LeaderboardModel? _leaderboard;
 
   bool _isLoading = false;
 
-  LeaderboardModel? get leaderboard =>
-      _leaderboard;
+  LeaderboardModel? get leaderboard => _leaderboard;
 
   bool get isLoading => _isLoading;
 

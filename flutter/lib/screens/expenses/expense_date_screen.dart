@@ -11,10 +11,12 @@ import 'package:table_calendar/table_calendar.dart';
 
 class ExpenseDateScreen extends StatefulWidget {
   final DateTime? initialDate;
+  final bool isRecurring;
 
   const ExpenseDateScreen({
     super.key,
     this.initialDate,
+    this.isRecurring = false,
   });
 
   @override
@@ -48,9 +50,10 @@ class _ExpenseDateScreenState extends State<ExpenseDateScreen> {
       initialDate.day,
     );
 
-    // إذا أُرسل تاريخ مستقبلي بالغلط، نرجعه لليوم.
     _selectedDay =
-        normalizedInitialDate.isAfter(_today) ? _today : normalizedInitialDate;
+        (widget.isRecurring || !normalizedInitialDate.isAfter(_today))
+            ? normalizedInitialDate
+            : _today;
 
     _focusedDay = _selectedDay!;
     _selectedYear = _selectedDay!.year;
@@ -160,12 +163,15 @@ class _ExpenseDateScreenState extends State<ExpenseDateScreen> {
                   child: ListView.builder(
                     scrollDirection: Axis.horizontal,
                     reverse: true,
-                    itemCount: 20,
+                    itemCount: widget.isRecurring ? 30 : 20,
                     itemBuilder: (
                       context,
                       index,
                     ) {
-                      final year = DateTime.now().year - index;
+                      final baseYear = widget.isRecurring
+                          ? DateTime.now().year + 10
+                          : DateTime.now().year;
+                      final year = baseYear - index;
 
                       final isSelected = year == _selectedYear;
 
@@ -184,7 +190,8 @@ class _ExpenseDateScreenState extends State<ExpenseDateScreen> {
                               day,
                             );
 
-                            if (newFocused.isAfter(_today)) {
+                            if (!widget.isRecurring &&
+                                newFocused.isAfter(_today)) {
                               newFocused = _today;
                             }
 
@@ -256,13 +263,14 @@ class _ExpenseDateScreenState extends State<ExpenseDateScreen> {
                     ),
 
                     // لا يسمح بالمستقبل.
-                    lastDay: _today,
+                    lastDay: widget.isRecurring
+                        ? DateTime(_today.year + 10, 12, 31)
+                        : _today,
 
-                    focusedDay: _focusedDay.isAfter(
-                      _today,
-                    )
-                        ? _today
-                        : _focusedDay,
+                    focusedDay:
+                        (!widget.isRecurring && _focusedDay.isAfter(_today))
+                            ? _today
+                            : _focusedDay,
 
                     calendarFormat: CalendarFormat.month,
 
@@ -278,6 +286,8 @@ class _ExpenseDateScreenState extends State<ExpenseDateScreen> {
                     enabledDayPredicate: (
                       day,
                     ) {
+                      if (widget.isRecurring) return true;
+
                       final normalizedDay = DateTime(
                         day.year,
                         day.month,
@@ -297,7 +307,8 @@ class _ExpenseDateScreenState extends State<ExpenseDateScreen> {
                         selectedDay.day,
                       );
 
-                      if (normalizedDay.isAfter(_today)) {
+                      if (!widget.isRecurring &&
+                          normalizedDay.isAfter(_today)) {
                         return;
                       }
 
@@ -315,7 +326,7 @@ class _ExpenseDateScreenState extends State<ExpenseDateScreen> {
                     ) {
                       DateTime safeDate = focusedDay;
 
-                      if (safeDate.isAfter(_today)) {
+                      if (!widget.isRecurring && safeDate.isAfter(_today)) {
                         safeDate = _today;
                       }
 

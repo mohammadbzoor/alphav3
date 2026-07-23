@@ -23,9 +23,12 @@ class IncomeModel {
       amount: _toDouble(json['amount']),
       source: json['source']?.toString() ?? 'other',
       description: json['description']?.toString() ?? '',
-      incomeDate: DateTime.tryParse(json['incomeDate']?.toString() ?? '') ?? DateTime.now(),
-      isRecurring: json['isRecurring'] == true || json['isRecurring']?.toString() == 'true',
-      createdAt: DateTime.tryParse(json['createdAt']?.toString() ?? '') ?? DateTime.now(),
+      incomeDate: DateTime.tryParse(json['incomeDate']?.toString() ?? '') ??
+          DateTime.now(),
+      isRecurring: json['isRecurring'] == true ||
+          json['isRecurring']?.toString() == 'true',
+      createdAt: DateTime.tryParse(json['createdAt']?.toString() ?? '') ??
+          DateTime.now(),
     );
   }
 

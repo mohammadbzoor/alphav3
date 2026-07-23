@@ -45,5 +45,11 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>This app needs camera access to scan receipts</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>This app needs photo library access to upload receipts</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>This app needs microphone access to record voice transactions</string>
 </dict>
 </plist>

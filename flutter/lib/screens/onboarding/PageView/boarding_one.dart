@@ -27,55 +27,47 @@ class _BoardingOneState extends State<BoardingOne> {
 
   @override
   Widget build(BuildContext context) {
-
     final double screenW = Device.width(context);
     final double screenH = Device.height(context);
     final themeprovider = Provider.of<Themeprovider>(context);
-    return 
-   
-     Center(
-        child: Column(
-         
-             
-             
-          children: [
-           
-            Padding(
-              padding: EdgeInsets.only(top: screenH*0.08),
-              child: CustomMeshCard(hight: screenH*0.4 , width: screenW*0.8 ,isDark: themeprovider.isDark, imagepath: ImagesAssets.boarding1 ),
+    return Center(
+      child: Column(
+        children: [
+          Padding(
+            padding: EdgeInsets.only(top: screenH * 0.08),
+            child: CustomMeshCard(
+                hight: screenH * 0.4,
+                width: screenW * 0.8,
+                isDark: themeprovider.isDark,
+                imagepath: ImagesAssets.boarding1),
+          ),
+          SizedBox(height: screenH * 0.04),
+          Text(
+            "We Understand Your Behavior",
+            textAlign: TextAlign.center,
+            style: GoogleFonts.ibmPlexSansArabic(
+              fontSize: screenW * 0.07,
+              fontWeight: FontWeight.bold,
+              color: themeprovider.isDark
+                  ? AppColors.darkText
+                  : AppColors.lightText,
             ),
-             SizedBox(height: screenH*0.04),
-              
-            Text(
-              "We Understand Your Behavior",
+          ),
+          SizedBox(height: screenH * 0.03),
+          Expanded(
+            child: Text(
               textAlign: TextAlign.center,
+              "Alpha automatically tracks your spending patterns and uncovers the habits shaping your finances — with zero extra effort from you",
               style: GoogleFonts.ibmPlexSansArabic(
-                fontSize: screenW*0.07,
-                fontWeight: FontWeight.bold,
+                fontSize: screenW * 0.042,
                 color: themeprovider.isDark
-                    ? AppColors.darkText
-                    : AppColors.lightText,
+                    ? AppColors.darkSubText
+                    : AppColors.lightSubText,
               ),
             ),
-               SizedBox(height: screenH*0.03),
-            Expanded(
-              child: Text( textAlign: TextAlign.center,
-                "Alpha automatically tracks your spending patterns and uncovers the habits shaping your finances — with zero extra effort from you",
-                style: GoogleFonts.ibmPlexSansArabic(
-                  fontSize: screenW*0.042,
-                 
-                  color: themeprovider.isDark
-                      ? AppColors.darkSubText
-                      : AppColors.lightSubText,
-                ),
-              ),
-            ),
-            
-           
-          ],
-        ),
-      );
-     
-   
+          ),
+        ],
+      ),
+    );
   }
 }

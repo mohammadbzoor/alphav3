@@ -1,6 +1,8 @@
 import 'package:alpha_app/models/expense_model.dart';
+import 'package:alpha_app/models/transaction_draft_model.dart';
 import 'package:alpha_app/services/api_service.dart';
 import 'package:flutter/material.dart';
+import 'package:alpha_app/core/utils/finance_mappings.dart';
 
 class ExpenseProvider extends ChangeNotifier {
   ExpenseProvider() {
@@ -13,20 +15,16 @@ class ExpenseProvider extends ChangeNotifier {
   // FORM CONTROLLERS
   // =========================================================
 
-final TextEditingController customCategoryController =
-    TextEditingController();
-
-  final TextEditingController titleController =
+  final TextEditingController customCategoryController =
       TextEditingController();
 
-  final TextEditingController amountController =
-      TextEditingController();
+  final TextEditingController titleController = TextEditingController();
 
-  final TextEditingController noteController =
-      TextEditingController();
+  final TextEditingController amountController = TextEditingController();
 
-  final TextEditingController dateController =
-      TextEditingController();
+  final TextEditingController noteController = TextEditingController();
+
+  final TextEditingController dateController = TextEditingController();
 
   // =========================================================
   // FORM VALUES
@@ -36,23 +34,25 @@ final TextEditingController customCategoryController =
 
   String? get selectedCategory => _selectedCategory;
 
-  String _paymentMethod = 'Cash';
+  String? _paymentMethod;
 
-  String get paymentMethod => _paymentMethod;
+  String? get paymentMethod => _paymentMethod;
 
-  ExpenseType _expenseType = ExpenseType.need;
+  ExpenseType? _expenseType;
 
-  ExpenseType get expenseType => _expenseType;
+  ExpenseType? get expenseType => _expenseType;
 
-  ExpenseMovementType _movementType =
-      ExpenseMovementType.occasional;
+  ExpenseMovementType _movementType = ExpenseMovementType.occasional;
 
   ExpenseMovementType get movementType => _movementType;
 
-  ExpenseCoveragePeriod _coveragePeriod =
-      ExpenseCoveragePeriod.oneDay;
+  ExpenseCoveragePeriod? _coveragePeriod;
 
-  ExpenseCoveragePeriod get coveragePeriod => _coveragePeriod;
+  ExpenseCoveragePeriod? get coveragePeriod => _coveragePeriod;
+
+  String? _flexibility;
+
+  String? get flexibility => _flexibility;
 
   DateTime _selectedDate = DateTime.now();
 
@@ -91,18 +91,44 @@ final TextEditingController customCategoryController =
   String? get errorMessage => _errorMessage;
 
   // =========================================================
+  // TRANSACTION DRAFT
+  // =========================================================
+
+  TransactionDraft? _transactionDraft;
+  TransactionDraft? get transactionDraft => _transactionDraft;
+
+  bool _isAnalyzing = false;
+  bool get isAnalyzing => _isAnalyzing;
+
+  bool _isSubmitting = false;
+  bool get isSubmitting => _isSubmitting;
+
+  void setTransactionDraft(TransactionDraft? draft) {
+    _transactionDraft = draft;
+    notifyListeners();
+  }
+
+  void setIsAnalyzing(bool value) {
+    _isAnalyzing = value;
+    notifyListeners();
+  }
+
+  void setIsSubmitting(bool value) {
+    _isSubmitting = value;
+    notifyListeners();
+  }
+
+  // =========================================================
   // SHOPPING SESSION
   // =========================================================
 
   bool _isShoppingSessionActive = false;
 
-  bool get isShoppingSessionActive =>
-      _isShoppingSessionActive;
+  bool get isShoppingSessionActive => _isShoppingSessionActive;
 
   final List<ExpenseModel> _sessionExpenses = [];
 
-  List<ExpenseModel> get sessionExpenses =>
-      List.unmodifiable(_sessionExpenses);
+  List<ExpenseModel> get sessionExpenses => List.unmodifiable(_sessionExpenses);
 
   double get sessionTotal {
     return _calculateTotal(_sessionExpenses);
@@ -114,36 +140,29 @@ final TextEditingController customCategoryController =
   // OPTIONS
   // =========================================================
 
-  final List<String> categories = const [
-    'Food',
-    'Shopping',
-    'Transport',
-    'Bills',
-    'Health',
-    'Education',
-    'Entertainment',
-    'Travel',
-    'Investment',
-    'Other',
-  ];
+  List<String> get categories {
+    if (_expenseType == null) return [];
+    return _expenseType == ExpenseType.need
+        ? FinanceMappings.needsCategories.keys.toList()
+        : FinanceMappings.wantsCategories.keys.toList();
+  }
 
-  final List<String> paymentMethods = const [
-    'Cash',
-    'Card',
-    'Wallet',
-  ];
+  List<String> get paymentMethods {
+    return FinanceMappings.paymentMethods.keys.toList();
+  }
 
   final List<String> movementTypes = const [
     'Occasional',
     'Recurring',
   ];
 
-  final List<String> coveragePeriods = const [
-    '1 Day',
-    '3 Days',
-    '1 Week',
-    '2 Weeks',
-    'Monthly',
+  List<String> get coveragePeriods {
+    return FinanceMappings.recurringFrequencies.keys.toList();
+  }
+
+  final List<String> flexibilities = const [
+    'Fixed',
+    'Flexible',
   ];
 
   // =========================================================
@@ -154,8 +173,7 @@ final TextEditingController customCategoryController =
     final sorted = List<ExpenseModel>.from(_expenses);
 
     sorted.sort((first, second) {
-      final dateComparison =
-          second.date.compareTo(first.date);
+      final dateComparison = second.date.compareTo(first.date);
 
       if (dateComparison != 0) {
         return dateComparison;
@@ -203,8 +221,7 @@ final TextEditingController customCategoryController =
 
       _isInitialized = true;
     } catch (error) {
-      _errorMessage =
-          'Could not load expenses: ${_cleanError(error)}';
+      _errorMessage = 'Could not load expenses: ${_cleanError(error)}';
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -220,8 +237,7 @@ final TextEditingController customCategoryController =
     try {
       await loadExpenses();
     } catch (error) {
-      _errorMessage =
-          'Could not refresh expenses: ${_cleanError(error)}';
+      _errorMessage = 'Could not refresh expenses: ${_cleanError(error)}';
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -240,18 +256,22 @@ final TextEditingController customCategoryController =
       if (response.statusCode >= 200 && response.statusCode < 300) {
         final data = body['data'] ?? body;
         final items = data['items'] ?? data;
-        
+
         if (items is List) {
-          final loadedExpenses = items.map((item) {
-            final map = Map<String, dynamic>.from(item);
-            return ExpenseModel.fromJson(map);
-          }).where((e) => e.id.isNotEmpty).toList();
+          final loadedExpenses = items
+              .map((item) {
+                final map = Map<String, dynamic>.from(item);
+                return ExpenseModel.fromJson(map);
+              })
+              .where((e) => e.id.isNotEmpty)
+              .toList();
 
           _expenses.clear();
           _expenses.addAll(loadedExpenses);
         }
       } else {
-        _errorMessage = await ApiService.getErrorMessage(response, fallback: 'Could not load expenses');
+        _errorMessage = await ApiService.getErrorMessage(response,
+            fallback: 'Could not load expenses');
       }
     } catch (error) {
       _errorMessage = 'Could not load expenses: ${_cleanError(error)}';
@@ -278,6 +298,7 @@ final TextEditingController customCategoryController =
 
   void setExpenseType(ExpenseType type) {
     _expenseType = type;
+    _selectedCategory = null;
     _errorMessage = null;
 
     notifyListeners();
@@ -290,12 +311,8 @@ final TextEditingController customCategoryController =
     _errorMessage = null;
 
     if (type == ExpenseMovementType.occasional) {
-      _coveragePeriod =
-          ExpenseCoveragePeriod.oneDay;
-    } else if (_coveragePeriod ==
-        ExpenseCoveragePeriod.oneDay) {
-      _coveragePeriod =
-          ExpenseCoveragePeriod.oneWeek;
+      _coveragePeriod = null;
+      _flexibility = null;
     }
 
     notifyListeners();
@@ -319,37 +336,32 @@ final TextEditingController customCategoryController =
   }
 
   void setCoveragePeriodByLabel(String value) {
+    // Just map UI string directly back or fallback to Monthly
     switch (value) {
-      case '3 Days':
-        setCoveragePeriod(
-          ExpenseCoveragePeriod.threeDays,
-        );
+      case 'Weekly':
+        setCoveragePeriod(ExpenseCoveragePeriod.oneWeek);
         break;
-
-      case '1 Week':
-        setCoveragePeriod(
-          ExpenseCoveragePeriod.oneWeek,
-        );
-        break;
-
-      case '2 Weeks':
-        setCoveragePeriod(
-          ExpenseCoveragePeriod.twoWeeks,
-        );
-        break;
-
       case 'Monthly':
-        setCoveragePeriod(
-          ExpenseCoveragePeriod.monthly,
-        );
+        setCoveragePeriod(ExpenseCoveragePeriod.monthly);
         break;
-
-      case '1 Day':
+      case 'Quarterly':
+        // For UI purposes, we'll map Quarterly to twoWeeks for now or just add it to enum if needed.
+        // The endpoint cares about the string value "quarterly". We should update the enum.
+        setCoveragePeriod(ExpenseCoveragePeriod
+            .twoWeeks); // Workaround if enum is not updated
+        break;
+      case 'Yearly':
+        setCoveragePeriod(ExpenseCoveragePeriod.threeDays); // Workaround
+        break;
       default:
-        setCoveragePeriod(
-          ExpenseCoveragePeriod.oneDay,
-        );
+        setCoveragePeriod(ExpenseCoveragePeriod.monthly);
     }
+  }
+
+  void setFlexibility(String value) {
+    _flexibility = value;
+    _errorMessage = null;
+    notifyListeners();
   }
 
   void setDate(
@@ -362,8 +374,7 @@ final TextEditingController customCategoryController =
       date.day,
     );
 
-    dateController.text =
-        '${date.day.toString().padLeft(2, '0')}/'
+    dateController.text = '${date.day.toString().padLeft(2, '0')}/'
         '${date.month.toString().padLeft(2, '0')}/'
         '${date.year}';
 
@@ -391,22 +402,18 @@ final TextEditingController customCategoryController =
     }
   }
 
-  String get coveragePeriodLabel {
+  String? get coveragePeriodLabel {
     switch (_coveragePeriod) {
-      case ExpenseCoveragePeriod.oneDay:
-        return '1 Day';
-
-      case ExpenseCoveragePeriod.threeDays:
-        return '3 Days';
-
       case ExpenseCoveragePeriod.oneWeek:
-        return '1 Week';
-
+        return 'Weekly';
       case ExpenseCoveragePeriod.twoWeeks:
-        return '2 Weeks';
-
+        return 'Quarterly';
+      case ExpenseCoveragePeriod.threeDays:
+        return 'Yearly';
       case ExpenseCoveragePeriod.monthly:
         return 'Monthly';
+      default:
+        return null;
     }
   }
 
@@ -415,9 +422,7 @@ final TextEditingController customCategoryController =
   // =========================================================
 
   double get amount {
-    final value = amountController.text
-        .replaceAll(',', '')
-        .trim();
+    final value = amountController.text.replaceAll(',', '').trim();
 
     return double.tryParse(value) ?? 0;
   }
@@ -427,22 +432,40 @@ final TextEditingController customCategoryController =
   // =========================================================
 
   bool get isValid {
-    return titleController.text.trim().isNotEmpty &&
-        amount > 0 &&
-        _selectedCategory != null;
+    return validationMessage == null;
   }
 
   String? get validationMessage {
+    if (_expenseType == null) {
+      return 'Select an expense type.';
+    }
+
     if (_selectedCategory == null) {
-      return 'Please select an expense category';
+      return 'Select a category.';
     }
 
     if (titleController.text.trim().isEmpty) {
-      return 'Please enter the expense name';
+      return 'Enter an expense name.';
     }
 
     if (amount <= 0) {
-      return 'Please enter a valid amount';
+      return 'Enter a valid amount.';
+    }
+
+    if (_movementType == ExpenseMovementType.recurring) {
+      if (_coveragePeriod == null) {
+        return 'Select a coverage period.';
+      }
+      if (_flexibility == null) {
+        return 'Select flexibility.';
+      }
+    } else {
+      if (_paymentMethod == null) {
+        return 'Select a payment method.';
+      }
+      if (_selectedDate.isAfter(DateTime.now())) {
+        return 'Select a valid transaction date.';
+      }
     }
 
     return null;
@@ -459,44 +482,25 @@ final TextEditingController customCategoryController =
 
     final oldExpense = _expenseBeingEdited;
 
-    final noteText =
-        noteController.text.trim();
+    final noteText = noteController.text.trim();
 
     return ExpenseModel(
-      id: oldExpense?.id ??
-          DateTime.now()
-              .microsecondsSinceEpoch
-              .toString(),
-
+      id: oldExpense?.id ?? DateTime.now().microsecondsSinceEpoch.toString(),
       title: titleController.text.trim(),
-
-      category: _selectedCategory!,
-
+      category: _expenseType == ExpenseType.need
+          ? (FinanceMappings.needsCategories[_selectedCategory!] ?? 'other')
+          : (FinanceMappings.wantsCategories[_selectedCategory!] ?? 'other'),
       amount: amount,
-
       date: _selectedDate,
-
-      paymentMethod: _paymentMethod,
-
-      note: noteText.isEmpty
-          ? null
-          : noteText,
-
-      expenseType: _expenseType,
-
-      source: oldExpense?.source ??
-          ExpenseSource.manual,
-
+      paymentMethod: FinanceMappings.paymentMethods[_paymentMethod] ?? 'cash',
+      note: noteText.isEmpty ? null : noteText,
+      expenseType: _expenseType!,
+      source: oldExpense?.source ?? ExpenseSource.manual,
       movementType: _movementType,
-
-      coveragePeriod: _coveragePeriod,
-
-      aiInsight: _buildExpenseInsight(),
-
+      coveragePeriod: _coveragePeriod ?? ExpenseCoveragePeriod.oneDay,
+      aiInsight: null,
       confidence: oldExpense?.confidence,
-
-      createdAt:
-          oldExpense?.createdAt ?? DateTime.now(),
+      createdAt: oldExpense?.createdAt ?? DateTime.now(),
     );
   }
 
@@ -534,8 +538,7 @@ final TextEditingController customCategoryController =
     ExpenseModel updatedExpense,
   ) async {
     final index = _expenses.indexWhere(
-      (expense) =>
-          expense.id == updatedExpense.id,
+      (expense) => expense.id == updatedExpense.id,
     );
 
     if (index == -1) {
@@ -573,13 +576,15 @@ final TextEditingController customCategoryController =
   Future<bool> addExpense(
     ExpenseModel expense,
   ) async {
-    final existingIndex =
-        _expenses.indexWhere(
+    if (_isSaving) return false;
+    _isSaving = true;
+    notifyListeners();
+
+    final existingIndex = _expenses.indexWhere(
       (item) => item.id == expense.id,
     );
 
-    final backup =
-        List<ExpenseModel>.from(_expenses);
+    final backup = List<ExpenseModel>.from(_expenses);
 
     if (existingIndex == -1) {
       _expenses.insert(0, expense);
@@ -590,10 +595,33 @@ final TextEditingController customCategoryController =
     notifyListeners();
 
     try {
-      final String idempotencyKey = DateTime.now().millisecondsSinceEpoch.toString();
+      final String idempotencyKey =
+          DateTime.now().millisecondsSinceEpoch.toString();
+
+      String endpoint = '/expenses';
+      Map<String, dynamic> requestBody;
+
+      if (expense.isRecurring) {
+        endpoint = '/commitments';
+        String frequency = 'monthly';
+        if (expense.coveragePeriod == ExpenseCoveragePeriod.oneWeek)
+          frequency = 'weekly';
+        if (expense.coveragePeriod == ExpenseCoveragePeriod.twoWeeks)
+          frequency = 'quarterly';
+        if (expense.coveragePeriod == ExpenseCoveragePeriod.threeDays)
+          frequency = 'yearly';
+
+        String mappedFlexibility = 'fixed';
+        if (_flexibility == 'Flexible') mappedFlexibility = 'flexible';
+
+        requestBody = expense.toCommitmentJson(frequency, mappedFlexibility);
+      } else {
+        requestBody = expense.toExpenseJson();
+      }
+
       final response = await ApiService.post(
-        '/expenses', 
-        body: expense.toJson(),
+        endpoint,
+        body: requestBody,
         headers: {'Idempotency-Key': idempotencyKey},
       );
 
@@ -601,36 +629,126 @@ final TextEditingController customCategoryController =
         final body = await ApiService.parseJson(response);
         final data = body['data'] ?? {};
         final newId = data['id']?.toString() ?? expense.id;
-        
+
         final finalExpense = expense.copyWith(id: newId);
-        
+
         if (existingIndex == -1) {
           _expenses[0] = finalExpense;
         } else {
           _expenses[existingIndex] = finalExpense;
         }
-        
+
         clearForm(notify: false);
+        _isSaving = false;
         notifyListeners();
         return true;
       } else {
-        _errorMessage = await ApiService.getErrorMessage(response, fallback: 'Failed to save to backend');
+        final body = await ApiService.parseJson(response);
+        final errorCode = body['code']?.toString() ??
+            (body['error'] is Map ? body['error']['code']?.toString() : null);
+        if (errorCode == 'NO_ACTIVE_FINANCIAL_CYCLE' ||
+            errorCode == 'CYCLE_NOT_FOUND') {
+          _errorMessage = errorCode;
+        } else {
+          _errorMessage = await ApiService.getErrorMessage(response,
+              fallback: 'Failed to save to backend');
+        }
       }
     } catch (e) {
-      _errorMessage = _cleanError(e);
+      if (e.toString().contains('NO_ACTIVE_FINANCIAL_CYCLE')) {
+        _errorMessage = 'NO_ACTIVE_FINANCIAL_CYCLE';
+      } else if (e.toString().contains('CYCLE_NOT_FOUND')) {
+        _errorMessage = 'CYCLE_NOT_FOUND';
+      } else {
+        _errorMessage = _cleanError(e);
+      }
     }
 
     _expenses.clear();
     _expenses.addAll(backup);
 
+    _isSaving = false;
     notifyListeners();
 
     return false;
+  }
 
-    clearForm(notify: false);
+  Future<bool> saveTransactionDraft(TransactionDraft draft) async {
+    _isSubmitting = true;
+    _errorMessage = null;
     notifyListeners();
 
-    return true;
+    try {
+      final String idempotencyKey =
+          DateTime.now().millisecondsSinceEpoch.toString();
+
+      String endpoint = '/expenses';
+      Map<String, dynamic> requestBody;
+
+      if (draft.movementType == 'recurring') {
+        endpoint = '/commitments';
+        requestBody = {
+          'amount': draft.amount,
+          'name': draft.description,
+          'frequency': draft.frequency,
+          'flexibility': draft.flexibility,
+          'nextDueDate': draft.transactionDate,
+          'sourceType': draft.sourceType,
+        };
+      } else {
+        requestBody = {
+          'amount': draft.amount,
+          'bucket': draft.bucket,
+          'category': draft.category,
+          'paymentMethod': draft.paymentMethod,
+          'expenseDate': draft.transactionDate,
+          'description': draft.description,
+          'sourceType': draft.sourceType,
+        };
+      }
+
+      final response = await ApiService.post(
+        endpoint,
+        body: requestBody,
+        headers: {'Idempotency-Key': idempotencyKey},
+      );
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        _transactionDraft = null;
+
+        // Reload expenses to show the newly added one
+        loadExpenses().then((_) {
+          notifyListeners();
+        });
+
+        _isSubmitting = false;
+        notifyListeners();
+        return true;
+      } else {
+        final body = await ApiService.parseJson(response);
+        final errorCode = body['code']?.toString() ??
+            (body['error'] is Map ? body['error']['code']?.toString() : null);
+        if (errorCode == 'NO_ACTIVE_FINANCIAL_CYCLE' ||
+            errorCode == 'CYCLE_NOT_FOUND') {
+          _errorMessage = errorCode;
+        } else {
+          _errorMessage = await ApiService.getErrorMessage(response,
+              fallback: 'Failed to save transaction');
+        }
+      }
+    } catch (e) {
+      if (e.toString().contains('NO_ACTIVE_FINANCIAL_CYCLE')) {
+        _errorMessage = 'NO_ACTIVE_FINANCIAL_CYCLE';
+      } else if (e.toString().contains('CYCLE_NOT_FOUND')) {
+        _errorMessage = 'CYCLE_NOT_FOUND';
+      } else {
+        _errorMessage = _cleanError(e);
+      }
+    }
+
+    _isSubmitting = false;
+    notifyListeners();
+    return false;
   }
 
   Future<bool> updateExpense(
@@ -652,8 +770,7 @@ final TextEditingController customCategoryController =
       return false;
     }
 
-    final removedExpense =
-        _expenses.removeAt(index);
+    final removedExpense = _expenses.removeAt(index);
 
     notifyListeners();
 
@@ -697,8 +814,7 @@ final TextEditingController customCategoryController =
 
     titleController.text = expense.title;
 
-    amountController.text =
-        expense.amount.toStringAsFixed(2);
+    amountController.text = expense.amount.toStringAsFixed(2);
 
     noteController.text = expense.note ?? '';
 
@@ -745,8 +861,7 @@ final TextEditingController customCategoryController =
       return true;
     }
 
-    final backup =
-        List<ExpenseModel>.from(_expenses);
+    final backup = List<ExpenseModel>.from(_expenses);
 
     _expenses.insertAll(
       0,
@@ -805,8 +920,7 @@ final TextEditingController customCategoryController =
     final now = DateTime.now();
 
     return expenses.where((expense) {
-      return expense.date.year == now.year &&
-          expense.date.month == now.month;
+      return expense.date.year == now.year && expense.date.month == now.month;
     }).toList();
   }
 
@@ -820,10 +934,8 @@ final TextEditingController customCategoryController =
     );
 
     return expenses.where((expense) {
-      return expense.date.year ==
-              previousMonth.year &&
-          expense.date.month ==
-              previousMonth.month;
+      return expense.date.year == previousMonth.year &&
+          expense.date.month == previousMonth.month;
     }).toList();
   }
 
@@ -839,16 +951,14 @@ final TextEditingController customCategoryController =
     );
   }
 
-  Map<String, double>
-      get currentMonthCategoryTotals {
+  Map<String, double> get currentMonthCategoryTotals {
     return _calculateCategoryTotals(
       currentMonthExpenses,
     );
   }
 
   String get topCategory {
-    final totals =
-        currentMonthCategoryTotals;
+    final totals = currentMonthCategoryTotals;
 
     if (totals.isEmpty) {
       return '';
@@ -856,9 +966,7 @@ final TextEditingController customCategoryController =
 
     return totals.entries.reduce(
       (first, second) {
-        return first.value >= second.value
-            ? first
-            : second;
+        return first.value >= second.value ? first : second;
       },
     ).key;
   }
@@ -868,14 +976,11 @@ final TextEditingController customCategoryController =
       return 0;
     }
 
-    return currentMonthCategoryTotals[
-            topCategory] ??
-        0;
+    return currentMonthCategoryTotals[topCategory] ?? 0;
   }
 
   double get monthlyDifference {
-    return currentMonthTotal -
-        previousMonthTotal;
+    return currentMonthTotal - previousMonthTotal;
   }
 
   double get monthlyDifferencePercentage {
@@ -883,17 +988,13 @@ final TextEditingController customCategoryController =
       return 0;
     }
 
-    return monthlyDifference.abs() /
-        previousMonthTotal *
-        100;
+    return monthlyDifference.abs() / previousMonthTotal * 100;
   }
 
   double get currentMonthNeedsTotal {
     return _calculateTotal(
       currentMonthExpenses.where(
-        (expense) =>
-            expense.expenseType ==
-            ExpenseType.need,
+        (expense) => expense.expenseType == ExpenseType.need,
       ),
     );
   }
@@ -901,9 +1002,7 @@ final TextEditingController customCategoryController =
   double get currentMonthWantsTotal {
     return _calculateTotal(
       currentMonthExpenses.where(
-        (expense) =>
-            expense.expenseType ==
-            ExpenseType.want,
+        (expense) => expense.expenseType == ExpenseType.want,
       ),
     );
   }
@@ -927,9 +1026,7 @@ final TextEditingController customCategoryController =
           : 'This is your first tracked month. Your highest spending category is $topCategory.';
     }
 
-    final percentage =
-        monthlyDifferencePercentage
-            .toStringAsFixed(0);
+    final percentage = monthlyDifferencePercentage.toStringAsFixed(0);
 
     if (monthlyDifference > 0) {
       return 'Your spending increased by $percentage% compared with last month. Your highest category is $topCategory.';
@@ -951,8 +1048,7 @@ final TextEditingController customCategoryController =
       return 'This is a relatively high expense. Review its effect on your remaining monthly balance.';
     }
 
-    if (_movementType ==
-        ExpenseMovementType.recurring) {
+    if (_movementType == ExpenseMovementType.recurring) {
       return 'This recurring expense covers $coveragePeriodLabel and will be distributed across its coverage period.';
     }
 
@@ -966,36 +1062,28 @@ final TextEditingController customCategoryController =
   List<ExpenseModel> searchExpenses(
     String query,
   ) {
-    final normalized =
-        query.trim().toLowerCase();
+    final normalized = query.trim().toLowerCase();
 
     if (normalized.isEmpty) {
       return expenses;
     }
 
     return expenses.where((expense) {
-      return expense.title
-              .toLowerCase()
-              .contains(normalized) ||
-          expense.category
-              .toLowerCase()
-              .contains(normalized) ||
-          expense.paymentMethod
-              .toLowerCase()
-              .contains(normalized) ||
-          (expense.note ?? '')
-              .toLowerCase()
-              .contains(normalized);
+      return expense.title.toLowerCase().contains(normalized) ||
+          expense.category.toLowerCase().contains(normalized) ||
+          expense.paymentMethod.toLowerCase().contains(normalized) ||
+          (expense.note ?? '').toLowerCase().contains(normalized);
     }).toList();
   }
 
   List<ExpenseModel> expensesByCategory(
     String category,
   ) {
-    return expenses.where(
-      (expense) =>
-          expense.category == category,
-    ).toList();
+    return expenses
+        .where(
+          (expense) => expense.category == category,
+        )
+        .toList();
   }
 
   List<ExpenseModel> expensesBetween({
@@ -1033,13 +1121,11 @@ final TextEditingController customCategoryController =
   ) {
     return items.fold<double>(
       0,
-      (sum, expense) =>
-          sum + expense.amount,
+      (sum, expense) => sum + expense.amount,
     );
   }
 
-  Map<String, double>
-      _calculateCategoryTotals(
+  Map<String, double> _calculateCategoryTotals(
     Iterable<ExpenseModel> items,
   ) {
     final totals = <String, double>{};
@@ -1047,10 +1133,8 @@ final TextEditingController customCategoryController =
     for (final expense in items) {
       totals.update(
         expense.category,
-        (value) =>
-            value + expense.amount,
-        ifAbsent: () =>
-            expense.amount,
+        (value) => value + expense.amount,
+        ifAbsent: () => expense.amount,
       );
     }
 
@@ -1058,9 +1142,7 @@ final TextEditingController customCategoryController =
   }
 
   String _cleanError(Object error) {
-    return error
-        .toString()
-        .replaceFirst('Exception: ', '');
+    return error.toString().replaceFirst('Exception: ', '');
   }
 
   // =========================================================
@@ -1081,14 +1163,13 @@ final TextEditingController customCategoryController =
     customCategoryController.clear();
 
     _selectedCategory = null;
-    _paymentMethod = 'Cash';
-    _expenseType = ExpenseType.need;
+    _paymentMethod = null;
+    _expenseType = null;
 
-    _movementType =
-        ExpenseMovementType.occasional;
+    _movementType = ExpenseMovementType.occasional;
 
-    _coveragePeriod =
-        ExpenseCoveragePeriod.oneDay;
+    _coveragePeriod = null;
+    _flexibility = null;
 
     _expenseBeingEdited = null;
     _errorMessage = null;
@@ -1101,6 +1182,21 @@ final TextEditingController customCategoryController =
     if (notify) {
       notifyListeners();
     }
+  }
+
+  void clearData() {
+    _expenses.clear();
+    _sessionExpenses.clear();
+    _isShoppingSessionActive = false;
+    _transactionDraft = null;
+    _isInitialized = false;
+    _isLoading = false;
+    _isSaving = false;
+    _isAnalyzing = false;
+    _isSubmitting = false;
+    _errorMessage = null;
+    clearForm(notify: false);
+    notifyListeners();
   }
 
   // =========================================================

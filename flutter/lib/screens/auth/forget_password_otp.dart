@@ -30,18 +30,21 @@ class ForgetPasswordOtpScreen extends StatelessWidget {
       ),
       decoration: BoxDecoration(
         color: isDark ? AppColors.darkCard : Colors.white,
-        border: Border.all(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
+        border: Border.all(
+            color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
         borderRadius: BorderRadius.circular(16),
       ),
     );
 
     return Scaffold(
-      backgroundColor: isDark ? AppColors.darkBackground : AppColors.lightBackground,
+      backgroundColor:
+          isDark ? AppColors.darkBackground : AppColors.lightBackground,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios, color: isDark ? AppColors.darkText : AppColors.lightText),
+          icon: Icon(Icons.arrow_back_ios,
+              color: isDark ? AppColors.darkText : AppColors.lightText),
           onPressed: () => Navigator.pop(context),
         ),
       ),
@@ -64,7 +67,8 @@ class ForgetPasswordOtpScreen extends StatelessWidget {
               Text(
                 'Please enter the 6-digit code sent to $email',
                 style: GoogleFonts.ibmPlexSansArabic(
-                  color: isDark ? AppColors.darkSubText : AppColors.lightSubText,
+                  color:
+                      isDark ? AppColors.darkSubText : AppColors.lightSubText,
                   fontSize: 16,
                 ),
               ),
@@ -75,7 +79,11 @@ class ForgetPasswordOtpScreen extends StatelessWidget {
                   controller: authProvider.otpController,
                   defaultPinTheme: defaultPinTheme,
                   focusedPinTheme: defaultPinTheme.copyDecorationWith(
-                    border: Border.all(color: isDark ? AppColors.darkPrimary : AppColors.lightPrimary, width: 2),
+                    border: Border.all(
+                        color: isDark
+                            ? AppColors.darkPrimary
+                            : AppColors.lightPrimary,
+                        width: 2),
                   ),
                   submittedPinTheme: defaultPinTheme,
                   showCursor: true,
@@ -88,7 +96,8 @@ class ForgetPasswordOtpScreen extends StatelessWidget {
                       Navigator.pushReplacement(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => ResetPasswordScreen(email: email, otpCode: pin),
+                          builder: (context) =>
+                              ResetPasswordScreen(email: email, otpCode: pin),
                         ),
                       );
                     }
@@ -114,7 +123,8 @@ class ForgetPasswordOtpScreen extends StatelessWidget {
                   onPressed: authProvider.isLoading
                       ? () {}
                       : () async {
-                          final success = await authProvider.verifyPasswordResetOtp(
+                          final success =
+                              await authProvider.verifyPasswordResetOtp(
                             otpCode: authProvider.otpController.text,
                           );
                           if (success && context.mounted) {

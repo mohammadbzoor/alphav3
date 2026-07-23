@@ -4,7 +4,12 @@ const errorMiddleware = (err, req, res, next) => {
   let error = { ...err };
   error.message = err.message;
 
-  console.error(err);
+  const statusCodeForLog = error.statusCode || err.statusCode || 500;
+  if (statusCodeForLog >= 500 || (!error.isOperational && !err.isOperational)) {
+    console.error(err);
+  } else {
+    console.warn(`[WARN] ${statusCodeForLog} - ${err.message}`);
+  }
 
   if (err.code === 'ER_DUP_ENTRY') {
     const message = 'Duplicate field value entered';

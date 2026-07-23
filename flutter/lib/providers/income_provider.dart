@@ -16,6 +16,8 @@ class IncomeProvider extends ChangeNotifier {
   }
 
   Future<void> loadIncomes() async {
+    if (_isLoading) return;
+
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
@@ -26,18 +28,22 @@ class IncomeProvider extends ChangeNotifier {
         final body = await ApiService.parseJson(response);
         final data = body['data'];
         final items = data['items'] ?? data;
-        
+
         if (items is List) {
-          final loadedIncomes = items.map((item) {
-            final map = Map<String, dynamic>.from(item);
-            return IncomeModel.fromJson(map);
-          }).where((e) => e.id.isNotEmpty).toList();
+          final loadedIncomes = items
+              .map((item) {
+                final map = Map<String, dynamic>.from(item);
+                return IncomeModel.fromJson(map);
+              })
+              .where((e) => e.id.isNotEmpty)
+              .toList();
 
           _incomes.clear();
           _incomes.addAll(loadedIncomes);
         }
       } else {
-        _errorMessage = await ApiService.getErrorMessage(response, fallback: 'Could not load incomes');
+        _errorMessage = await ApiService.getErrorMessage(response,
+            fallback: 'Could not load incomes');
       }
     } catch (e) {
       _errorMessage = _cleanError(e);
@@ -53,9 +59,10 @@ class IncomeProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final String idempotencyKey = DateTime.now().millisecondsSinceEpoch.toString();
+      final String idempotencyKey =
+          DateTime.now().millisecondsSinceEpoch.toString();
       final response = await ApiService.post(
-        '/incomes', 
+        '/incomes',
         body: income.toJson(),
         headers: {'Idempotency-Key': idempotencyKey},
       );
@@ -64,20 +71,23 @@ class IncomeProvider extends ChangeNotifier {
         final body = await ApiService.parseJson(response);
         final data = body['data'] ?? {};
         final newId = data['id']?.toString() ?? income.id;
-        _incomes.insert(0, IncomeModel(
-          id: newId,
-          amount: income.amount,
-          source: income.source,
-          description: income.description,
-          incomeDate: income.incomeDate,
-          isRecurring: income.isRecurring,
-          createdAt: DateTime.now(),
-        ));
+        _incomes.insert(
+            0,
+            IncomeModel(
+              id: newId,
+              amount: income.amount,
+              source: income.source,
+              description: income.description,
+              incomeDate: income.incomeDate,
+              isRecurring: income.isRecurring,
+              createdAt: DateTime.now(),
+            ));
         _isLoading = false;
         notifyListeners();
         return true;
       } else {
-        _errorMessage = await ApiService.getErrorMessage(response, fallback: 'Failed to create income');
+        _errorMessage = await ApiService.getErrorMessage(response,
+            fallback: 'Failed to create income');
       }
     } catch (e) {
       _errorMessage = _cleanError(e);
@@ -99,7 +109,8 @@ class IncomeProvider extends ChangeNotifier {
         notifyListeners();
         return true;
       } else {
-        _errorMessage = await ApiService.getErrorMessage(response, fallback: 'Failed to delete income');
+        _errorMessage = await ApiService.getErrorMessage(response,
+            fallback: 'Failed to delete income');
       }
     } catch (e) {
       _errorMessage = _cleanError(e);
@@ -110,5 +121,12 @@ class IncomeProvider extends ChangeNotifier {
 
   String _cleanError(Object error) {
     return error.toString().replaceFirst('Exception: ', '');
+  }
+
+  void clearData() {
+    _incomes.clear();
+    _isLoading = false;
+    _errorMessage = null;
+    notifyListeners();
   }
 }

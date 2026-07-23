@@ -2,6 +2,8 @@ import 'package:alpha_app/core/utils/app_colors.dart';
 import 'package:alpha_app/models/income_model.dart';
 import 'package:alpha_app/providers/income_provider.dart';
 import 'package:alpha_app/providers/themeprovider.dart';
+import 'package:alpha_app/core/utils/dashboard_action_result.dart';
+import 'package:alpha_app/providers/home_provider.dart';
 import 'package:alpha_app/screens/incomes/add_income_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -31,30 +33,47 @@ class _IncomesScreenState extends State<IncomesScreen> {
     final incomeProvider = context.watch<IncomeProvider>();
 
     return Scaffold(
-      backgroundColor: isDark ? AppColors.darkBackground : AppColors.lightBackground,
+      backgroundColor:
+          isDark ? AppColors.darkBackground : AppColors.lightBackground,
       appBar: AppBar(
-        title: Text('Incomes', style: GoogleFonts.ibmPlexSansArabic(
-          color: isDark ? AppColors.darkText : AppColors.lightText,
-        )),
+        title: Text('Incomes',
+            style: GoogleFonts.ibmPlexSansArabic(
+              color: isDark ? AppColors.darkText : AppColors.lightText,
+            )),
         backgroundColor: Colors.transparent,
         elevation: 0,
-        iconTheme: IconThemeData(color: isDark ? AppColors.darkText : AppColors.lightText),
+        iconTheme: IconThemeData(
+            color: isDark ? AppColors.darkText : AppColors.lightText),
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.push(context, MaterialPageRoute(builder: (_) => const AddIncomeScreen()));
+        onPressed: () async {
+          final result = await Navigator.push<DashboardActionResult>(context,
+              MaterialPageRoute(builder: (_) => const AddIncomeScreen()));
+
+          if (result == DashboardActionResult.created && mounted) {
+            context.read<IncomeProvider>().loadIncomes();
+            context.read<HomeProvider>().refreshHomeData();
+          }
         },
-        backgroundColor: isDark ? AppColors.darkPrimary : AppColors.lightPrimary,
+        backgroundColor:
+            isDark ? AppColors.darkPrimary : AppColors.lightPrimary,
         child: const Icon(Icons.add, color: Colors.white),
       ),
       body: incomeProvider.isLoading
-          ? Center(child: CircularProgressIndicator(color: isDark ? AppColors.darkPrimary : AppColors.lightPrimary))
+          ? Center(
+              child: CircularProgressIndicator(
+                  color:
+                      isDark ? AppColors.darkPrimary : AppColors.lightPrimary))
           : incomeProvider.errorMessage != null
               ? Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Text(incomeProvider.errorMessage!, style: TextStyle(color: isDark ? AppColors.darkError : AppColors.lightError)),
+                      Text(incomeProvider.errorMessage!,
+                          style: TextStyle(
+                              color: isDark
+                                  ? AppColors.darkError
+                                  : AppColors.lightError)),
                       ElevatedButton(
                         onPressed: () => incomeProvider.loadIncomes(),
                         child: const Text('Retry'),
@@ -64,23 +83,34 @@ class _IncomesScreenState extends State<IncomesScreen> {
                 )
               : incomeProvider.incomes.isEmpty
                   ? Center(
-                      child: Text('No incomes recorded yet.', style: TextStyle(color: isDark ? AppColors.darkSubText : AppColors.lightSubText)),
+                      child: Text('No incomes recorded yet.',
+                          style: TextStyle(
+                              color: isDark
+                                  ? AppColors.darkSubText
+                                  : AppColors.lightSubText)),
                     )
                   : ListView.builder(
                       itemCount: incomeProvider.incomes.length,
                       padding: const EdgeInsets.all(16),
                       itemBuilder: (context, index) {
                         final income = incomeProvider.incomes[index];
-                        return _IncomeCard(income: income, isDark: isDark, onDelete: () {
-                          incomeProvider.deleteIncome(income.id).then((success) {
-                            if (!success && context.mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                                content: Text(incomeProvider.errorMessage ?? 'Delete failed'),
-                                backgroundColor: AppColors.darkError,
-                              ));
-                            }
-                          });
-                        });
+                        return _IncomeCard(
+                            income: income,
+                            isDark: isDark,
+                            onDelete: () {
+                              incomeProvider
+                                  .deleteIncome(income.id)
+                                  .then((success) {
+                                if (!success && context.mounted) {
+                                  ScaffoldMessenger.of(context)
+                                      .showSnackBar(SnackBar(
+                                    content: Text(incomeProvider.errorMessage ??
+                                        'Delete failed'),
+                                    backgroundColor: AppColors.darkError,
+                                  ));
+                                }
+                              });
+                            });
                       },
                     ),
     );
@@ -92,7 +122,8 @@ class _IncomeCard extends StatelessWidget {
   final bool isDark;
   final VoidCallback onDelete;
 
-  const _IncomeCard({required this.income, required this.isDark, required this.onDelete});
+  const _IncomeCard(
+      {required this.income, required this.isDark, required this.onDelete});
 
   @override
   Widget build(BuildContext context) {
@@ -100,32 +131,45 @@ class _IncomeCard extends StatelessWidget {
       color: isDark ? AppColors.darkCard : AppColors.lightCard,
       margin: const EdgeInsets.only(bottom: 12),
       child: ListTile(
-        title: Text(income.source.toUpperCase(), style: TextStyle(
-          color: isDark ? AppColors.darkText : AppColors.lightText,
-          fontWeight: FontWeight.bold,
-        )),
+        title: Text(income.source.toUpperCase(),
+            style: TextStyle(
+              color: isDark ? AppColors.darkText : AppColors.lightText,
+              fontWeight: FontWeight.bold,
+            )),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(DateFormat('MMM dd, yyyy').format(income.incomeDate), style: TextStyle(color: isDark ? AppColors.darkSubText : AppColors.lightSubText)),
+            Text(DateFormat('MMM dd, yyyy').format(income.incomeDate),
+                style: TextStyle(
+                    color: isDark
+                        ? AppColors.darkSubText
+                        : AppColors.lightSubText)),
             if (income.description.isNotEmpty)
-              Text(income.description, style: TextStyle(color: isDark ? AppColors.darkSubText : AppColors.lightSubText)),
-            Text(income.isRecurring ? 'Recurring' : 'Unexpected', style: TextStyle(
-              color: income.isRecurring ? Colors.blue : Colors.orange,
-              fontWeight: FontWeight.w500,
-            )),
+              Text(income.description,
+                  style: TextStyle(
+                      color: isDark
+                          ? AppColors.darkSubText
+                          : AppColors.lightSubText)),
+            Text(income.isRecurring ? 'Recurring' : 'Unexpected',
+                style: TextStyle(
+                  color: income.isRecurring ? Colors.blue : Colors.orange,
+                  fontWeight: FontWeight.w500,
+                )),
           ],
         ),
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('${income.amount} JOD', style: TextStyle(
-              color: isDark ? AppColors.darkPrimary : AppColors.lightPrimary,
-              fontWeight: FontWeight.bold,
-              fontSize: 16,
-            )),
+            Text('${income.amount} JOD',
+                style: TextStyle(
+                  color:
+                      isDark ? AppColors.darkPrimary : AppColors.lightPrimary,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                )),
             IconButton(
-              icon: Icon(Icons.delete, color: isDark ? AppColors.darkError : AppColors.lightError),
+              icon: Icon(Icons.delete,
+                  color: isDark ? AppColors.darkError : AppColors.lightError),
               onPressed: onDelete,
             ),
           ],

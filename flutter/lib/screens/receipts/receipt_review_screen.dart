@@ -15,40 +15,32 @@ class ReceiptReviewScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bool isDark =
-        context.watch<Themeprovider>().isDark;
+    final bool isDark = context.watch<Themeprovider>().isDark;
 
-    final receiptProvider =
-        context.watch<ReceiptProvider>();
+    final receiptProvider = context.watch<ReceiptProvider>();
 
-    final receipt =
-        receiptProvider.parsedReceipt;
+    final receipt = receiptProvider.parsedReceipt;
 
     if (receipt == null) {
       return Scaffold(
-        backgroundColor: isDark
-            ? AppColors.darkBackground
-            : AppColors.lightBackground,
+        backgroundColor:
+            isDark ? AppColors.darkBackground : AppColors.lightBackground,
         body: _NoReceiptView(
           isDark: isDark,
         ),
       );
     }
 
-    final bool isVoice =
-        receipt.inputType ==
-            ReceiptInputType.voice;
+    final bool isVoice = receipt.inputType == ReceiptInputType.voice;
 
     return Scaffold(
-      backgroundColor: isDark
-          ? AppColors.darkBackground
-          : AppColors.lightBackground,
+      backgroundColor:
+          isDark ? AppColors.darkBackground : AppColors.lightBackground,
       body: SafeArea(
         child: Stack(
           children: [
             SingleChildScrollView(
-              physics:
-                  const BouncingScrollPhysics(),
+              physics: const BouncingScrollPhysics(),
               padding: const EdgeInsets.fromLTRB(
                 22,
                 22,
@@ -56,25 +48,19 @@ class ReceiptReviewScreen extends StatelessWidget {
                 120,
               ),
               child: Column(
-                crossAxisAlignment:
-                    CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _Header(
                     isVoice: isVoice,
                     isDark: isDark,
                   ),
-
                   const SizedBox(height: 22),
-
                   _ConfidenceCard(
-                    confidence:
-                        receipt.confidence,
+                    confidence: receipt.confidence,
                     isVoice: isVoice,
                     isDark: isDark,
                   ),
-
                   const SizedBox(height: 14),
-
                   _GeneralInfoCard(
                     receipt: receipt,
                     isDark: isDark,
@@ -99,9 +85,7 @@ class ReceiptReviewScreen extends StatelessWidget {
                       );
                     },
                   ),
-
                   const SizedBox(height: 14),
-
                   _ItemsCard(
                     items: receipt.items,
                     total: receipt.total,
@@ -124,19 +108,14 @@ class ReceiptReviewScreen extends StatelessWidget {
                 ],
               ),
             ),
-
             Positioned(
               left: 22,
               right: 22,
-              bottom:
-                  MediaQuery.paddingOf(context)
-                          .bottom +
-                      15,
+              bottom: MediaQuery.paddingOf(context).bottom + 15,
               child: AppButton(
                 text: "Confirm",
                 isDark: isDark,
-                isLoading:
-                    receiptProvider.isProcessing,
+                isLoading: receiptProvider.isProcessing,
                 width: double.infinity,
                 height: 54,
                 onPressed: () {
@@ -153,9 +132,7 @@ class ReceiptReviewScreen extends StatelessWidget {
   Future<void> _confirmReceipt(
     BuildContext context,
   ) async {
-    final success = await context
-        .read<ReceiptProvider>()
-        .confirmReceipt();
+    final success = await context.read<ReceiptProvider>().confirmReceipt();
 
     if (!context.mounted || !success) {
       return;
@@ -167,13 +144,9 @@ class ReceiptReviewScreen extends StatelessWidget {
         SnackBar(
           content: Text(
             "Expense added successfully",
-            style:
-                GoogleFonts.ibmPlexSansArabic(
-                  
-                ),
+            style: GoogleFonts.ibmPlexSansArabic(),
           ),
-          backgroundColor:
-              const Color(0xFF0F766E),
+          backgroundColor: const Color(0xFF0F766E),
         ),
       );
 
@@ -189,22 +162,18 @@ class ReceiptReviewScreen extends StatelessWidget {
     BuildContext context,
     DateTime currentDate,
   ) async {
-    final selectedDate =
-        await showDatePicker(
+    final selectedDate = await showDatePicker(
       context: context,
       initialDate: currentDate,
       firstDate: DateTime(2000),
       lastDate: DateTime.now(),
     );
 
-    if (!context.mounted ||
-        selectedDate == null) {
+    if (!context.mounted || selectedDate == null) {
       return;
     }
 
-    context
-        .read<ReceiptProvider>()
-        .updateDate(selectedDate);
+    context.read<ReceiptProvider>().updateDate(selectedDate);
   }
 
   void _editStoreName(
@@ -212,8 +181,7 @@ class ReceiptReviewScreen extends StatelessWidget {
     String currentValue,
     bool isDark,
   ) {
-    final controller =
-        TextEditingController(
+    final controller = TextEditingController(
       text: currentValue,
     );
 
@@ -221,20 +189,15 @@ class ReceiptReviewScreen extends StatelessWidget {
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
-          backgroundColor: isDark
-              ? AppColors.darkBackground
-              : AppColors.lightBackground,
+          backgroundColor:
+              isDark ? AppColors.darkBackground : AppColors.lightBackground,
           shape: RoundedRectangleBorder(
-            borderRadius:
-                BorderRadius.circular(22),
+            borderRadius: BorderRadius.circular(22),
           ),
           title: Text(
             "Edit store",
-            style:
-                GoogleFonts.ibmPlexSansArabic(
-              color: isDark
-                  ? AppColors.darkText
-                  : AppColors.lightText,
+            style: GoogleFonts.ibmPlexSansArabic(
+              color: isDark ? AppColors.darkText : AppColors.lightText,
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -242,9 +205,7 @@ class ReceiptReviewScreen extends StatelessWidget {
             controller: controller,
             autofocus: true,
             style: TextStyle(
-              color: isDark
-                  ? AppColors.darkText
-                  : AppColors.lightText,
+              color: isDark ? AppColors.darkText : AppColors.lightText,
             ),
             decoration: _inputDecoration(
               hint: "Store name",
@@ -260,23 +221,17 @@ class ReceiptReviewScreen extends StatelessWidget {
             ),
             ElevatedButton(
               onPressed: () {
-                final value =
-                    controller.text.trim();
+                final value = controller.text.trim();
 
                 if (value.isEmpty) return;
 
-                context
-                    .read<ReceiptProvider>()
-                    .updateStoreName(value);
+                context.read<ReceiptProvider>().updateStoreName(value);
 
                 Navigator.pop(dialogContext);
               },
-              style:
-                  ElevatedButton.styleFrom(
-                backgroundColor:
-                    const Color(0xFF34D399),
-                foregroundColor:
-                    const Color(0xFF09231E),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF34D399),
+                foregroundColor: const Color(0xFF09231E),
               ),
               child: const Text("Save"),
             ),
@@ -312,16 +267,12 @@ class ReceiptReviewScreen extends StatelessWidget {
             20,
             15,
             20,
-            MediaQuery.paddingOf(context)
-                    .bottom +
-                20,
+            MediaQuery.paddingOf(context).bottom + 20,
           ),
           decoration: BoxDecoration(
-            color: isDark
-                ? AppColors.darkBackground
-                : AppColors.lightBackground,
-            borderRadius:
-                const BorderRadius.vertical(
+            color:
+                isDark ? AppColors.darkBackground : AppColors.lightBackground,
+            borderRadius: const BorderRadius.vertical(
               top: Radius.circular(28),
             ),
           ),
@@ -332,41 +283,27 @@ class ReceiptReviewScreen extends StatelessWidget {
                 width: 44,
                 height: 5,
                 decoration: BoxDecoration(
-                  color: isDark
-                      ? Colors.white24
-                      : Colors.black12,
-                  borderRadius:
-                      BorderRadius.circular(10),
+                  color: isDark ? Colors.white24 : Colors.black12,
+                  borderRadius: BorderRadius.circular(10),
                 ),
               ),
-
               const SizedBox(height: 18),
-
               Text(
                 "Select category",
-                style: GoogleFonts
-                    .ibmPlexSansArabic(
-                  color: isDark
-                      ? AppColors.darkText
-                      : AppColors.lightText,
+                style: GoogleFonts.ibmPlexSansArabic(
+                  color: isDark ? AppColors.darkText : AppColors.lightText,
                   fontSize: 17,
                   fontWeight: FontWeight.bold,
                 ),
               ),
-
               const SizedBox(height: 12),
-
               ...categories.map(
                 (category) {
-                  final selected =
-                      category ==
-                          selectedCategory;
+                  final selected = category == selectedCategory;
 
                   return ListTile(
                     onTap: () {
-                      context
-                          .read<ReceiptProvider>()
-                          .updateCategory(category);
+                      context.read<ReceiptProvider>().updateCategory(category);
 
                       Navigator.pop(sheetContext);
                     },
@@ -377,21 +314,16 @@ class ReceiptReviewScreen extends StatelessWidget {
                               0xFF34D399,
                             )
                           : isDark
-                              ? AppColors
-                                  .darkSubText
-                              : AppColors
-                                  .lightSubText,
+                              ? AppColors.darkSubText
+                              : AppColors.lightSubText,
                     ),
                     title: Text(
                       category,
-                      style: GoogleFonts
-                          .ibmPlexSansArabic(
-                        color: isDark
-                            ? AppColors.darkText
-                            : AppColors.lightText,
-                        fontWeight: selected
-                            ? FontWeight.bold
-                            : FontWeight.normal,
+                      style: GoogleFonts.ibmPlexSansArabic(
+                        color:
+                            isDark ? AppColors.darkText : AppColors.lightText,
+                        fontWeight:
+                            selected ? FontWeight.bold : FontWeight.normal,
                       ),
                     ),
                     trailing: selected
@@ -417,13 +349,11 @@ class ReceiptReviewScreen extends StatelessWidget {
     ReceiptItemModel item,
     bool isDark,
   ) {
-    final nameController =
-        TextEditingController(
+    final nameController = TextEditingController(
       text: item.name,
     );
 
-    final amountController =
-        TextEditingController(
+    final amountController = TextEditingController(
       text: item.amount.toStringAsFixed(3),
     );
 
@@ -434,8 +364,7 @@ class ReceiptReviewScreen extends StatelessWidget {
       builder: (sheetContext) {
         return Padding(
           padding: EdgeInsets.only(
-            bottom:
-                MediaQuery.viewInsetsOf(
+            bottom: MediaQuery.viewInsetsOf(
               sheetContext,
             ).bottom,
           ),
@@ -445,82 +374,60 @@ class ReceiptReviewScreen extends StatelessWidget {
               14,
               22,
               MediaQuery.paddingOf(
-                        sheetContext,
-                      ).bottom +
+                    sheetContext,
+                  ).bottom +
                   22,
             ),
             decoration: BoxDecoration(
-              color: isDark
-                  ? const Color(0xFF10201C)
-                  : Colors.white,
-              borderRadius:
-                  const BorderRadius.vertical(
+              color: isDark ? const Color(0xFF10201C) : Colors.white,
+              borderRadius: const BorderRadius.vertical(
                 top: Radius.circular(28),
               ),
             ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment:
-                  CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Center(
                   child: Container(
                     width: 45,
                     height: 5,
                     decoration: BoxDecoration(
-                      color: isDark
-                          ? Colors.white24
-                          : Colors.black12,
-                      borderRadius:
-                          BorderRadius.circular(
+                      color: isDark ? Colors.white24 : Colors.black12,
+                      borderRadius: BorderRadius.circular(
                         10,
                       ),
                     ),
                   ),
                 ),
-
                 const SizedBox(height: 20),
-
                 Text(
                   "Edit item",
-                  style: GoogleFonts
-                      .ibmPlexSansArabic(
-                    color: isDark
-                        ? AppColors.darkText
-                        : AppColors.lightText,
+                  style: GoogleFonts.ibmPlexSansArabic(
+                    color: isDark ? AppColors.darkText : AppColors.lightText,
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-
                 const SizedBox(height: 17),
-
                 TextField(
                   controller: nameController,
                   style: TextStyle(
-                    color: isDark
-                        ? AppColors.darkText
-                        : AppColors.lightText,
+                    color: isDark ? AppColors.darkText : AppColors.lightText,
                   ),
                   decoration: _inputDecoration(
                     hint: "Item name",
                     isDark: isDark,
                   ),
                 ),
-
                 const SizedBox(height: 12),
-
                 TextField(
                   controller: amountController,
-                  keyboardType:
-                      const TextInputType
-                          .numberWithOptions(
+                  keyboardType: const TextInputType.numberWithOptions(
                     decimal: true,
                   ),
                   style: TextStyle(
-                    color: isDark
-                        ? AppColors.darkText
-                        : AppColors.lightText,
+                    color: isDark ? AppColors.darkText : AppColors.lightText,
                   ),
                   decoration: _inputDecoration(
                     hint: "Amount",
@@ -528,31 +435,24 @@ class ReceiptReviewScreen extends StatelessWidget {
                     suffixText: "JOD",
                   ),
                 ),
-
                 const SizedBox(height: 18),
-
                 AppButton(
                   text: "Save Changes",
                   isDark: isDark,
                   width: double.infinity,
                   height: 50,
                   onPressed: () {
-                    final name =
-                        nameController.text.trim();
+                    final name = nameController.text.trim();
 
                     final amount = double.tryParse(
                       amountController.text.trim(),
                     );
 
-                    if (name.isEmpty ||
-                        amount == null ||
-                        amount < 0) {
+                    if (name.isEmpty || amount == null || amount < 0) {
                       return;
                     }
 
-                    context
-                        .read<ReceiptProvider>()
-                        .updateItem(
+                    context.read<ReceiptProvider>().updateItem(
                           itemId: item.id,
                           name: name,
                           amount: amount,
@@ -578,30 +478,22 @@ class ReceiptReviewScreen extends StatelessWidget {
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
-          backgroundColor: isDark
-              ? AppColors.darkBackground
-              : AppColors.lightBackground,
+          backgroundColor:
+              isDark ? AppColors.darkBackground : AppColors.lightBackground,
           shape: RoundedRectangleBorder(
-            borderRadius:
-                BorderRadius.circular(22),
+            borderRadius: BorderRadius.circular(22),
           ),
           title: Text(
             "Remove item?",
-            style:
-                GoogleFonts.ibmPlexSansArabic(
-              color: isDark
-                  ? AppColors.darkText
-                  : AppColors.lightText,
+            style: GoogleFonts.ibmPlexSansArabic(
+              color: isDark ? AppColors.darkText : AppColors.lightText,
               fontWeight: FontWeight.bold,
             ),
           ),
           content: Text(
             item.name,
-            style:
-                GoogleFonts.ibmPlexSansArabic(
-              color: isDark
-                  ? AppColors.darkSubText
-                  : AppColors.lightSubText,
+            style: GoogleFonts.ibmPlexSansArabic(
+              color: isDark ? AppColors.darkSubText : AppColors.lightSubText,
             ),
           ),
           actions: [
@@ -613,9 +505,7 @@ class ReceiptReviewScreen extends StatelessWidget {
             ),
             TextButton(
               onPressed: () {
-                context
-                    .read<ReceiptProvider>()
-                    .removeItem(item.id);
+                context.read<ReceiptProvider>().removeItem(item.id);
 
                 Navigator.pop(dialogContext);
               },
@@ -641,9 +531,7 @@ class ReceiptReviewScreen extends StatelessWidget {
       hintText: hint,
       suffixText: suffixText,
       hintStyle: TextStyle(
-        color: isDark
-            ? AppColors.darkSubText
-            : AppColors.lightSubText,
+        color: isDark ? AppColors.darkSubText : AppColors.lightSubText,
       ),
       filled: true,
       fillColor: isDark
@@ -660,9 +548,7 @@ class ReceiptReviewScreen extends StatelessWidget {
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
         borderSide: BorderSide(
-          color: isDark
-              ? AppColors.darkPrimary
-              : AppColors.lightPrimary,
+          color: isDark ? AppColors.darkPrimary : AppColors.lightPrimary,
         ),
       ),
     );
@@ -708,23 +594,16 @@ class _Header extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Row(
-      crossAxisAlignment:
-          CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Expanded(
           child: Column(
-            crossAxisAlignment:
-                CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                isVoice
-                    ? "Expense recognized ✓"
-                    : "Receipt recognized ✓",
-                style: GoogleFonts
-                    .ibmPlexSansArabic(
-                  color: isDark
-                      ? AppColors.darkText
-                      : AppColors.lightText,
+                isVoice ? "Expense recognized ✓" : "Receipt recognized ✓",
+                style: GoogleFonts.ibmPlexSansArabic(
+                  color: isDark ? AppColors.darkText : AppColors.lightText,
                   fontSize: 22,
                   fontWeight: FontWeight.bold,
                 ),
@@ -734,28 +613,23 @@ class _Header extends StatelessWidget {
                 isVoice
                     ? "via Speech Recognition + BASIRA AI"
                     : "via OCR + BASIRA AI",
-                style: GoogleFonts
-                    .ibmPlexSansArabic(
-                  color: isDark
-                      ? AppColors.darkSubText
-                      : AppColors.lightSubText,
+                style: GoogleFonts.ibmPlexSansArabic(
+                  color:
+                      isDark ? AppColors.darkSubText : AppColors.lightSubText,
                   fontSize: 10,
                 ),
               ),
             ],
           ),
         ),
-
         const SizedBox(width: 12),
-
         Material(
           color: Colors.transparent,
           child: InkWell(
             onTap: () {
               Navigator.pop(context);
             },
-            borderRadius:
-                BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(12),
             child: Container(
               width: 42,
               height: 42,
@@ -763,14 +637,11 @@ class _Header extends StatelessWidget {
                 color: isDark
                     ? AppColors.darkBorder.withOpacity(0.40)
                     : AppColors.lightBorder.withOpacity(0.40),
-                borderRadius:
-                    BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(
                 Icons.close_rounded,
-                color: isDark
-                    ? AppColors.darkSubText
-                    : AppColors.lightSubText,
+                color: isDark ? AppColors.darkSubText : AppColors.lightSubText,
               ),
             ),
           ),
@@ -797,8 +668,7 @@ class _ConfidenceCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final percentage =
-        (confidence * 100).round();
+    final percentage = (confidence * 100).round();
 
     return Container(
       width: double.infinity,
@@ -809,9 +679,7 @@ class _ConfidenceCard extends StatelessWidget {
             : AppColors.lightAccent.withOpacity(0.20),
         borderRadius: BorderRadius.circular(22),
         border: Border.all(
-          color: isDark
-              ? AppColors.darkAccent
-              : AppColors.lightAccent,
+          color: isDark ? AppColors.darkAccent : AppColors.lightAccent,
         ),
       ),
       child: Column(
@@ -823,27 +691,23 @@ class _ConfidenceCard extends StatelessWidget {
                 height: 38,
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
-                  color: (isDark ? AppColors.darkAccent : AppColors.lightAccent).withOpacity(0.12),
-                  borderRadius:
-                      BorderRadius.circular(11),
+                  color: (isDark ? AppColors.darkAccent : AppColors.lightAccent)
+                      .withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(11),
                 ),
                 child: Icon(
-                  isVoice
-                      ? Icons.mic_rounded
-                      : Icons.psychology_alt_rounded,
+                  isVoice ? Icons.mic_rounded : Icons.psychology_alt_rounded,
                   color: isDark ? AppColors.darkAccent : AppColors.lightAccent,
                   size: 21,
                 ),
               ),
-
               const SizedBox(width: 11),
-
               Expanded(
                 child: Text(
                   "Auto-extracted at $percentage% confidence",
-                  style: GoogleFonts
-                      .ibmPlexSansArabic(
-                    color: isDark ? AppColors.darkAccent : AppColors.lightAccent,
+                  style: GoogleFonts.ibmPlexSansArabic(
+                    color:
+                        isDark ? AppColors.darkAccent : AppColors.lightAccent,
                     fontSize: 11,
                     fontWeight: FontWeight.bold,
                   ),
@@ -851,16 +715,11 @@ class _ConfidenceCard extends StatelessWidget {
               ),
             ],
           ),
-
           const SizedBox(height: 13),
-
           Text(
             "Review the data below and edit any field before confirming if needed.",
-            style:
-                GoogleFonts.ibmPlexSansArabic(
-              color: isDark
-                  ? AppColors.darkText
-                  : AppColors.lightText,
+            style: GoogleFonts.ibmPlexSansArabic(
+              color: isDark ? AppColors.darkText : AppColors.lightText,
               fontSize: 10,
               height: 1.6,
             ),
@@ -904,9 +763,7 @@ class _GeneralInfoCard extends StatelessWidget {
             : AppColors.lightPrimary.withOpacity(0.04),
         borderRadius: BorderRadius.circular(22),
         border: Border.all(
-          color: isDark
-              ? AppColors.darkPrimary
-              : AppColors.lightPrimary,
+          color: isDark ? AppColors.darkPrimary : AppColors.lightPrimary,
         ),
       ),
       child: Column(
@@ -918,9 +775,7 @@ class _GeneralInfoCard extends StatelessWidget {
             isDark: isDark,
             onTap: onStorePressed,
           ),
-
           _Divider(isDark: isDark),
-
           _InfoRow(
             icon: Icons.calendar_month_outlined,
             label: "Date",
@@ -930,9 +785,7 @@ class _GeneralInfoCard extends StatelessWidget {
             isDark: isDark,
             onTap: onDatePressed,
           ),
-
           _Divider(isDark: isDark),
-
           _InfoRow(
             icon: Icons.sell_outlined,
             label: "Suggested category",
@@ -982,8 +835,7 @@ class _InfoRow extends StatelessWidget {
                 color: isDark
                     ? AppColors.darkBorder.withOpacity(0.40)
                     : AppColors.lightBorder.withOpacity(0.40),
-                borderRadius:
-                    BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(
                 icon,
@@ -991,21 +843,15 @@ class _InfoRow extends StatelessWidget {
                 size: 20,
               ),
             ),
-
             const SizedBox(width: 12),
-
             Expanded(
               child: Column(
-                crossAxisAlignment:
-                    CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     label,
-                    style: GoogleFonts
-                        .ibmPlexSansArabic(
-                      color: isDark
-                          ? AppColors.darkText
-                          : AppColors.lightText,
+                    style: GoogleFonts.ibmPlexSansArabic(
+                      color: isDark ? AppColors.darkText : AppColors.lightText,
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
                     ),
@@ -1014,10 +860,8 @@ class _InfoRow extends StatelessWidget {
                   Text(
                     value,
                     maxLines: 1,
-                    overflow:
-                        TextOverflow.ellipsis,
-                    style: GoogleFonts
-                        .ibmPlexSansArabic(
+                    overflow: TextOverflow.ellipsis,
+                    style: GoogleFonts.ibmPlexSansArabic(
                       color: isDark
                           ? AppColors.darkSubText
                           : AppColors.lightSubText,
@@ -1027,39 +871,32 @@ class _InfoRow extends StatelessWidget {
                 ],
               ),
             ),
-
             if (showAiBadge)
               Container(
-                margin:
-                    const EdgeInsets.only(left: 8),
-                padding:
-                    const EdgeInsets.symmetric(
+                margin: const EdgeInsets.only(left: 8),
+                padding: const EdgeInsets.symmetric(
                   horizontal: 9,
                   vertical: 6,
                 ),
                 decoration: BoxDecoration(
-                  color: (isDark ? AppColors.darkPrimary : AppColors.lightPrimary)
-                      .withOpacity(0.12),
-                  borderRadius:
-                      BorderRadius.circular(5),
+                  color:
+                      (isDark ? AppColors.darkPrimary : AppColors.lightPrimary)
+                          .withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(5),
                 ),
                 child: Text(
                   "Auto AI",
-                  style: GoogleFonts
-                      .ibmPlexSansArabic(
-                    color: isDark ? AppColors.darkPrimary : AppColors.lightPrimary,
+                  style: GoogleFonts.ibmPlexSansArabic(
+                    color:
+                        isDark ? AppColors.darkPrimary : AppColors.lightPrimary,
                     fontSize: 9,
                   ),
                 ),
               ),
-
             const SizedBox(width: 6),
-
             Icon(
               Icons.edit_outlined,
-              color: isDark
-                  ? AppColors.darkSubText
-                  : AppColors.lightSubText,
+              color: isDark ? AppColors.darkSubText : AppColors.lightSubText,
               size: 16,
             ),
           ],
@@ -1096,11 +933,9 @@ class _ItemsCard extends StatelessWidget {
   final double total;
   final bool isDark;
 
-  final ValueChanged<ReceiptItemModel>
-      onEditItem;
+  final ValueChanged<ReceiptItemModel> onEditItem;
 
-  final ValueChanged<ReceiptItemModel>
-      onRemoveItem;
+  final ValueChanged<ReceiptItemModel> onRemoveItem;
 
   const _ItemsCard({
     required this.items,
@@ -1121,29 +956,21 @@ class _ItemsCard extends StatelessWidget {
             : AppColors.lightPrimary.withOpacity(0.04),
         borderRadius: BorderRadius.circular(22),
         border: Border.all(
-          color: isDark
-              ? AppColors.darkPrimary
-              : AppColors.lightPrimary,
+          color: isDark ? AppColors.darkPrimary : AppColors.lightPrimary,
         ),
       ),
       child: Column(
-        crossAxisAlignment:
-            CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             "Extracted items (${items.length})",
-            style:
-                GoogleFonts.ibmPlexSansArabic(
-              color: isDark
-                  ? AppColors.darkText
-                  : AppColors.lightText,
+            style: GoogleFonts.ibmPlexSansArabic(
+              color: isDark ? AppColors.darkText : AppColors.lightText,
               fontSize: 13,
               fontWeight: FontWeight.bold,
             ),
           ),
-
           const SizedBox(height: 13),
-
           ...items.map(
             (item) => _ReceiptItemRow(
               item: item,
@@ -1156,40 +983,29 @@ class _ItemsCard extends StatelessWidget {
               },
             ),
           ),
-
           const SizedBox(height: 11),
-
           Divider(
             color: isDark
                 ? Colors.white.withOpacity(0.08)
                 : Colors.black.withOpacity(0.08),
           ),
-
           const SizedBox(height: 10),
-
           Row(
             children: [
               Expanded(
                 child: Text(
                   "Total",
-                  style: GoogleFonts
-                      .ibmPlexSansArabic(
-                    color: isDark
-                        ? AppColors.darkText
-                        : AppColors.lightText,
+                  style: GoogleFonts.ibmPlexSansArabic(
+                    color: isDark ? AppColors.darkText : AppColors.lightText,
                     fontSize: 13,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
               ),
-
               Text(
                 "${total.toStringAsFixed(3)} JOD",
-                style: GoogleFonts
-                    .ibmPlexSansArabic(
-                  color: isDark
-                      ? AppColors.darkText
-                      : AppColors.lightText,
+                style: GoogleFonts.ibmPlexSansArabic(
+                  color: isDark ? AppColors.darkText : AppColors.lightText,
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
                 ),
@@ -1232,33 +1048,25 @@ class _ReceiptItemRow extends StatelessWidget {
             children: [
               Expanded(
                 child: Column(
-                  crossAxisAlignment:
-                      CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       item.name,
-                      style: GoogleFonts
-                          .ibmPlexSansArabic(
-                        color: isDark
-                            ? AppColors.darkText
-                            : AppColors.lightText,
+                      style: GoogleFonts.ibmPlexSansArabic(
+                        color:
+                            isDark ? AppColors.darkText : AppColors.lightText,
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
-                    if (item.category
-                        .trim()
-                        .isNotEmpty) ...[
+                    if (item.category.trim().isNotEmpty) ...[
                       const SizedBox(height: 2),
                       Text(
                         item.category,
-                        style: GoogleFonts
-                            .ibmPlexSansArabic(
+                        style: GoogleFonts.ibmPlexSansArabic(
                           color: isDark
-                              ? AppColors
-                                  .darkSubText
-                              : AppColors
-                                  .lightSubText,
+                              ? AppColors.darkSubText
+                              : AppColors.lightSubText,
                           fontSize: 9,
                         ),
                       ),
@@ -1266,21 +1074,15 @@ class _ReceiptItemRow extends StatelessWidget {
                   ],
                 ),
               ),
-
               Text(
                 item.amount.toStringAsFixed(3),
-                style: GoogleFonts
-                    .ibmPlexSansArabic(
-                  color: isDark
-                      ? AppColors.darkText
-                      : AppColors.lightText,
+                style: GoogleFonts.ibmPlexSansArabic(
+                  color: isDark ? AppColors.darkText : AppColors.lightText,
                   fontSize: 12,
                   fontWeight: FontWeight.bold,
                 ),
               ),
-
               const SizedBox(width: 7),
-
               PopupMenuButton<String>(
                 padding: EdgeInsets.zero,
                 iconSize: 19,
@@ -1289,15 +1091,13 @@ class _ReceiptItemRow extends StatelessWidget {
                     : AppColors.lightBorder.withOpacity(0.40),
                 icon: Icon(
                   Icons.more_vert_rounded,
-                  color: isDark
-                      ? AppColors.darkSubText
-                      : AppColors.lightSubText,
+                  color:
+                      isDark ? AppColors.darkSubText : AppColors.lightSubText,
                 ),
                 onSelected: (value) {
                   if (value == "edit") {
                     onEdit();
-                  } else if (value ==
-                      "remove") {
+                  } else if (value == "remove") {
                     onRemove();
                   }
                 },
@@ -1321,16 +1121,14 @@ class _ReceiptItemRow extends StatelessWidget {
                       children: [
                         Icon(
                           Icons.delete_outline,
-                          color:
-                              Color(0xFFFF6B6B),
+                          color: Color(0xFFFF6B6B),
                           size: 19,
                         ),
                         SizedBox(width: 9),
                         Text(
                           "Remove",
                           style: TextStyle(
-                            color:
-                                Color(0xFFFF6B6B),
+                            color: Color(0xFFFF6B6B),
                           ),
                         ),
                       ],
@@ -1374,11 +1172,8 @@ class _NoReceiptView extends StatelessWidget {
               const SizedBox(height: 14),
               Text(
                 "No receipt data found",
-                style: GoogleFonts
-                    .ibmPlexSansArabic(
-                  color: isDark
-                      ? AppColors.darkText
-                      : AppColors.lightText,
+                style: GoogleFonts.ibmPlexSansArabic(
+                  color: isDark ? AppColors.darkText : AppColors.lightText,
                   fontSize: 17,
                   fontWeight: FontWeight.bold,
                 ),

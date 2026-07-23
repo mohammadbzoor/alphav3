@@ -1,16 +1,22 @@
 /// Custom exception that carries the backend error code
 /// so UI layers can react to specific business errors.
 class ApiException implements Exception {
-  final String message;
+  final int? statusCode;
   final String? code;
+  final String message;
+  final Map<String, dynamic>? data;
   final Map<String, dynamic>? details;
 
   const ApiException({
-    required this.message,
+    this.statusCode,
     this.code,
+    required this.message,
+    this.data,
     this.details,
   });
 
   @override
-  String toString() => message;
+  String toString() {
+    return 'ApiException(statusCode: $statusCode, code: $code, message: $message)';
+  }
 }

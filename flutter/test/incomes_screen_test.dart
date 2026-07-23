@@ -61,14 +61,14 @@ class MockIncomeProvider extends IncomeProvider {
     _mockIsLoading = true;
     notifyListeners();
     await Future.microtask(() {});
-    
+
     if (_simulateNoActiveCycle) {
       _mockErrorMessage = 'NO_ACTIVE_FINANCIAL_CYCLE';
       _mockIsLoading = false;
       notifyListeners();
       return false;
     }
-    
+
     if (_simulateApiError) {
       _mockErrorMessage = 'Server Error';
       _mockIsLoading = false;
@@ -131,7 +131,14 @@ void main() {
 
     testWidgets('shows successful list', (tester) async {
       mockProvider.setMockState(incomes: [
-        IncomeModel(id: '1', amount: 500, source: 'Salary', description: 'desc', incomeDate: DateTime.now(), isRecurring: true, createdAt: DateTime.now()),
+        IncomeModel(
+            id: '1',
+            amount: 500,
+            source: 'Salary',
+            description: 'desc',
+            incomeDate: DateTime.now(),
+            isRecurring: true,
+            createdAt: DateTime.now()),
       ]);
       await tester.pumpWidget(createTestApp(mockProvider));
       await tester.pumpAndSettle();
@@ -142,7 +149,16 @@ void main() {
 
     testWidgets('failed deletion rollback shows error', (tester) async {
       mockProvider.setMockState(
-        incomes: [IncomeModel(id: '1', amount: 500, source: 'Salary', description: 'desc', incomeDate: DateTime.now(), isRecurring: true, createdAt: DateTime.now())],
+        incomes: [
+          IncomeModel(
+              id: '1',
+              amount: 500,
+              source: 'Salary',
+              description: 'desc',
+              incomeDate: DateTime.now(),
+              isRecurring: true,
+              createdAt: DateTime.now())
+        ],
         simulateFailedDeletion: true,
       );
       await tester.pumpWidget(createTestApp(mockProvider));
@@ -178,10 +194,10 @@ void main() {
 
     testWidgets('add form validation', (tester) async {
       await tester.pumpWidget(createAddIncomeApp());
-      
+
       await tester.tap(find.text('Save Income'));
       await tester.pumpAndSettle();
-      
+
       expect(find.text('Please enter a valid amount'), findsOneWidget);
       expect(mockProvider.createCalls, 0);
     });
@@ -189,37 +205,40 @@ void main() {
     testWidgets('duplicate-submit prevention', (tester) async {
       mockProvider.setMockState(isLoading: true);
       await tester.pumpWidget(createAddIncomeApp());
-      
-      final saveButton = tester.widget<ElevatedButton>(find.byType(ElevatedButton));
+
+      final saveButton =
+          tester.widget<ElevatedButton>(find.byType(ElevatedButton));
       expect(saveButton.enabled, false);
     });
 
     testWidgets('no-active-cycle error shows dialog', (tester) async {
       mockProvider.setMockState(simulateNoActiveCycle: true);
       await tester.pumpWidget(createAddIncomeApp());
-      
+
       await tester.enterText(find.byType(TextField).first, '100');
       await tester.pump();
-      
+
       await tester.tap(find.text('Save Income'));
       await tester.pump(const Duration(milliseconds: 50));
       await tester.pumpAndSettle();
-      
+
       expect(find.text('No Active Cycle'), findsOneWidget);
-      expect(find.text('You need an active financial cycle to add transactions.'), findsOneWidget);
+      expect(
+          find.text('You need an active financial cycle to add transactions.'),
+          findsOneWidget);
     });
 
     testWidgets('API error shows snackbar', (tester) async {
       mockProvider.setMockState(simulateApiError: true);
       await tester.pumpWidget(createAddIncomeApp());
-      
+
       await tester.enterText(find.byType(TextField).first, '100');
       await tester.pump();
-      
+
       await tester.tap(find.text('Save Income'));
       await tester.pump(const Duration(milliseconds: 50));
       await tester.pumpAndSettle();
-      
+
       expect(find.text('Server Error'), findsOneWidget);
     });
   });

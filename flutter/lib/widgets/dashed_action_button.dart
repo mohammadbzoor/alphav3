@@ -25,14 +25,12 @@ class DashedActionButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onTap,
-      borderRadius:
-          BorderRadius.circular(borderRadius),
+      borderRadius: BorderRadius.circular(borderRadius),
       child: CustomPaint(
         painter: DashedBorderPainter(
           color: isDark
               ? const Color(0xFF29433E)
-              : AppColors.lightSecondary
-                  .withOpacity(0.40),
+              : AppColors.lightSecondary.withOpacity(0.40),
           borderRadius: borderRadius,
         ),
         child: SizedBox(
@@ -45,17 +43,15 @@ class DashedActionButton extends StatelessWidget {
                 Icon(
                   icon,
                   size: 20,
-                  color: isDark
-                      ? AppColors.darkSubText
-                      : AppColors.lightSubText,
+                  color:
+                      isDark ? AppColors.darkSubText : AppColors.lightSubText,
                 ),
                 const SizedBox(width: 8),
                 Text(
                   text,
                   style: GoogleFonts.ibmPlexSansArabic(
-                    color: isDark
-                        ? AppColors.darkSubText
-                        : AppColors.lightSubText,
+                    color:
+                        isDark ? AppColors.darkSubText : AppColors.lightSubText,
                     fontSize: 13,
                     fontWeight: FontWeight.w500,
                   ),
@@ -69,8 +65,7 @@ class DashedActionButton extends StatelessWidget {
   }
 }
 
-class DashedBorderPainter
-    extends CustomPainter {
+class DashedBorderPainter extends CustomPainter {
   final Color color;
   final double borderRadius;
 
@@ -100,14 +95,11 @@ class DashedBorderPainter
         ),
       );
 
-    for (final metric
-        in path.computeMetrics()) {
+    for (final metric in path.computeMetrics()) {
       double distance = 0;
 
       while (distance < metric.length) {
-        final end =
-            (distance + dashWidth)
-                .clamp(
+        final end = (distance + dashWidth).clamp(
           0.0,
           metric.length,
         );
@@ -120,19 +112,16 @@ class DashedBorderPainter
           paint,
         );
 
-        distance +=
-            dashWidth + dashSpace;
+        distance += dashWidth + dashSpace;
       }
     }
   }
 
   @override
   bool shouldRepaint(
-    covariant DashedBorderPainter
-        oldDelegate,
+    covariant DashedBorderPainter oldDelegate,
   ) {
     return oldDelegate.color != color ||
-        oldDelegate.borderRadius !=
-            borderRadius;
+        oldDelegate.borderRadius != borderRadius;
   }
 }

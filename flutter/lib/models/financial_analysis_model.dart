@@ -91,17 +91,11 @@ class AnalysisUser {
     return AnalysisUser(
       userId: json['userId']?.toString() ?? '',
       name: json['name']?.toString() ?? '',
-      displayName:
-          json['displayName']?.toString() ?? '',
-      language:
-          json['language']?.toString() ?? 'ar',
-      locale:
-          json['locale']?.toString() ?? 'ar-JO',
-      currency:
-          json['currency']?.toString() ?? 'JOD',
-      timezone:
-          json['timezone']?.toString() ??
-              'Asia/Amman',
+      displayName: json['displayName']?.toString() ?? '',
+      language: json['language']?.toString() ?? 'ar',
+      locale: json['locale']?.toString() ?? 'ar-JO',
+      currency: json['currency']?.toString() ?? 'JOD',
+      timezone: json['timezone']?.toString() ?? 'Asia/Amman',
     );
   }
 
@@ -146,8 +140,7 @@ class AnalysisContent {
       recommendations: _stringList(
         json['recommendations'],
       ),
-      speechText:
-          json['speechText']?.toString() ?? '',
+      speechText: json['speechText']?.toString() ?? '',
     );
   }
 
@@ -305,8 +298,7 @@ class AnalysisAudio {
     required this.duration,
   });
 
-  bool get hasAudio =>
-      url.trim().isNotEmpty;
+  bool get hasAudio => url.trim().isNotEmpty;
 
   factory AnalysisAudio.fromJson(
     Map<String, dynamic> json,
@@ -346,8 +338,7 @@ class AnalysisMetadata {
     Map<String, dynamic> json,
   ) {
     return AnalysisMetadata(
-      requestId:
-          json['requestId']?.toString() ?? '',
+      requestId: json['requestId']?.toString() ?? '',
       analysisAsOfDate: DateTime.tryParse(
         json['analysisAsOfDate']?.toString() ?? '',
       ),
@@ -360,10 +351,8 @@ class AnalysisMetadata {
   Map<String, dynamic> toJson() {
     return {
       'requestId': requestId,
-      'analysisAsOfDate':
-          analysisAsOfDate?.toIso8601String(),
-      'generatedAt':
-          generatedAt?.toIso8601String(),
+      'analysisAsOfDate': analysisAsOfDate?.toIso8601String(),
+      'generatedAt': generatedAt?.toIso8601String(),
     };
   }
 }

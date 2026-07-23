@@ -1,13 +1,18 @@
 import 'package:alpha_app/core/utils/app_colors.dart';
 import 'package:alpha_app/models/profile_completion_model.dart';
 import 'package:alpha_app/providers/profile_provider.dart';
+import 'package:alpha_app/screens/profile/allocation_review_screen.dart';
 import 'package:alpha_app/screens/profile/financial_setup_screen.dart';
-import 'package:alpha_app/screens/profile/personal_info_screen.dart';
+import 'package:alpha_app/screens/profile/onboarding_personal_info_screen.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-class ProfileCompletionCard extends StatelessWidget {
+import 'package:alpha_app/providers/onboarding_provider.dart';
+import 'package:alpha_app/core/utils/step_resolver.dart';
+import 'package:provider/provider.dart';
+
+class ProfileCompletionCard extends StatefulWidget {
   final ProfileProvider profileProvider;
   final bool isDark;
 
@@ -18,8 +23,15 @@ class ProfileCompletionCard extends StatelessWidget {
   }) : super(key: key);
 
   @override
+  State<ProfileCompletionCard> createState() => _ProfileCompletionCardState();
+}
+
+class _ProfileCompletionCardState extends State<ProfileCompletionCard> {
+  bool _isLoading = false;
+
+  @override
   Widget build(BuildContext context) {
-    final completion = profileProvider.profileCompletion;
+    final completion = widget.profileProvider.profileCompletion;
 
     if (completion != null && completion.isComplete) {
       return const SizedBox.shrink();
@@ -30,7 +42,7 @@ class ProfileCompletionCard extends StatelessWidget {
         margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: isDark ? AppColors.darkBorder : Colors.white,
+          color: widget.isDark ? AppColors.darkBorder : Colors.white,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(color: Colors.redAccent.withOpacity(0.5)),
         ),
@@ -41,7 +53,7 @@ class ProfileCompletionCard extends StatelessWidget {
             Text(
               'Could not load profile completion data.',
               style: GoogleFonts.ibmPlexSansArabic(
-                color: isDark ? AppColors.darkText : AppColors.lightText,
+                color: widget.isDark ? AppColors.darkText : AppColors.lightText,
                 fontSize: 14,
               ),
               textAlign: TextAlign.center,
@@ -49,11 +61,14 @@ class ProfileCompletionCard extends StatelessWidget {
             const SizedBox(height: 8),
             TextButton(
               onPressed: () {
-                profileProvider.refreshProfileSummary();
+                widget.profileProvider.refreshProfileSummary();
               },
               child: Text(
                 'Retry',
-                style: GoogleFonts.ibmPlexSansArabic(color: isDark ? AppColors.darkPrimary : AppColors.lightPrimary),
+                style: GoogleFonts.ibmPlexSansArabic(
+                    color: widget.isDark
+                        ? AppColors.darkPrimary
+                        : AppColors.lightPrimary),
               ),
             )
           ],
@@ -67,10 +82,10 @@ class ProfileCompletionCard extends StatelessWidget {
       margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isDark ? AppColors.darkBorder : Colors.white,
+        color: widget.isDark ? AppColors.darkBorder : Colors.white,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
-          if (!isDark)
+          if (!widget.isDark)
             BoxShadow(
               color: Colors.black.withOpacity(0.05),
               blurRadius: 10,
@@ -85,7 +100,9 @@ class ProfileCompletionCard extends StatelessWidget {
             children: [
               Icon(
                 Icons.info_outline_rounded,
-                color: isDark ? AppColors.darkPrimary : AppColors.lightPrimary,
+                color: widget.isDark
+                    ? AppColors.darkPrimary
+                    : AppColors.lightPrimary,
               ),
               const SizedBox(width: 8),
               Expanded(
@@ -94,7 +111,9 @@ class ProfileCompletionCard extends StatelessWidget {
                   style: GoogleFonts.ibmPlexSansArabic(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
-                    color: isDark ? AppColors.darkText : AppColors.lightText,
+                    color: widget.isDark
+                        ? AppColors.darkText
+                        : AppColors.lightText,
                   ),
                 ),
               ),
@@ -103,7 +122,9 @@ class ProfileCompletionCard extends StatelessWidget {
                 style: GoogleFonts.ibmPlexSansArabic(
                   fontSize: 14,
                   fontWeight: FontWeight.bold,
-                  color: isDark ? AppColors.darkPrimary : AppColors.lightPrimary,
+                  color: widget.isDark
+                      ? AppColors.darkPrimary
+                      : AppColors.lightPrimary,
                 ),
               ),
             ],
@@ -111,18 +132,22 @@ class ProfileCompletionCard extends StatelessWidget {
           const SizedBox(height: 12),
           LinearProgressIndicator(
             value: progress,
-            backgroundColor: isDark ? AppColors.darkBackground : Colors.grey[200],
+            backgroundColor:
+                widget.isDark ? AppColors.darkBackground : Colors.grey[200],
             valueColor: AlwaysStoppedAnimation<Color>(
-              isDark ? AppColors.darkPrimary : AppColors.lightPrimary,
+              widget.isDark ? AppColors.darkPrimary : AppColors.lightPrimary,
             ),
             borderRadius: BorderRadius.circular(4),
           ),
           const SizedBox(height: 12),
           Text(
-            'completion_message'.tr(namedArgs: {'percentage': completion.percentage.toString()}),
+            'completion_message'.tr(
+                namedArgs: {'percentage': completion.percentage.toString()}),
             style: GoogleFonts.ibmPlexSansArabic(
               fontSize: 13,
-              color: isDark ? AppColors.darkSubText : AppColors.lightSubText,
+              color: widget.isDark
+                  ? AppColors.darkSubText
+                  : AppColors.lightSubText,
             ),
           ),
           const SizedBox(height: 12),
@@ -132,16 +157,21 @@ class ProfileCompletionCard extends StatelessWidget {
               runSpacing: 8,
               children: completion.missingSections.map((section) {
                 return Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: isDark ? AppColors.darkBackground : Colors.grey[100],
+                    color: widget.isDark
+                        ? AppColors.darkBackground
+                        : Colors.grey[100],
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
                     'missing_$section'.tr(),
                     style: GoogleFonts.ibmPlexSansArabic(
                       fontSize: 11,
-                      color: isDark ? AppColors.darkText : AppColors.lightText,
+                      color: widget.isDark
+                          ? AppColors.darkText
+                          : AppColors.lightText,
                     ),
                   ),
                 );
@@ -152,48 +182,67 @@ class ProfileCompletionCard extends StatelessWidget {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              onPressed: () {
-                _navigateToNextRequired(context, completion.nextRequiredSection);
-              },
+              onPressed: _isLoading
+                  ? null
+                  : () async {
+                      if (!mounted) return;
+                      setState(() => _isLoading = true);
+
+                      try {
+                        final provider = Provider.of<OnboardingProvider>(
+                            context,
+                            listen: false);
+                        final success = await provider.checkOnboardingStatus();
+                        if (!mounted) return;
+
+                        if (success) {
+                          // Note: StepResolver will map nextStep and navigate.
+                          replaceWithOnboardingStep(
+                            context,
+                            provider.nextStep,
+                            allocation: provider.allocation,
+                          );
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(provider.errorMessage ??
+                                  'Failed to check status'),
+                            ),
+                          );
+                        }
+                      } finally {
+                        if (mounted) {
+                          setState(() => _isLoading = false);
+                        }
+                      }
+                    },
               style: ElevatedButton.styleFrom(
-                backgroundColor: isDark ? AppColors.darkPrimary : AppColors.lightPrimary,
+                backgroundColor: widget.isDark
+                    ? AppColors.darkPrimary
+                    : AppColors.lightPrimary,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
                 padding: const EdgeInsets.symmetric(vertical: 12),
               ),
-              child: Text(
-                'complete_now'.tr(),
-                style: GoogleFonts.ibmPlexSansArabic(
-                  color: AppColors.darkBorder,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
+              child: _isLoading
+                  ? const SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(
+                          color: Colors.white, strokeWidth: 2),
+                    )
+                  : Text(
+                      'complete_now'.tr(),
+                      style: GoogleFonts.ibmPlexSansArabic(
+                        color: AppColors.darkBorder,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
             ),
           ),
         ],
       ),
     );
-  }
-
-  void _navigateToNextRequired(BuildContext context, String? section) {
-    Widget? nextScreen;
-    
-    if (section == 'personal_information') {
-      nextScreen = const PersonalInfoScreen(isEditing: true);
-    } else if (section == 'financial_information') {
-      nextScreen = const FinancialSetupScreen();
-    } else if (section == 'allocation_preference') {
-      nextScreen = const FinancialSetupScreen();
-    }
-
-    if (nextScreen != null) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => nextScreen!),
-      ).then((_) {
-        profileProvider.refreshProfileSummary();
-      });
-    }
   }
 }

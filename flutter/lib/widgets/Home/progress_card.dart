@@ -30,14 +30,11 @@ class ProgressCard extends StatelessWidget {
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: isDark
-             ? AppColors.darkBorder.withOpacity(0.4)
-            :AppColors.lightBorder.withOpacity(0.4),
+            ? AppColors.darkBorder.withOpacity(0.4)
+            : AppColors.lightBorder.withOpacity(0.4),
         borderRadius: BorderRadius.circular(23),
         border: Border.all(
-          color:  isDark  ? AppColors.darkBorder
-              : AppColors.lightBorder
-        ),
-      
+            color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
       ),
       child: Row(
         children: [
@@ -54,13 +51,10 @@ class ProgressCard extends StatelessWidget {
               size: 25,
             ),
           ),
-
           const SizedBox(width: 14),
-
           Expanded(
             child: Column(
-              crossAxisAlignment:
-                  CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   children: [
@@ -68,20 +62,16 @@ class ProgressCard extends StatelessWidget {
                       child: Text(
                         title,
                         maxLines: 1,
-                        overflow:
-                            TextOverflow.ellipsis,
+                        overflow: TextOverflow.ellipsis,
                         style: GoogleFonts.ibmPlexSansArabic(
-                          color: isDark
-                              ? AppColors.darkText
-                              : AppColors.lightText,
+                          color:
+                              isDark ? AppColors.darkText : AppColors.lightText,
                           fontSize: 15,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
                     ),
-
                     const SizedBox(width: 8),
-
                     Text(
                       "$percentage%",
                       style: GoogleFonts.ibmPlexSansArabic(
@@ -92,32 +82,25 @@ class ProgressCard extends StatelessWidget {
                     ),
                   ],
                 ),
-
                 const SizedBox(height: 6),
-
                 Text(
                   subtitle,
                   style: GoogleFonts.ibmPlexSansArabic(
-                    color: isDark
-                        ? AppColors.darkSubText
-                        : AppColors.lightSubText,
+                    color:
+                        isDark ? AppColors.darkSubText : AppColors.lightSubText,
                     fontSize: 11,
                   ),
                 ),
-
                 const SizedBox(height: 10),
-
                 ClipRRect(
-                  borderRadius:
-                      BorderRadius.circular(20),
+                  borderRadius: BorderRadius.circular(20),
                   child: LinearProgressIndicator(
                     value: safeProgress,
                     minHeight: 7,
                     backgroundColor: isDark
                         ? const Color(0xFF273A36)
                         : color.withOpacity(0.12),
-                    valueColor:
-                        AlwaysStoppedAnimation<Color>(
+                    valueColor: AlwaysStoppedAnimation<Color>(
                       color,
                     ),
                   ),

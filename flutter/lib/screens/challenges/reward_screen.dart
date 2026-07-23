@@ -47,9 +47,8 @@ class _RewardScreenState extends State<RewardScreen> {
     final bool isDark = themeProvider.isDark;
 
     return Scaffold(
-      backgroundColor: isDark
-          ? AppColors.darkBackground
-          : AppColors.lightBackground,
+      backgroundColor:
+          isDark ? AppColors.darkBackground : AppColors.lightBackground,
       appBar: AppBar(
         elevation: 0,
         scrolledUnderElevation: 0,
@@ -60,17 +59,13 @@ class _RewardScreenState extends State<RewardScreen> {
           },
           icon: Icon(
             Icons.arrow_back_ios_new_rounded,
-            color: isDark
-                ? AppColors.darkText
-                : AppColors.lightText,
+            color: isDark ? AppColors.darkText : AppColors.lightText,
           ),
         ),
         title: Text(
           "Rewards",
           style: GoogleFonts.ibmPlexSansArabic(
-            color: isDark
-                ? AppColors.darkText
-                : AppColors.lightText,
+            color: isDark ? AppColors.darkText : AppColors.lightText,
             fontSize: 22,
             fontWeight: FontWeight.bold,
           ),
@@ -129,33 +124,25 @@ class _RewardScreenState extends State<RewardScreen> {
               reward: reward,
               isDark: isDark,
             ),
-
             const SizedBox(height: 22),
-
             _SectionHeader(
               title: "Badges",
               subtitle: "${reward.badgeCount} unlocked",
               isDark: isDark,
             ),
-
             const SizedBox(height: 12),
-
             _BadgesGrid(
               badges: reward.badges,
               isDark: isDark,
             ),
-
             const SizedBox(height: 22),
-
             _SectionHeader(
               title: "Achievements",
               subtitle:
                   "${_completedAchievements(reward.achievements)} completed",
               isDark: isDark,
             ),
-
             const SizedBox(height: 12),
-
             _AchievementsCard(
               achievements: reward.achievements,
               isDark: isDark,
@@ -169,9 +156,7 @@ class _RewardScreenState extends State<RewardScreen> {
   int _completedAchievements(
     List<AchievementModel> achievements,
   ) {
-    return achievements
-        .where((achievement) => achievement.isCompleted)
-        .length;
+    return achievements.where((achievement) => achievement.isCompleted).length;
   }
 }
 
@@ -248,22 +233,17 @@ class _LevelCard extends StatelessWidget {
                         fontSize: 11,
                       ),
                     ),
-
                     const SizedBox(height: 8),
-
                     Text(
                       "Level ${reward.level}",
                       style: GoogleFonts.ibmPlexSansArabic(
-                        color: isDark
-                            ? AppColors.darkText
-                            : AppColors.lightText,
+                        color:
+                            isDark ? AppColors.darkText : AppColors.lightText,
                         fontSize: 22,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-
                     const SizedBox(height: 3),
-
                     Text(
                       reward.levelTitle,
                       style: GoogleFonts.ibmPlexSansArabic(
@@ -275,7 +255,6 @@ class _LevelCard extends StatelessWidget {
                   ],
                 ),
               ),
-
               Container(
                 width: 66,
                 height: 66,
@@ -293,25 +272,20 @@ class _LevelCard extends StatelessWidget {
               ),
             ],
           ),
-
           const SizedBox(height: 20),
-
           ClipRRect(
             borderRadius: BorderRadius.circular(20),
             child: LinearProgressIndicator(
               value: progress,
               minHeight: 9,
-              backgroundColor: isDark
-                  ? const Color(0xFF293A34)
-                  : const Color(0xFFE1EBE7),
+              backgroundColor:
+                  isDark ? const Color(0xFF293A34) : const Color(0xFFE1EBE7),
               valueColor: const AlwaysStoppedAnimation<Color>(
                 Color(0xFFF4C95D),
               ),
             ),
           ),
-
           const SizedBox(height: 9),
-
           Row(
             children: [
               Text(
@@ -322,23 +296,18 @@ class _LevelCard extends StatelessWidget {
                   fontWeight: FontWeight.w600,
                 ),
               ),
-
               const Spacer(),
-
               Text(
                 "${reward.nextLevelXp} XP to next level",
                 style: GoogleFonts.ibmPlexSansArabic(
-                  color: isDark
-                      ? AppColors.darkSubText
-                      : AppColors.lightSubText,
+                  color:
+                      isDark ? AppColors.darkSubText : AppColors.lightSubText,
                   fontSize: 10,
                 ),
               ),
             ],
           ),
-
           const SizedBox(height: 18),
-
           Row(
             children: [
               Expanded(
@@ -349,9 +318,7 @@ class _LevelCard extends StatelessWidget {
                   isDark: isDark,
                 ),
               ),
-
               const SizedBox(width: 10),
-
               Expanded(
                 child: _LevelInfoItem(
                   icon: Icons.local_fire_department_outlined,
@@ -389,9 +356,8 @@ class _LevelInfoItem extends StatelessWidget {
         vertical: 13,
       ),
       decoration: BoxDecoration(
-        color: isDark
-            ? const Color(0xFF20332E)
-            : Colors.white.withOpacity(0.80),
+        color:
+            isDark ? const Color(0xFF20332E) : Colors.white.withOpacity(0.80),
         borderRadius: BorderRadius.circular(15),
       ),
       child: Row(
@@ -401,9 +367,7 @@ class _LevelInfoItem extends StatelessWidget {
             size: 21,
             color: const Color(0xFF34D399),
           ),
-
           const SizedBox(width: 8),
-
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -413,21 +377,17 @@ class _LevelInfoItem extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: GoogleFonts.ibmPlexSansArabic(
-                    color: isDark
-                        ? AppColors.darkSubText
-                        : AppColors.lightSubText,
+                    color:
+                        isDark ? AppColors.darkSubText : AppColors.lightSubText,
                     fontSize: 9,
                   ),
                 ),
-
                 Text(
                   value,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: GoogleFonts.ibmPlexSansArabic(
-                    color: isDark
-                        ? AppColors.darkText
-                        : AppColors.lightText,
+                    color: isDark ? AppColors.darkText : AppColors.lightText,
                     fontSize: 11,
                     fontWeight: FontWeight.bold,
                   ),
@@ -464,21 +424,16 @@ class _SectionHeader extends StatelessWidget {
           child: Text(
             title,
             style: GoogleFonts.ibmPlexSansArabic(
-              color: isDark
-                  ? AppColors.darkText
-                  : AppColors.lightText,
+              color: isDark ? AppColors.darkText : AppColors.lightText,
               fontSize: 16,
               fontWeight: FontWeight.bold,
             ),
           ),
         ),
-
         Text(
           subtitle,
           style: GoogleFonts.ibmPlexSansArabic(
-            color: isDark
-                ? AppColors.darkSubText
-                : AppColors.lightSubText,
+            color: isDark ? AppColors.darkSubText : AppColors.lightSubText,
             fontSize: 10,
           ),
         ),
@@ -506,8 +461,7 @@ class _BadgesGrid extends StatelessWidget {
       return _EmptySectionCard(
         icon: Icons.workspace_premium_outlined,
         title: "No badges yet",
-        description:
-            "Complete challenges to unlock your first badge.",
+        description: "Complete challenges to unlock your first badge.",
         isDark: isDark,
       );
     }
@@ -521,9 +475,7 @@ class _BadgesGrid extends StatelessWidget {
         16,
       ),
       decoration: BoxDecoration(
-        color: isDark
-            ? const Color(0xFF172824)
-            : Colors.white,
+        color: isDark ? const Color(0xFF172824) : Colors.white,
         borderRadius: BorderRadius.circular(24),
         border: Border.all(
           color: isDark
@@ -544,8 +496,7 @@ class _BadgesGrid extends StatelessWidget {
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
         itemCount: badges.length,
-        gridDelegate:
-            const SliverGridDelegateWithFixedCrossAxisCount(
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: 4,
           crossAxisSpacing: 8,
           mainAxisSpacing: 14,
@@ -600,8 +551,7 @@ class _BadgeItem extends StatelessWidget {
                   borderRadius: BorderRadius.circular(17),
                   border: Border.all(
                     color: isUnlocked
-                        ? const Color(0xFFF4C95D)
-                            .withOpacity(0.15)
+                        ? const Color(0xFFF4C95D).withOpacity(0.15)
                         : Colors.transparent,
                   ),
                 ),
@@ -612,7 +562,6 @@ class _BadgeItem extends StatelessWidget {
                   ),
                 ),
               ),
-
               if (!isUnlocked)
                 Positioned(
                   right: -2,
@@ -621,9 +570,7 @@ class _BadgeItem extends StatelessWidget {
                     width: 21,
                     height: 21,
                     decoration: BoxDecoration(
-                      color: isDark
-                          ? const Color(0xFF10201C)
-                          : Colors.white,
+                      color: isDark ? const Color(0xFF10201C) : Colors.white,
                       shape: BoxShape.circle,
                     ),
                     child: Icon(
@@ -637,9 +584,7 @@ class _BadgeItem extends StatelessWidget {
                 ),
             ],
           ),
-
           const SizedBox(height: 7),
-
           Expanded(
             child: Center(
               child: Text(
@@ -648,14 +593,11 @@ class _BadgeItem extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
                 textAlign: TextAlign.center,
                 style: GoogleFonts.ibmPlexSansArabic(
-                  color: isDark
-                      ? AppColors.darkSubText
-                      : AppColors.lightSubText,
+                  color:
+                      isDark ? AppColors.darkSubText : AppColors.lightSubText,
                   fontSize: 9,
                   height: 1.2,
-                  fontWeight: isUnlocked
-                      ? FontWeight.w600
-                      : FontWeight.normal,
+                  fontWeight: isUnlocked ? FontWeight.w600 : FontWeight.normal,
                 ),
               ),
             ),
@@ -685,8 +627,7 @@ class _AchievementsCard extends StatelessWidget {
       return _EmptySectionCard(
         icon: Icons.emoji_events_outlined,
         title: "No achievements yet",
-        description:
-            "Your completed achievements will appear here.",
+        description: "Your completed achievements will appear here.",
         isDark: isDark,
       );
     }
@@ -694,9 +635,7 @@ class _AchievementsCard extends StatelessWidget {
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        color: isDark
-            ? const Color(0xFF172824)
-            : Colors.white,
+        color: isDark ? const Color(0xFF172824) : Colors.white,
         borderRadius: BorderRadius.circular(24),
         border: Border.all(
           color: isDark
@@ -776,18 +715,14 @@ class _AchievementItem extends StatelessWidget {
                 borderRadius: BorderRadius.circular(13),
               ),
               child: Icon(
-                completed
-                    ? Icons.check_rounded
-                    : Icons.lock_outline_rounded,
+                completed ? Icons.check_rounded : Icons.lock_outline_rounded,
                 color: completed
                     ? const Color(0xFF34D399)
                     : const Color(0xFFF4C95D),
                 size: 22,
               ),
             ),
-
             const SizedBox(width: 13),
-
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -795,19 +730,14 @@ class _AchievementItem extends StatelessWidget {
                   Text(
                     achievement.title,
                     style: GoogleFonts.ibmPlexSansArabic(
-                      color: isDark
-                          ? AppColors.darkText
-                          : AppColors.lightText,
+                      color: isDark ? AppColors.darkText : AppColors.lightText,
                       fontSize: 13,
-                      fontWeight: completed
-                          ? FontWeight.w600
-                          : FontWeight.normal,
+                      fontWeight:
+                          completed ? FontWeight.w600 : FontWeight.normal,
                       height: 1.4,
                     ),
                   ),
-
                   const SizedBox(height: 3),
-
                   Text(
                     completed
                         ? "Achievement completed"
@@ -823,9 +753,7 @@ class _AchievementItem extends StatelessWidget {
                 ],
               ),
             ),
-
             const SizedBox(width: 8),
-
             Icon(
               completed
                   ? Icons.verified_rounded
@@ -870,9 +798,7 @@ class _EmptySectionCard extends StatelessWidget {
         vertical: 30,
       ),
       decoration: BoxDecoration(
-        color: isDark
-            ? const Color(0xFF172824)
-            : Colors.white,
+        color: isDark ? const Color(0xFF172824) : Colors.white,
         borderRadius: BorderRadius.circular(24),
       ),
       child: Column(
@@ -882,30 +808,22 @@ class _EmptySectionCard extends StatelessWidget {
             color: const Color(0xFF34D399),
             size: 39,
           ),
-
           const SizedBox(height: 12),
-
           Text(
             title,
             textAlign: TextAlign.center,
             style: GoogleFonts.ibmPlexSansArabic(
-              color: isDark
-                  ? AppColors.darkText
-                  : AppColors.lightText,
+              color: isDark ? AppColors.darkText : AppColors.lightText,
               fontSize: 15,
               fontWeight: FontWeight.bold,
             ),
           ),
-
           const SizedBox(height: 6),
-
           Text(
             description,
             textAlign: TextAlign.center,
             style: GoogleFonts.ibmPlexSansArabic(
-              color: isDark
-                  ? AppColors.darkSubText
-                  : AppColors.lightSubText,
+              color: isDark ? AppColors.darkSubText : AppColors.lightSubText,
               fontSize: 11,
               height: 1.5,
             ),
@@ -952,37 +870,27 @@ class _EmptyRewardsView extends StatelessWidget {
                 ),
               ),
             ),
-
             const SizedBox(height: 17),
-
             Text(
               "No rewards available",
               textAlign: TextAlign.center,
               style: GoogleFonts.ibmPlexSansArabic(
-                color: isDark
-                    ? AppColors.darkText
-                    : AppColors.lightText,
+                color: isDark ? AppColors.darkText : AppColors.lightText,
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
               ),
             ),
-
             const SizedBox(height: 8),
-
             Text(
               "Complete challenges to earn XP, badges and achievements.",
               textAlign: TextAlign.center,
               style: GoogleFonts.ibmPlexSansArabic(
-                color: isDark
-                    ? AppColors.darkSubText
-                    : AppColors.lightSubText,
+                color: isDark ? AppColors.darkSubText : AppColors.lightSubText,
                 fontSize: 12,
                 height: 1.6,
               ),
             ),
-
             const SizedBox(height: 19),
-
             ElevatedButton.icon(
               onPressed: onRetry,
               icon: const Icon(

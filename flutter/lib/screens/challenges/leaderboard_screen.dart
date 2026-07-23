@@ -7,20 +7,16 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 
-class LeaderboardScreen
-    extends StatefulWidget {
+class LeaderboardScreen extends StatefulWidget {
   const LeaderboardScreen({
     super.key,
   });
 
   @override
-  State<LeaderboardScreen>
-      createState() =>
-          _LeaderboardScreenState();
+  State<LeaderboardScreen> createState() => _LeaderboardScreenState();
 }
 
-class _LeaderboardScreenState
-    extends State<LeaderboardScreen> {
+class _LeaderboardScreenState extends State<LeaderboardScreen> {
   bool _didLoadData = false;
 
   @override
@@ -35,29 +31,22 @@ class _LeaderboardScreenState
       (_) {
         if (!mounted) return;
 
-        context
-            .read<LeaderboardProvider>()
-            .loadLeaderboard();
+        context.read<LeaderboardProvider>().loadLeaderboard();
       },
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final themeProvider =
-        context.watch<Themeprovider>();
+    final themeProvider = context.watch<Themeprovider>();
 
-    final leaderboardProvider =
-        context.watch<
-            LeaderboardProvider>();
+    final leaderboardProvider = context.watch<LeaderboardProvider>();
 
-    final bool isDark =
-        themeProvider.isDark;
+    final bool isDark = themeProvider.isDark;
 
     return Scaffold(
-      backgroundColor: isDark
-          ? AppColors.darkBackground
-          : AppColors.lightBackground,
+      backgroundColor:
+          isDark ? AppColors.darkBackground : AppColors.lightBackground,
       appBar: AppBar(
         elevation: 0,
         scrolledUnderElevation: 0,
@@ -68,34 +57,27 @@ class _LeaderboardScreenState
           },
           icon: Icon(
             Icons.arrow_back_ios_new_rounded,
-            color: isDark
-                ? AppColors.darkText
-                : AppColors.lightText,
+            color: isDark ? AppColors.darkText : AppColors.lightText,
           ),
         ),
         actions: [
           Padding(
-            padding:
-                const EdgeInsets.only(
+            padding: const EdgeInsets.only(
               right: 16,
             ),
             child: Row(
               children: [
                 const Icon(
                   Icons.lock_outline,
-                  color:
-                      Color(0xFFF4C95D),
+                  color: Color(0xFFF4C95D),
                   size: 14,
                 ),
                 const SizedBox(width: 4),
                 Text(
                   "Hidden",
-                  style: GoogleFonts
-                      .ibmPlexSansArabic(
-                    color: isDark
-                        ? AppColors.darkSubText
-                        : AppColors
-                            .lightSubText,
+                  style: GoogleFonts.ibmPlexSansArabic(
+                    color:
+                        isDark ? AppColors.darkSubText : AppColors.lightSubText,
                     fontSize: 10,
                   ),
                 ),
@@ -108,8 +90,7 @@ class _LeaderboardScreenState
         top: false,
         child: _buildBody(
           context: context,
-          provider:
-              leaderboardProvider,
+          provider: leaderboardProvider,
           isDark: isDark,
         ),
       ),
@@ -121,8 +102,7 @@ class _LeaderboardScreenState
     required LeaderboardProvider provider,
     required bool isDark,
   }) {
-    if (provider.isLoading &&
-        provider.leaderboard == null) {
+    if (provider.isLoading && provider.leaderboard == null) {
       return const Center(
         child: CircularProgressIndicator(
           color: Color(0xFF34D399),
@@ -130,8 +110,7 @@ class _LeaderboardScreenState
       );
     }
 
-    final leaderboard =
-        provider.leaderboard;
+    final leaderboard = provider.leaderboard;
 
     if (leaderboard == null) {
       return _EmptyLeaderboardView(
@@ -142,33 +121,22 @@ class _LeaderboardScreenState
       );
     }
 
-    final users =
-        [...leaderboard.users]
-          ..sort(
-            (a, b) =>
-                a.rank.compareTo(b.rank),
-          );
+    final users = [...leaderboard.users]..sort(
+        (a, b) => a.rank.compareTo(b.rank),
+      );
 
-    final winner =
-        users.isNotEmpty
-            ? users.first
-            : null;
+    final winner = users.isNotEmpty ? users.first : null;
 
     final remainingUsers =
-        users.length > 1
-            ? users.sublist(1)
-            : <LeaderboardUserModel>[];
+        users.length > 1 ? users.sublist(1) : <LeaderboardUserModel>[];
 
     return RefreshIndicator(
       color: const Color(0xFF34D399),
       onRefresh: () async {
-        await context
-            .read<LeaderboardProvider>()
-            .loadLeaderboard();
+        await context.read<LeaderboardProvider>().loadLeaderboard();
       },
       child: SingleChildScrollView(
-        physics:
-            const AlwaysScrollableScrollPhysics(
+        physics: const AlwaysScrollableScrollPhysics(
           parent: BouncingScrollPhysics(),
         ),
         padding: const EdgeInsets.fromLTRB(
@@ -178,50 +146,35 @@ class _LeaderboardScreenState
           35,
         ),
         child: Column(
-          crossAxisAlignment:
-              CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
               leaderboard.title,
-              style: GoogleFonts
-                  .ibmPlexSansArabic(
-                color: isDark
-                    ? AppColors.darkText
-                    : AppColors.lightText,
+              style: GoogleFonts.ibmPlexSansArabic(
+                color: isDark ? AppColors.darkText : AppColors.lightText,
                 fontSize: 25,
                 fontWeight: FontWeight.bold,
               ),
             ),
-
             const SizedBox(height: 5),
-
             Text(
               leaderboard.subtitle,
-              style: GoogleFonts
-                  .ibmPlexSansArabic(
-                color: isDark
-                    ? AppColors.darkSubText
-                    : AppColors.lightSubText,
+              style: GoogleFonts.ibmPlexSansArabic(
+                color: isDark ? AppColors.darkSubText : AppColors.lightSubText,
                 fontSize: 12,
               ),
             ),
-
             const SizedBox(height: 22),
-
             if (winner != null)
               _WinnerCard(
                 winner: winner,
                 isDark: isDark,
               ),
-
             const SizedBox(height: 12),
-
             ListView.separated(
               shrinkWrap: true,
-              physics:
-                  const NeverScrollableScrollPhysics(),
-              itemCount:
-                  remainingUsers.length,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: remainingUsers.length,
               separatorBuilder: (
                 context,
                 index,
@@ -235,15 +188,12 @@ class _LeaderboardScreenState
                 index,
               ) {
                 return _LeaderboardUserCard(
-                  user:
-                      remainingUsers[index],
+                  user: remainingUsers[index],
                   isDark: isDark,
                 );
               },
             ),
-
             const SizedBox(height: 22),
-
             SizedBox(
               width: double.infinity,
               height: 54,
@@ -254,39 +204,31 @@ class _LeaderboardScreenState
                     isDark,
                   );
                 },
-                style:
-                    ElevatedButton.styleFrom(
+                style: ElevatedButton.styleFrom(
                   backgroundColor: isDark
                       ? const Color(
                           0xFF1C332D,
                         )
                       : Colors.white,
-                  foregroundColor: isDark
-                      ? AppColors.darkText
-                      : AppColors.lightText,
+                  foregroundColor:
+                      isDark ? AppColors.darkText : AppColors.lightText,
                   elevation: 0,
-                  shape:
-                      RoundedRectangleBorder(
-                    borderRadius:
-                        BorderRadius.circular(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(
                       16,
                     ),
                   ),
                   side: BorderSide(
                     color: isDark
-                        ? Colors.white
-                            .withOpacity(0.05)
-                        : Colors.black
-                            .withOpacity(0.05),
+                        ? Colors.white.withOpacity(0.05)
+                        : Colors.black.withOpacity(0.05),
                   ),
                 ),
                 child: Text(
                   "Invite a friend",
-                  style: GoogleFonts
-                      .ibmPlexSansArabic(
+                  style: GoogleFonts.ibmPlexSansArabic(
                     fontSize: 13,
-                    fontWeight:
-                        FontWeight.bold,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
               ),
@@ -301,8 +243,7 @@ class _LeaderboardScreenState
     BuildContext context,
     bool isDark,
   ) {
-    final controller =
-        TextEditingController();
+    final controller = TextEditingController();
 
     showDialog(
       context: context,
@@ -310,38 +251,26 @@ class _LeaderboardScreenState
         dialogContext,
       ) {
         return AlertDialog(
-          backgroundColor: isDark
-              ? const Color(0xFF172824)
-              : Colors.white,
+          backgroundColor: isDark ? const Color(0xFF172824) : Colors.white,
           shape: RoundedRectangleBorder(
-            borderRadius:
-                BorderRadius.circular(22),
+            borderRadius: BorderRadius.circular(22),
           ),
           title: Text(
             "Invite a friend",
-            style: GoogleFonts
-                .ibmPlexSansArabic(
-              color: isDark
-                  ? AppColors.darkText
-                  : AppColors.lightText,
+            style: GoogleFonts.ibmPlexSansArabic(
+              color: isDark ? AppColors.darkText : AppColors.lightText,
               fontWeight: FontWeight.bold,
             ),
           ),
           content: TextField(
             controller: controller,
             style: TextStyle(
-              color: isDark
-                  ? AppColors.darkText
-                  : AppColors.lightText,
+              color: isDark ? AppColors.darkText : AppColors.lightText,
             ),
             decoration: InputDecoration(
-              hintText:
-                  "Email or phone number",
+              hintText: "Email or phone number",
               hintStyle: TextStyle(
-                color: isDark
-                    ? AppColors.darkSubText
-                    : AppColors
-                        .lightSubText,
+                color: isDark ? AppColors.darkSubText : AppColors.lightSubText,
               ),
               filled: true,
               fillColor: isDark
@@ -352,12 +281,10 @@ class _LeaderboardScreenState
                       0xFFF2F6F4,
                     ),
               border: OutlineInputBorder(
-                borderRadius:
-                    BorderRadius.circular(
+                borderRadius: BorderRadius.circular(
                   14,
                 ),
-                borderSide:
-                    BorderSide.none,
+                borderSide: BorderSide.none,
               ),
             ),
           ),
@@ -374,8 +301,7 @@ class _LeaderboardScreenState
             ),
             ElevatedButton(
               onPressed: () {
-                final value =
-                    controller.text.trim();
+                final value = controller.text.trim();
 
                 if (value.isEmpty) {
                   return;
@@ -397,14 +323,11 @@ class _LeaderboardScreenState
                     ),
                   );
               },
-              style:
-                  ElevatedButton.styleFrom(
-                backgroundColor:
-                    const Color(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(
                   0xFF34D399,
                 ),
-                foregroundColor:
-                    const Color(
+                foregroundColor: const Color(
                   0xFF09231E,
                 ),
               ),
@@ -458,53 +381,38 @@ class _WinnerCard extends StatelessWidget {
                   Color(0xFFEAF8F2),
                 ],
               ),
-        borderRadius:
-            BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(24),
         border: Border.all(
-          color: const Color(0xFFF4C95D)
-              .withOpacity(0.12),
+          color: const Color(0xFFF4C95D).withOpacity(0.12),
         ),
       ),
       child: Column(
         children: [
           Text(
-            winner.medal.isEmpty
-                ? "🥇"
-                : winner.medal,
+            winner.medal.isEmpty ? "🥇" : winner.medal,
             style: const TextStyle(
               fontSize: 42,
             ),
           ),
-
           const SizedBox(height: 9),
-
           Text(
             winner.name,
-            style: GoogleFonts
-                .ibmPlexSansArabic(
-              color: isDark
-                  ? AppColors.darkText
-                  : AppColors.lightText,
+            style: GoogleFonts.ibmPlexSansArabic(
+              color: isDark ? AppColors.darkText : AppColors.lightText,
               fontSize: 17,
               fontWeight: FontWeight.bold,
             ),
           ),
-
           const SizedBox(height: 8),
-
           _LevelBadge(
             level: winner.level,
             isDark: isDark,
           ),
-
           const SizedBox(height: 15),
-
           Text(
             "${winner.progressPercentage}%",
-            style: GoogleFonts
-                .ibmPlexSansArabic(
-              color:
-                  const Color(0xFFF4C95D),
+            style: GoogleFonts.ibmPlexSansArabic(
+              color: const Color(0xFFF4C95D),
               fontSize: 22,
               fontWeight: FontWeight.bold,
             ),
@@ -519,8 +427,7 @@ class _WinnerCard extends StatelessWidget {
 // USER CARD
 // =====================================================
 
-class _LeaderboardUserCard
-    extends StatelessWidget {
+class _LeaderboardUserCard extends StatelessWidget {
   final LeaderboardUserModel user;
   final bool isDark;
 
@@ -531,8 +438,7 @@ class _LeaderboardUserCard
 
   @override
   Widget build(BuildContext context) {
-    final isCurrentUser =
-        user.isCurrentUser;
+    final isCurrentUser = user.isCurrentUser;
 
     return Container(
       width: double.infinity,
@@ -550,8 +456,7 @@ class _LeaderboardUserCard
                     0xFFFFFBEA,
                   )
             : Colors.transparent,
-        borderRadius:
-            BorderRadius.circular(17),
+        borderRadius: BorderRadius.circular(17),
         border: Border.all(
           color: isCurrentUser
               ? const Color(
@@ -568,52 +473,35 @@ class _LeaderboardUserCard
               child: user.medal.isNotEmpty
                   ? Text(
                       user.medal,
-                      style:
-                          const TextStyle(
+                      style: const TextStyle(
                         fontSize: 22,
                       ),
                     )
                   : Text(
                       "${user.rank}",
-                      style: GoogleFonts
-                          .ibmPlexSansArabic(
-                        color: isDark
-                            ? AppColors
-                                .darkText
-                            : AppColors
-                                .lightText,
+                      style: GoogleFonts.ibmPlexSansArabic(
+                        color:
+                            isDark ? AppColors.darkText : AppColors.lightText,
                         fontSize: 16,
-                        fontWeight:
-                            FontWeight.w600,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
             ),
           ),
-
           const SizedBox(width: 12),
-
           Expanded(
             child: Column(
-              crossAxisAlignment:
-                  CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  user.isCurrentUser
-                      ? "You"
-                      : user.name,
-                  style: GoogleFonts
-                      .ibmPlexSansArabic(
-                    color: isDark
-                        ? AppColors.darkText
-                        : AppColors.lightText,
+                  user.isCurrentUser ? "You" : user.name,
+                  style: GoogleFonts.ibmPlexSansArabic(
+                    color: isDark ? AppColors.darkText : AppColors.lightText,
                     fontSize: 13,
-                    fontWeight:
-                        FontWeight.bold,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
-
                 const SizedBox(height: 5),
-
                 _LevelBadge(
                   level: user.level,
                   isDark: isDark,
@@ -621,11 +509,9 @@ class _LeaderboardUserCard
               ],
             ),
           ),
-
           Text(
             "${user.progressPercentage}%",
-            style:
-                GoogleFonts.ibmPlexSansArabic(
+            style: GoogleFonts.ibmPlexSansArabic(
               color: isCurrentUser
                   ? const Color(
                       0xFF34D399,
@@ -635,10 +521,8 @@ class _LeaderboardUserCard
                           0xFF34D399,
                         )
                       : isDark
-                          ? AppColors
-                              .darkSubText
-                          : AppColors
-                              .lightSubText,
+                          ? AppColors.darkSubText
+                          : AppColors.lightSubText,
               fontSize: 13,
               fontWeight: FontWeight.bold,
             ),
@@ -666,11 +550,8 @@ class _LevelBadge extends StatelessWidget {
         vertical: 5,
       ),
       decoration: BoxDecoration(
-        color: isDark
-            ? const Color(0xFF20332E)
-            : const Color(0xFFE6F0EC),
-        borderRadius:
-            BorderRadius.circular(20),
+        color: isDark ? const Color(0xFF20332E) : const Color(0xFFE6F0EC),
+        borderRadius: BorderRadius.circular(20),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -680,16 +561,11 @@ class _LevelBadge extends StatelessWidget {
             color: Color(0xFFF4C95D),
             size: 13,
           ),
-
           const SizedBox(width: 4),
-
           Text(
             "Level $level",
-            style:
-                GoogleFonts.ibmPlexSansArabic(
-              color: isDark
-                  ? AppColors.darkText
-                  : AppColors.lightText,
+            style: GoogleFonts.ibmPlexSansArabic(
+              color: isDark ? AppColors.darkText : AppColors.lightText,
               fontSize: 9,
               fontWeight: FontWeight.w600,
             ),
@@ -704,8 +580,7 @@ class _LevelBadge extends StatelessWidget {
 // EMPTY VIEW
 // =====================================================
 
-class _EmptyLeaderboardView
-    extends StatelessWidget {
+class _EmptyLeaderboardView extends StatelessWidget {
   final bool isDark;
   final VoidCallback onRetry;
 
@@ -720,8 +595,7 @@ class _EmptyLeaderboardView
       child: Padding(
         padding: const EdgeInsets.all(28),
         child: Column(
-          mainAxisSize:
-              MainAxisSize.min,
+          mainAxisSize: MainAxisSize.min,
           children: [
             const Text(
               "🏆",
@@ -729,46 +603,32 @@ class _EmptyLeaderboardView
                 fontSize: 55,
               ),
             ),
-
             const SizedBox(height: 15),
-
             Text(
               "Leaderboard unavailable",
-              style: GoogleFonts
-                  .ibmPlexSansArabic(
-                color: isDark
-                    ? AppColors.darkText
-                    : AppColors.lightText,
+              style: GoogleFonts.ibmPlexSansArabic(
+                color: isDark ? AppColors.darkText : AppColors.lightText,
                 fontSize: 17,
                 fontWeight: FontWeight.bold,
               ),
             ),
-
             const SizedBox(height: 8),
-
             Text(
               "Join a challenge with friends to see the ranking.",
               textAlign: TextAlign.center,
-              style: GoogleFonts
-                  .ibmPlexSansArabic(
-                color: isDark
-                    ? AppColors.darkSubText
-                    : AppColors.lightSubText,
+              style: GoogleFonts.ibmPlexSansArabic(
+                color: isDark ? AppColors.darkSubText : AppColors.lightSubText,
                 fontSize: 12,
               ),
             ),
-
             const SizedBox(height: 18),
-
             ElevatedButton(
               onPressed: onRetry,
               style: ElevatedButton.styleFrom(
-                backgroundColor:
-                    const Color(
+                backgroundColor: const Color(
                   0xFF34D399,
                 ),
-                foregroundColor:
-                    const Color(
+                foregroundColor: const Color(
                   0xFF09231E,
                 ),
               ),

@@ -56,9 +56,10 @@ router.delete('/commitments/:id', authenticate, asyncHandler(FinanceController.d
 // ---------------------------------------------------------
 // FINANCIAL PROFILE
 // ---------------------------------------------------------
+router.get('/financial-profile', authenticate, asyncHandler(FinanceController.getFinancialProfile));
 router.get('/financial-profile/allocation', authenticate, asyncHandler(FinanceController.getAllocation));
 router.patch('/financial-profile', authenticate, asyncHandler(FinanceController.updateFinancialProfile));
 router.post('/financial-profile/allocation-preview', authenticate, asyncHandler(FinanceController.financialProfileAllocationPreview));
-router.put('/financial-profile/allocation', authenticate, asyncHandler(FinanceController.approveFinancialProfileAllocation));
+router.post('/financial-profile/allocation-approve', authenticate, asyncHandler(FinanceController.approveFinancialProfileAllocation));
 
 module.exports = router;
