@@ -270,7 +270,8 @@ class OnboardingService {
     } finally {
       conn.release();
     }
-    return { success: true, nextStep: 'financial_setup' };
+    const nextState = await this.resolveNextStep(userId);
+    return { success: true, ...nextState };
   }
 
   static async saveFinancialSetup(userId, data) {

@@ -99,6 +99,61 @@ describe('Onboarding Flow (Integration)', () => {
       expect(res.body.code).toBe('INVALID_BOOLEAN');
     });
 
+    it('returns the canonical isOnboarded field and preserves idempotency', async () => {
+      const payload = {
+        employmentStatus: 'employed',
+        hasDependents: true,
+        basicExpenses: 500,
+        monthlyExtraSavingsGoal: 100,
+        gender: 'male',
+        maritalStatus: 'single',
+        isHeadOfHousehold: false,
+        isStudent: false,
+        familySize: 1,
+        primarySpendingCategory: 'Housing',
+        relationshipWithMoney: 'Saver',
+        mainFinancialGoal12M: 'Build Emergency Fund',
+        incomeSources: ['salary'],
+        fixedExpenses: ['rent'],
+        variableExpenses: ['food'],
+        pinnedMonths: 3
+      };
+
+      // First request
+      const res1 = await request(app)
+        .post('/api/v1/onboarding/personal-info')
+        .set('Authorization', `Bearer ${token}`)
+        .send(payload);
+
+      expect(res1.status).toBe(200);
+      expect(res1.body.success).toBe(true);
+      expect(res1.body.data).toBeDefined();
+      expect(res1.body.data).toHaveProperty('isOnboarded');
+      expect(typeof res1.body.data.isOnboarded).toBe('boolean');
+      expect(res1.body.data.isOnboarded).toBe(false); // Intermediate step, not onboarded yet
+      expect(res1.body.data).not.toHaveProperty('password'); // No sensitive fields
+
+      // Verify database write
+      const [profiles] = await db.execute('SELECT * FROM user_profiles WHERE user_id = ?', [userId]);
+      expect(profiles.length).toBe(1);
+      expect(profiles[0].employment_status).toBe('employed');
+      
+      // Check user isOnboarded state in DB is still 0
+      const [users] = await db.execute('SELECT is_onboarded FROM users WHERE id = ?', [userId]);
+      expect(users[0].is_onboarded).toBe(0);
+
+      // Idempotency: Second request
+      const res2 = await request(app)
+        .post('/api/v1/onboarding/personal-info')
+        .set('Authorization', `Bearer ${token}`)
+        .send(payload);
+
+      expect(res2.status).toBe(200);
+      
+      const [profilesAfter] = await db.execute('SELECT * FROM user_profiles WHERE user_id = ?', [userId]);
+      expect(profilesAfter.length).toBe(1); // No duplicates
+    });
+
     it('stores true as 1 and false as 0 safely', async () => {
       const res = await request(app)
         .post('/api/v1/onboarding/personal-info')
