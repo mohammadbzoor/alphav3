@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../models/chat_model.dart';
+import '../../providers/chatbot_provider.dart';
 
 class ChatBubble extends StatelessWidget {
   final ChatModel message;
@@ -74,14 +75,37 @@ class ChatBubble extends StatelessWidget {
             SizedBox(
               height: screenH * 0.01,
             ),
-            Text(
-              "${message.time.hour.toString().padLeft(2, '0')}:${message.time.minute.toString().padLeft(2, '0')}",
-              style: TextStyle(
-                  color: themeprovider.isDark
-                      ? AppColors.darkText
-                      : AppColors.lightText,
-                  fontSize: screenW * 0.03,
-                  fontWeight: FontWeight.w400),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  "${message.time.hour.toString().padLeft(2, '0')}:${message.time.minute.toString().padLeft(2, '0')}",
+                  style: TextStyle(
+                      color: themeprovider.isDark
+                          ? AppColors.darkText
+                          : AppColors.lightText,
+                      fontSize: screenW * 0.03,
+                      fontWeight: FontWeight.w400),
+                ),
+                if (message.isUser && message.isPending) ...[
+                  const SizedBox(width: 8),
+                  const SizedBox(
+                    width: 12,
+                    height: 12,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                ],
+                if (message.isUser && message.isFailed) ...[
+                  const SizedBox(width: 8),
+                  GestureDetector(
+                    onTap: () {
+                      final chatbotProvider = Provider.of<ChatbotProvider>(context, listen: false);
+                      chatbotProvider.retryMessage(message);
+                    },
+                    child: const Icon(Icons.refresh, color: Colors.red, size: 16),
+                  ),
+                ],
+              ],
             ),
           ],
         ),

@@ -147,6 +147,7 @@ class _ChatScreenState extends State<ChatScreen> {
                 padding: EdgeInsets.only(bottom: screenH * 0.02),
                 child: ChatInput(
                   controller: chatbotProvider.messageController,
+                  isLoading: chatbotProvider.isLoading,
                   onSend: (value) {
                     chatbotProvider.sendMessage(value);
 

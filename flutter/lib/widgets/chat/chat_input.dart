@@ -11,11 +11,14 @@ class ChatInput extends StatelessWidget {
 
   final VoidCallback onVoice;
 
+  final bool isLoading;
+
   const ChatInput({
     super.key,
     required this.controller,
     required this.onSend,
     required this.onVoice,
+    this.isLoading = false,
   });
 
   @override
@@ -39,6 +42,7 @@ class ChatInput extends StatelessWidget {
           Expanded(
             child: TextField(
               controller: controller,
+              enabled: !isLoading,
               style: TextStyle(
                 color: themeprovider.isDark
                     ? AppColors.darkText
@@ -57,7 +61,7 @@ class ChatInput extends StatelessWidget {
             ),
           ),
           IconButton(
-            onPressed: onVoice,
+            onPressed: isLoading ? null : onVoice,
             icon: Icon(
               Icons.mic,
               color: themeprovider.isDark
@@ -66,10 +70,12 @@ class ChatInput extends StatelessWidget {
             ),
           ),
           IconButton(
-            onPressed: () {
+            onPressed: isLoading ? null : () {
               onSend(controller.text);
             },
-            icon: Icon(Icons.send,
+            icon: isLoading 
+                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                : Icon(Icons.send,
                 color: (themeprovider.isDark
                     ? AppColors.darkSecondary
                     : AppColors.lightSecondary)),
