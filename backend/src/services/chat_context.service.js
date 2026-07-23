@@ -19,7 +19,7 @@ class ChatContextService {
     
     // 1. Input Validation
     const valid = ChatValidator.validateChatContextInput(options);
-    const { userId, conversationId, requestId, message, intent, language, source, purchase, timestamp } = valid;
+    const { userId, conversationId, requestId, message, intent, language, source, purchase, timestamp, excludeMessageId } = valid;
     
     const generatedAt = timestamp.toISOString();
     
@@ -65,7 +65,7 @@ class ChatContextService {
 
     const detailsPromises = [
       ChatContextRepository.getActiveGoalsForChat(userId, CHAT_CONTEXT_GOAL_LIMIT),
-      ChatRepository.getRecentConversationMessages(conversationId, userId, CHAT_CONTEXT_MESSAGE_LIMIT)
+      ChatRepository.getRecentConversationMessages(conversationId, userId, { limit: CHAT_CONTEXT_MESSAGE_LIMIT, excludeMessageId })
     ];
 
     if (cycleId) {
@@ -162,7 +162,8 @@ class ChatContextService {
         transactions: transactions.map(t => ({
           id: String(t.id),
           date: new Date(t.date).toISOString(),
-          type: t.direction,
+          type: t.type,
+          direction: t.direction,
           amount: Number(t.amount),
           currency: profile.currency,
           category: t.category || '',
@@ -175,6 +176,7 @@ class ChatContextService {
           targetAmount: Number(g.target_amount),
           savedAmount: Number(g.current_balance),
           remainingAmount: Number(g.target_amount) - Number(g.current_balance),
+          plannedContribution: Number(g.planned_contribution || 0),
           targetDate: g.target_date ? new Date(g.target_date).toISOString() : null,
           status: g.status
         })),

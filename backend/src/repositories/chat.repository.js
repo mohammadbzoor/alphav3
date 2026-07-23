@@ -143,21 +143,31 @@ class ChatRepository {
     return rows;
   }
 
-  static async getRecentConversationMessages(conversationId, userId, limit = 10, conn = null) {
+  static async getRecentConversationMessages(conversationId, userId, options = {}, conn = null) {
     const exec = conn || db;
-    const parsedLimit = parsePaginationLimit(limit, 10, 50);
+    const parsedLimit = parsePaginationLimit(options.limit, 10, 50);
     
+    let whereClause = `m.conversation_id = ? AND c.user_id = ? AND m.status = 'completed'`;
+    const params = [conversationId, userId];
+
+    if (options.excludeMessageId) {
+      whereClause += ` AND m.id != ?`;
+      params.push(options.excludeMessageId);
+    }
+    
+    params.push(parsedLimit.toString());
+
     // To get chronological order of the most recent, we use a subquery to bound and sort DESC, then outer sort ASC
     const [rows] = await exec.execute(
       `SELECT * FROM (
          SELECT m.id, m.conversation_id, m.role, m.content, m.intent, m.status, m.created_at
          FROM chat_messages AS m
          INNER JOIN chat_conversations AS c ON c.id = m.conversation_id
-         WHERE m.conversation_id = ? AND c.user_id = ? AND m.status = 'completed'
+         WHERE ${whereClause}
          ORDER BY m.created_at DESC, m.id DESC 
          LIMIT ?
        ) AS recent ORDER BY created_at ASC, id ASC`,
-      [conversationId, userId, parsedLimit.toString()]
+      params
     );
     return rows;
   }

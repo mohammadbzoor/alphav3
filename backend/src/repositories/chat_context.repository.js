@@ -83,7 +83,7 @@ class ChatContextRepository {
    */
   static async getActiveGoalsForChat(userId, limit) {
     const [rows] = await db.execute(
-      `SELECT id, name, target_amount, current_balance, target_date, status 
+      `SELECT id, name, target_amount, current_balance, planned_contribution, target_date, status 
        FROM goals 
        WHERE user_id = ? AND status IN ('active', 'ready') 
        ORDER BY target_date ASC, id ASC 
