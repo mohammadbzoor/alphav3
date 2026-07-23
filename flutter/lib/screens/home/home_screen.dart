@@ -5,12 +5,10 @@ import 'package:alpha_app/providers/home_provider.dart';
 import 'package:alpha_app/providers/profile_provider.dart';
 import 'package:alpha_app/providers/themeprovider.dart';
 import 'package:alpha_app/providers/expense_provider.dart';
-import 'package:alpha_app/screens/ai_assistant/chat_screen.dart';
 import 'package:alpha_app/screens/analysis/financial_analysis_center_screen.dart';
 import 'package:alpha_app/screens/challenges/chanllenges_screen.dart';
 import 'package:alpha_app/screens/expenses/new_expense_screen.dart';
 import 'package:alpha_app/screens/goals/goal_history.dart';
-import 'package:alpha_app/screens/incomes/incomes_screen.dart';
 import 'package:alpha_app/screens/receipts/receipt_input_screen.dart';
 import 'package:alpha_app/screens/notifications/notifications_screen.dart';
 import 'package:alpha_app/providers/notification_provider.dart';
@@ -23,6 +21,7 @@ import 'package:alpha_app/widgets/app_button.dart';
 import 'package:alpha_app/widgets/complete_profile_card.dart';
 import 'package:alpha_app/screens/profile/financial_profile_screen.dart';
 import 'package:alpha_app/core/utils/onboarding_guard.dart';
+import 'package:alpha_app/screens/planning/savings_allocation_screen.dart';
 import 'package:alpha_app/core/utils/dashboard_action_result.dart';
 import 'package:alpha_app/widgets/dashboard/cycle_header.dart';
 import 'package:alpha_app/widgets/dashboard/income_overview.dart';
@@ -32,10 +31,8 @@ import 'package:alpha_app/widgets/dashboard/commitments_summary.dart';
 import 'package:alpha_app/widgets/dashboard/goals_summary.dart';
 import 'package:alpha_app/widgets/dashboard/dashboard_warnings.dart';
 import 'package:alpha_app/widgets/dashboard/section_title.dart';
-import 'package:alpha_app/providers/profile_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:percent_indicator/percent_indicator.dart';
 import 'package:provider/provider.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -265,19 +262,25 @@ class _HomeScreenState extends State<HomeScreen> {
                     .read<CycleProvider>()
                     .createCycle({}, context.read<OnboardingProvider>());
                 if (success && context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text("تم بدء دورتك المالية بنجاح",
-                          style: GoogleFonts.ibmPlexSansArabic()),
-                      backgroundColor: isDark
-                          ? AppColors.darkPrimary
-                          : AppColors.lightPrimary,
-                    ),
-                  );
-                  await context.read<CycleProvider>().loadCurrentCycle();
-                  if (context.mounted &&
-                      context.read<CycleProvider>().hasActiveCycle) {
-                    await context.read<HomeProvider>().loadHomeData();
+                  final cycleId = context.read<CycleProvider>().currentCycle['id']?.toString();
+                  if (cycleId != null) {
+                    final approved = await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => SavingsAllocationScreen(cycleId: cycleId),
+                      ),
+                    );
+                    if (approved == true && context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text("تم بدء دورتك المالية بنجاح",
+                              style: GoogleFonts.ibmPlexSansArabic()),
+                          backgroundColor: isDark
+                              ? AppColors.darkPrimary
+                              : AppColors.lightPrimary,
+                        ),
+                      );
+                    }
                   }
                 } else if (context.mounted &&
                     context.read<CycleProvider>().error != null) {

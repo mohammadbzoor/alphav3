@@ -6,7 +6,7 @@ const { AppError } = require('../utils/app-error');
 class SavingsAccountingService {
   static async getCycleSavingsPlan(userId, cycleId) {
     const [rows] = await db.execute(
-      `SELECT csa.savings_amount, csa.emergency_fund_amount, csa.total_goal_allocations, csa.unallocated_savings_amount
+      `SELECT csa.savings_amount, csa.emergency_fund_amount, csa.emergency_fund_rate, csa.total_goal_allocations, csa.unallocated_savings_amount
        FROM cycle_savings_allocations csa
        JOIN financial_cycles fc ON fc.id = csa.cycle_id
        WHERE csa.cycle_id = ? AND fc.user_id = ? LIMIT 1`,
@@ -16,6 +16,7 @@ class SavingsAccountingService {
     if (rows.length === 0) {
       return {
         plannedSavings: 0,
+        emergencyFundPercentage: 10,
         plannedEmergencyFund: 0,
         plannedGoalAllocations: 0,
         unallocatedSavings: 0
@@ -25,6 +26,7 @@ class SavingsAccountingService {
     const plan = rows[0];
     return {
       plannedSavings: Number(plan.savings_amount || 0),
+      emergencyFundPercentage: Number(plan.emergency_fund_rate ?? 10),
       plannedEmergencyFund: Number(plan.emergency_fund_amount || 0),
       plannedGoalAllocations: Number(plan.total_goal_allocations || 0),
       unallocatedSavings: Number(plan.unallocated_savings_amount || 0)

@@ -243,7 +243,7 @@ class DashboardQueryService {
             target: savingsTarget,
             targetBps: savingsBps,
             plannedSavings,
-            savingsActual,
+            actual: savingsActual,
             actualGoalContributions,
             emergencyFundFundedThisCycle,
             unallocatedSavingsActual,

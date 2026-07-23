@@ -140,6 +140,43 @@ class CycleProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<Map<String, dynamic>?> getCyclePlanningSummary(String cycleId) async {
+    try {
+      final response = await ApiService.get('/financial-cycles/$cycleId/planning-summary');
+      if (response != null && response.statusCode == 200) {
+        final body = await ApiService.parseJson(response);
+        return body['data'];
+      }
+      return null;
+    } catch (e) {
+      debugPrint('Error getting cycle planning summary: $e');
+      return null;
+    }
+  }
+
+  Future<bool> linkSavingsAllocation(String cycleId, double emergencyFundPercentage) async {
+    try {
+      final response = await ApiService.post(
+        '/financial-cycles/$cycleId/savings-allocation',
+        body: {'emergencyFundPercentage': emergencyFundPercentage},
+      );
+      if (response != null && (response.statusCode == 200 || response.statusCode == 201)) {
+        return true;
+      }
+      _error = await ApiService.getErrorMessage(response!, fallback: "فشل حفظ التخصيص");
+      notifyListeners();
+      return false;
+    } catch (e) {
+      if (e is ApiException) {
+        _error = e.message;
+      } else {
+        _error = "تعذر الاتصال بالخادم";
+      }
+      notifyListeners();
+      return false;
+    }
+  }
+
   String _cleanError(dynamic error) {
     return error.toString().replaceAll('Exception:', '').trim();
   }

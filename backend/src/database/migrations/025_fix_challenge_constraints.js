@@ -4,6 +4,13 @@ module.exports = {
 
     // 1. Remove the flawed unique constraint
     try {
+      // Create index on user_id so the foreign key doesn't block dropping the unique key
+      await conn.query('CREATE INDEX idx_user_challenges_user_id ON user_challenges(user_id)');
+    } catch (e) {
+      if (e.code !== 'ER_DUP_KEYNAME') throw e;
+    }
+
+    try {
       await conn.query('ALTER TABLE user_challenges DROP INDEX unique_active_challenge');
       console.log('  Dropped unique_active_challenge from user_challenges');
     } catch (e) {
