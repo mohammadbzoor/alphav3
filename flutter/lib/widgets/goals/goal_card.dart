@@ -1,5 +1,6 @@
 import 'package:alpha_app/core/utils/app_colors.dart';
 import 'package:alpha_app/models/goal_model.dart';
+import 'package:alpha_app/providers/goal_provider.dart';
 import 'package:alpha_app/providers/themeprovider.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -117,24 +118,38 @@ class _GoalHeader extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 5),
-        Container(
-          padding: const EdgeInsets.symmetric(
-            horizontal: 7,
-            vertical: 3,
-          ),
-          decoration: BoxDecoration(
-            color: urgencyColor.withOpacity(0.15),
-            borderRadius: BorderRadius.circular(6),
-          ),
-          child: Text(
-            "${goal.daysLeft} days left",
-            style: GoogleFonts.ibmPlexSansArabic(
-              color: urgencyColor,
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
+        if (goal.isPaused)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+            decoration: BoxDecoration(
+              color: isDark ? Colors.grey[800] : Colors.grey[300],
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: Text(
+              "Paused",
+              style: GoogleFonts.ibmPlexSansArabic(
+                color: isDark ? Colors.grey[300] : Colors.grey[700],
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          )
+        else
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+            decoration: BoxDecoration(
+              color: urgencyColor.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: Text(
+              "${goal.daysLeft} days left",
+              style: GoogleFonts.ibmPlexSansArabic(
+                color: urgencyColor,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
-        ),
         const SizedBox(width: 2),
         PopupMenuButton<String>(
           tooltip: "Goal options",
@@ -149,13 +164,65 @@ class _GoalHeader extends StatelessWidget {
             color: isDark ? AppColors.darkSubText : AppColors.lightSubText,
             size: 22,
           ),
-          onSelected: (value) {
+          onSelected: (value) async {
             if (value == "delete") {
               onDelete();
+            } else if (value == "pause") {
+              if (goal.id != null) {
+                final success = await context.read<GoalProvider>().pauseGoal(goal.id!);
+                if (success && context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text("Goal paused successfully", style: GoogleFonts.ibmPlexSansArabic()),
+                      behavior: SnackBarBehavior.floating,
+                    ),
+                  );
+                }
+              }
+            } else if (value == "resume") {
+              if (goal.id != null) {
+                final success = await context.read<GoalProvider>().resumeGoal(goal.id!);
+                if (success && context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text("Goal resumed successfully", style: GoogleFonts.ibmPlexSansArabic()),
+                      behavior: SnackBarBehavior.floating,
+                    ),
+                  );
+                }
+              }
             }
           },
           itemBuilder: (context) {
             return [
+              if (goal.isActive)
+                PopupMenuItem<String>(
+                  value: "pause",
+                  child: Row(
+                    children: [
+                      Icon(Icons.pause_circle_outline, color: isDark ? AppColors.darkText : AppColors.lightText, size: 23),
+                      const SizedBox(width: 9),
+                      Text(
+                        "Pause Goal",
+                        style: GoogleFonts.ibmPlexSansArabic(color: isDark ? AppColors.darkText : AppColors.lightText, fontSize: 15, fontWeight: FontWeight.w600),
+                      ),
+                    ],
+                  ),
+                ),
+              if (goal.isPaused)
+                PopupMenuItem<String>(
+                  value: "resume",
+                  child: Row(
+                    children: [
+                      Icon(Icons.play_circle_outline, color: const Color(0xFF34D399), size: 23),
+                      const SizedBox(width: 9),
+                      Text(
+                        "Resume Goal",
+                        style: GoogleFonts.ibmPlexSansArabic(color: const Color(0xFF34D399), fontSize: 15, fontWeight: FontWeight.w600),
+                      ),
+                    ],
+                  ),
+                ),
               PopupMenuItem<String>(
                 value: "delete",
                 child: Row(

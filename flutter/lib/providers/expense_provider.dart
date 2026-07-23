@@ -255,7 +255,7 @@ class ExpenseProvider extends ChangeNotifier {
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
         final data = body['data'] ?? body;
-        final items = data['items'] ?? data;
+        final items = data is List ? data : (data['items'] ?? data);
 
         if (items is List) {
           final loadedExpenses = items

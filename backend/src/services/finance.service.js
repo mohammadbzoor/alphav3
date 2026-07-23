@@ -292,13 +292,22 @@ class FinanceService {
       return {
         id: row.id,
         name: row.name,
+        customName: row.custom_name,
+        goalType: row.goal_type,
         targetAmount,
         currentBalance,
         monthlyContribution,
+        plannedContribution: Number(row.planned_contribution || 0),
         remainingAmount,
         requiredCycles,
         priority: row.priority,
-        status: row.status
+        status: row.status,
+        targetDate: row.target_date,
+        planningMode: row.planning_mode || 'deadline_based',
+        isSystemManaged: row.is_system_managed,
+        createdAt: row.created_at,
+        readyAt: row.ready_at,
+        executedAt: row.executed_at
       };
     });
     return { items: formatted, total: formatted.length };

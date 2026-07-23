@@ -10,11 +10,12 @@ class Goal {
   final DateTime? targetDate;
 
   final double? savedAmount;
+
   /// إجمالي قيمة الهدف
   final double? targetAmount;
   final double? recommendedMonthlySaving;
 
-  final bool isActive;
+  final String status;
   final String planningMode;
 
   const Goal({
@@ -27,9 +28,14 @@ class Goal {
     this.savedAmount,
     this.targetAmount,
     this.recommendedMonthlySaving,
-    this.isActive = true,
+    this.status = 'active',
     this.planningMode = 'deadline_based',
   });
+
+  // ================= STATUS GETTERS =================
+  bool get isActive => status == 'active';
+  bool get isPaused => status == 'paused';
+  bool get isCompleted => status == 'completed';
 
   // ================= DISPLAY NAME =================
 
@@ -102,16 +108,12 @@ class Goal {
     return value < 0 ? 0 : value;
   }
 
-  bool get isCompleted {
-    return hasProgressData && savedAmount! >= targetAmount!;
-  }
-
   /// إذا الباك إند لم يرسل توصية بعد،
   /// يتم عرض القيمة التي أدخلها المستخدم.
   double get displayedMonthlyRecommendation {
     return recommendedMonthlySaving ?? plannedContribution;
   }
-  
+
   // Backward compatibility alias for UI elements expecting monthlySaving
   double get monthlySaving => plannedContribution;
 
@@ -129,7 +131,7 @@ class Goal {
       if (targetAmount != null) "target_amount": targetAmount,
       if (recommendedMonthlySaving != null)
         "recommended_monthly_saving": recommendedMonthlySaving,
-      "is_active": isActive,
+      "status": status,
       "planning_mode": planningMode,
     };
   }
@@ -137,18 +139,23 @@ class Goal {
   factory Goal.fromJson(Map<String, dynamic> json) {
     return Goal(
       id: json["id"]?.toString(),
-      category: json["category"]?.toString() ?? json["goal_type"]?.toString() ?? "",
+      category:
+          json["category"]?.toString() ?? json["goal_type"]?.toString() ?? "",
       customName: json["custom_name"]?.toString(),
-      plannedContribution: (json["planned_contribution"] as num?)?.toDouble() ?? (json["monthly_saving"] as num?)?.toDouble() ?? 0,
+      plannedContribution: (json["planned_contribution"] as num?)?.toDouble() ??
+          (json["monthly_saving"] as num?)?.toDouble() ??
+          0,
       priority: (json["priority"] as num?)?.toInt() ?? 5,
       targetDate: json["target_date"] != null
           ? DateTime.tryParse(json["target_date"].toString())
           : null,
-      savedAmount: (json["current_balance"] as num?)?.toDouble() ?? (json["saved_amount"] as num?)?.toDouble(),
+      savedAmount: (json["current_balance"] as num?)?.toDouble() ??
+          (json["saved_amount"] as num?)?.toDouble(),
       targetAmount: (json["target_amount"] as num?)?.toDouble(),
       recommendedMonthlySaving:
           (json["recommended_monthly_saving"] as num?)?.toDouble(),
-      isActive: json["status"] == "active" || json["status"] == "draft" || json["is_active"] == true,
+      status: json["status"]?.toString() ??
+          (json["is_active"] == true ? "active" : "completed"),
       planningMode: json["planning_mode"]?.toString() ?? 'deadline_based',
     );
   }
@@ -165,7 +172,7 @@ class Goal {
     double? savedAmount,
     double? targetAmount,
     double? recommendedMonthlySaving,
-    bool? isActive,
+    String? status,
     String? planningMode,
   }) {
     return Goal(
@@ -179,7 +186,7 @@ class Goal {
       targetAmount: targetAmount ?? this.targetAmount,
       recommendedMonthlySaving:
           recommendedMonthlySaving ?? this.recommendedMonthlySaving,
-      isActive: isActive ?? this.isActive,
+      status: status ?? this.status,
       planningMode: planningMode ?? this.planningMode,
     );
   }

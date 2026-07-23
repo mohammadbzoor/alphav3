@@ -71,7 +71,7 @@ class GoalProvider extends ChangeNotifier {
   List<Goal> get activeGoals {
     return goals
         .where(
-          (goal) => goal.isActive && !goal.isCompleted,
+          (goal) => !goal.isCompleted,
         )
         .toList();
   }
@@ -79,7 +79,7 @@ class GoalProvider extends ChangeNotifier {
   List<Goal> get completedGoals {
     return goals
         .where(
-          (goal) => !goal.isActive || goal.isCompleted,
+          (goal) => goal.isCompleted,
         )
         .toList();
   }
@@ -138,14 +138,14 @@ class GoalProvider extends ChangeNotifier {
                 // Map backend fields to what Goal.fromJson expects
                 return Goal(
                   id: map['id']?.toString(),
-                  category: map['name']?.toString() ?? 'Other',
-                  customName: map['name']?.toString(),
+                  category: map['goalType']?.toString() ?? map['name']?.toString() ?? 'Other',
+                  customName: map['customName']?.toString() ?? map['custom_name']?.toString(),
                   plannedContribution: (map['plannedContribution'] ?? map['planned_contribution'] ?? 0).toDouble(),
                   priority: (map['priority'] ?? 5).toInt(),
                   targetDate: map['targetDate'] != null ? DateTime.tryParse(map['targetDate']) : (map['target_date'] != null ? DateTime.tryParse(map['target_date']) : null),
                   savedAmount: (map['currentBalance'] ?? map['current_balance'] ?? 0).toDouble(),
                   targetAmount: (map['targetAmount'] ?? map['target_amount'] ?? 0).toDouble(),
-                  isActive: map['status'] == 'active',
+                  status: map['status']?.toString() ?? 'active',
                   planningMode: map['planningMode'] ?? map['planning_mode'] ?? 'deadline_based',
                 );
               })
@@ -360,7 +360,7 @@ class GoalProvider extends ChangeNotifier {
       savedAmount: null,
       targetAmount: targetAmountValue,
       recommendedMonthlySaving: null,
-      isActive: true,
+      status: 'active',
       planningMode: targetDate != null ? 'deadline_based' : 'contribution_based',
     );
   }
@@ -654,7 +654,7 @@ class GoalProvider extends ChangeNotifier {
     final oldGoal = _goals[index];
 
     _goals[index] = oldGoal.copyWith(
-      isActive: false,
+      status: 'completed',
     );
 
     notifyListeners();
@@ -774,12 +774,28 @@ class GoalProvider extends ChangeNotifier {
 
   Future<bool> pauseGoal(String id) async {
     final response = await ApiService.post('/goals/$id/pause');
-    return _isSuccess(response);
+    if (await _isSuccess(response)) {
+      _updateLocalGoalStatus(id, 'paused');
+      return true;
+    }
+    return false;
   }
 
   Future<bool> resumeGoal(String id) async {
     final response = await ApiService.post('/goals/$id/resume');
-    return _isSuccess(response);
+    if (await _isSuccess(response)) {
+      _updateLocalGoalStatus(id, 'active');
+      return true;
+    }
+    return false;
+  }
+
+  void _updateLocalGoalStatus(String id, String newStatus) {
+    final index = _goals.indexWhere((g) => g.id == id);
+    if (index != -1) {
+      _goals[index] = _goals[index].copyWith(status: newStatus);
+      notifyListeners();
+    }
   }
 
   Future<dynamic> _parseOrError(dynamic response) async {

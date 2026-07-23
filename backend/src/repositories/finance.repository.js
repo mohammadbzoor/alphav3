@@ -136,7 +136,7 @@ class FinanceRepository {
   static async getGoals(userId) {
     const [rows] = await db.execute(
       `SELECT id, name, target_amount, current_balance, cycle_allocation,
-              planned_contribution, priority, status, target_date, custom_name, goal_type, created_at, ready_at, executed_at, is_system_managed
+              planned_contribution, priority, status, target_date, custom_name, goal_type, planning_mode, created_at, ready_at, executed_at, is_system_managed
        FROM goals WHERE user_id = ? ORDER BY created_at DESC`,
       [userId]
     );

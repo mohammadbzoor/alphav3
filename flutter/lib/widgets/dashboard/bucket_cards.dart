@@ -148,6 +148,11 @@ class BucketCardsSection extends StatelessWidget {
               bucket.plannedGoalAllocations! > 0)
             _buildSmallDetail("Goal Allocations:",
                 "${bucket.plannedGoalAllocations!.toStringAsFixed(2)} JOD"),
+          if (isSavings &&
+              bucket.unallocatedSavings != null &&
+              bucket.unallocatedSavings! > 0)
+            _buildSmallDetail("Unallocated Savings:",
+                "${bucket.unallocatedSavings!.toStringAsFixed(2)} JOD"),
           const SizedBox(height: 8),
           if (bucket.remaining != null)
             Text(

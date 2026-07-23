@@ -250,6 +250,7 @@ class ExpenseModel {
   ) {
     switch (value) {
       case 'receipt':
+      case 'image':
         return ExpenseSource.receipt;
 
       case 'voice':

@@ -78,26 +78,32 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                 height: screenH * 0.025,
               ),
               Expanded(
-                child: expenses.isEmpty
-                    ? EmptyStateView(
-                        isDark: isDark,
-                        screenW: screenW,
-                        title: "No expenses yet",
-                        description:
-                            "Start recording your expenses to unlock spending analysis and personalized Alpha insights.",
-                        buttonText: "Add your first expense",
-                        icon: Icons.account_balance_wallet_outlined,
-                        color: isDark
-                            ? AppColors.darkSecondary
-                            : AppColors.lightSecondary,
-                        onPressed: () {
-                          _openNewExpenseScreen(
-                            context,
-                          );
-                        },
+                child: expenseProvider.isLoading && expenses.isEmpty
+                    ? Center(
+                        child: CircularProgressIndicator(
+                          color: isDark ? AppColors.darkPrimary : AppColors.lightPrimary,
+                        ),
                       )
-                    : ListView(
-                        physics: const BouncingScrollPhysics(),
+                    : expenses.isEmpty
+                        ? EmptyStateView(
+                            isDark: isDark,
+                            screenW: screenW,
+                            title: "No expenses yet",
+                            description:
+                                "Start recording your expenses to unlock spending analysis and personalized Alpha insights.",
+                            buttonText: "Add your first expense",
+                            icon: Icons.account_balance_wallet_outlined,
+                            color: isDark
+                                ? AppColors.darkSecondary
+                                : AppColors.lightSecondary,
+                            onPressed: () {
+                              _openNewExpenseScreen(
+                                context,
+                              );
+                            },
+                          )
+                        : ListView(
+                            physics: const BouncingScrollPhysics(),
                         padding: EdgeInsets.only(
                           bottom: screenH * 0.14,
                         ),

@@ -151,9 +151,9 @@ class DashboardQueryService {
     // Savings actual
     const [savingsTrans] = await db.execute(
       `SELECT SUM(amount) as total
-       FROM transactions 
-       WHERE user_id = ? AND cycle_id = ? AND budget_bucket = 'savings' AND direction = 'outflow' AND status = 'confirmed'`,
-      [userId, cycleId]
+       FROM goal_transactions 
+       WHERE user_id = ? AND transaction_type = 'contribution' AND DATE(created_at) >= ? AND DATE(created_at) <= ?`,
+      [userId, cycle.start_date, cycle.end_date]
     );
     let savingsActual = savingsTrans.length > 0 ? (Number(savingsTrans[0].total) || 0) : 0;
 
@@ -169,13 +169,23 @@ class DashboardQueryService {
     let plannedGoalAllocations = 0;
     let unallocatedSavings = 0;
 
-    if (savingsAlloc.length > 0) {
-      plannedEmergencyFund = Number(savingsAlloc[0].emergency_fund_amount);
-      plannedEmergencyFundRate = savingsAlloc[0].emergency_fund_rate !== null ? Number(savingsAlloc[0].emergency_fund_rate) : null;
-      plannedGoalAllocations = Number(savingsAlloc[0].total_goal_allocations);
-      unallocatedSavings = Number(savingsAlloc[0].unallocated_savings_amount);
+    // Always dynamically calculate from active goals to ensure dashboard is accurate
+    const [activeGoalsData] = await db.execute(
+      `SELECT goal_type, planned_contribution 
+       FROM goals 
+       WHERE user_id = ? AND status = 'active'`,
+      [userId]
+    );
+    for (const g of activeGoalsData) {
+      if (g.goal_type === 'emergency_fund') {
+        plannedEmergencyFund += Number(g.planned_contribution || 0);
+      } else {
+        plannedGoalAllocations += Number(g.planned_contribution || 0);
+      }
     }
-
+    
+    // Set unallocated savings based on target minus current active goal allocations
+    unallocatedSavings = Math.max(0, savingsTarget - plannedEmergencyFund - plannedGoalAllocations);
     // Goals
     const [goalsList] = await db.execute(
       `SELECT id, name, target_amount as targetAmount, current_balance as currentBalance, status
