@@ -1,30 +1,25 @@
 import 'dart:async';
+import 'package:alpha_app/config/api_config.dart';
 import 'dart:convert';
 
-import 'package:flutter_dotenv/flutter_dotenv.dart';
+
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http_parser/http_parser.dart';
 
 class ApiService {
-  static String get baseUrl {
-    String? url = dotenv.env['API_BASE_URL'];
-    if (url == null || url.isEmpty) {
-      throw Exception('API_BASE_URL is missing in environment variables.');
-    }
-    // Remove trailing slashes
-    while (url!.endsWith('/')) {
-      url = url.substring(0, url.length - 1);
-    }
-    return url;
-  }
+  static String get baseUrl => ApiConfig.apiV1BaseUrl;
 
   static Uri _buildUri(String path) {
     String p = path.startsWith('/') ? path : '/$path';
     if (p.startsWith('/api/v1')) {
       p = p.substring('/api/v1'.length);
     }
+    // Remove duplicated slashes, e.g. //api
+    p = p.replaceAll(RegExp(r'/+'), '/');
+    
+    // apiV1BaseUrl doesn't have trailing slash, and p always starts with / here
     return Uri.parse('$baseUrl$p');
   }
 
