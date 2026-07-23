@@ -71,16 +71,16 @@ describe('Financial Profile API', () => {
       expect(profiles[0].payment_day).toBe(15);
     });
 
-    it('4. Existing legacy currency preserved when omitted', async () => {
-      await db.execute('INSERT INTO financial_profiles (user_id, currency, payment_day, expected_monthly_income) VALUES (?, ?, ?, ?)', [userId, 'USD', 10, 0]);
+    it('4. Existing profile partial update preserves JOD currency when omitted', async () => {
+      await db.execute('INSERT INTO financial_profiles (user_id, currency, payment_day, expected_monthly_income) VALUES (?, ?, ?, ?)', [userId, 'JOD', 10, 0]);
       await request(app).patch('/api/v1/financial-profile').set('Authorization', authHeader).send({ paymentDay: 15 }).expect(200);
       const [profiles] = await db.execute('SELECT * FROM financial_profiles WHERE user_id = ?', [userId]);
-      expect(profiles[0].currency).toBe('USD');
+      expect(profiles[0].currency).toBe('JOD');
       expect(profiles[0].payment_day).toBe(15);
     });
 
     it('5. Explicit valid currency update', async () => {
-      await db.execute('INSERT INTO financial_profiles (user_id, currency, payment_day, expected_monthly_income) VALUES (?, ?, ?, ?)', [userId, 'USD', 10, 0]);
+      await db.execute('INSERT INTO financial_profiles (user_id, currency, payment_day, expected_monthly_income) VALUES (?, ?, ?, ?)', [userId, 'JOD', 10, 0]);
       await request(app).patch('/api/v1/financial-profile').set('Authorization', authHeader).send({ currency: 'JOD' }).expect(200);
       const [profiles] = await db.execute('SELECT * FROM financial_profiles WHERE user_id = ?', [userId]);
       expect(profiles[0].currency).toBe('JOD');
@@ -103,6 +103,7 @@ describe('Financial Profile API', () => {
     });
 
     it('10. Unsupported currency follows verified contract', async () => {
+      await request(app).patch('/api/v1/financial-profile').set('Authorization', authHeader).send({ currency: 'USD' }).expect(400);
       await request(app).patch('/api/v1/financial-profile').set('Authorization', authHeader).send({ currency: 'EUR' }).expect(400);
     });
 
@@ -153,22 +154,23 @@ describe('Financial Profile API', () => {
     });
 
     it('18. Successful PATCH changes only submitted fields', async () => {
-      await db.execute('INSERT INTO financial_profiles (user_id, payment_day, currency, timezone, expected_monthly_income) VALUES (?, 10, "USD", "Europe/London", 2000)', [userId]);
+      await db.execute('INSERT INTO financial_profiles (user_id, payment_day, currency, timezone, expected_monthly_income) VALUES (?, 10, "JOD", "Europe/London", 2000)', [userId]);
       await request(app).patch('/api/v1/financial-profile').set('Authorization', authHeader).send({ paymentDay: 20 }).expect(200);
       
       const [profiles] = await db.execute('SELECT * FROM financial_profiles WHERE user_id = ?', [userId]);
       expect(profiles[0].payment_day).toBe(20);
-      expect(profiles[0].currency).toBe('USD');
+      expect(profiles[0].currency).toBe('JOD');
       expect(profiles[0].timezone).toBe('Europe/London');
       expect(Number(profiles[0].expected_monthly_income)).toBe(2000);
     });
 
     it('19. Failed PATCH leaves every field unchanged', async () => {
-      await db.execute('INSERT INTO financial_profiles (user_id, payment_day, currency, timezone, expected_monthly_income) VALUES (?, 10, "USD", "Europe/London", 2000)', [userId]);
+      await db.execute('INSERT INTO financial_profiles (user_id, payment_day, currency, timezone, expected_monthly_income) VALUES (?, 10, "JOD", "Europe/London", 2000)', [userId]);
       await request(app).patch('/api/v1/financial-profile').set('Authorization', authHeader).send({ paymentDay: 32, timezone: 'Asia/Dubai' }).expect(400);
       
       const [profiles] = await db.execute('SELECT * FROM financial_profiles WHERE user_id = ?', [userId]);
       expect(profiles[0].payment_day).toBe(10);
+      expect(profiles[0].currency).toBe('JOD');
       expect(profiles[0].timezone).toBe('Europe/London');
     });
 
