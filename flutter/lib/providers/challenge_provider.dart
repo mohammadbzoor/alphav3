@@ -1,46 +1,45 @@
 import 'package:alpha_app/models/challenge_model.dart';
+import 'package:alpha_app/services/api_service.dart';
 import 'package:flutter/material.dart';
 
 class ChallengeProvider extends ChangeNotifier {
-  final List<ChallengeModel> _challenges = [];
+  final List<ChallengeModel> _available = [];
+  final List<ChallengeModel> _current = [];
+  final List<ChallengeModel> _completed = [];
 
   bool _isLoading = false;
   String? _errorMessage;
 
   ChallengeType _selectedType = ChallengeType.individual;
-
   ChallengeStatus _selectedStatus = ChallengeStatus.current;
 
   bool get isLoading => _isLoading;
-
   String? get errorMessage => _errorMessage;
-
   ChallengeType get selectedType => _selectedType;
-
   ChallengeStatus get selectedStatus => _selectedStatus;
 
-  List<ChallengeModel> get challenges => List.unmodifiable(_challenges);
+  List<ChallengeModel> get challenges {
+    return [..._available, ..._current, ..._completed];
+  }
 
   List<ChallengeModel> get filteredChallenges {
-    return _challenges.where((challenge) {
-      return challenge.type == _selectedType &&
-          challenge.status == _selectedStatus;
-    }).toList();
+    if (_selectedStatus == ChallengeStatus.available) {
+      return _available.where((c) => c.type == _selectedType).toList();
+    } else if (_selectedStatus == ChallengeStatus.current) {
+      return _current.where((c) => c.type == _selectedType).toList();
+    } else if (_selectedStatus == ChallengeStatus.completed) {
+      return _completed.where((c) => c.type == _selectedType).toList();
+    }
+    return [];
   }
 
   List<ChallengeModel> get activeChallenges {
-    return _challenges.where((challenge) {
-      return challenge.status == ChallengeStatus.current &&
-          challenge.isAccepted;
-    }).toList();
+    return _current;
   }
 
   ChallengeModel? get firstActiveChallenge {
-    if (activeChallenges.isEmpty) {
-      return null;
-    }
-
-    return activeChallenges.first;
+    if (_current.isEmpty) return null;
+    return _current.first;
   }
 
   Future<void> loadChallenges() async {
@@ -49,68 +48,31 @@ class ChallengeProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      await Future.delayed(
-        const Duration(milliseconds: 450),
-      );
+      final response = await ApiService.get('/challenges');
+      if (ApiService.isSuccess(response)) {
+        final body = await ApiService.parseJson(response);
+        if (body['success'] == true) {
+          final data = body['data'];
+          _available.clear();
+          _current.clear();
+          _completed.clear();
 
-      _challenges
-        ..clear()
-        ..addAll(
-          const [
-            ChallengeModel(
-              id: "1",
-              title: "Cut your spending by 20% this week",
-              description: "Spend less than your previous weekly average.",
-              type: ChallengeType.individual,
-              status: ChallengeStatus.current,
-              progress: 0.80,
-              totalDays: 7,
-              daysLeft: 4,
-              xpReward: 120,
-              icon: "🎯",
-              isAccepted: true,
-            ),
-            ChallengeModel(
-              id: "2",
-              title: "A week with no coffee shops",
-              description: "Avoid spending at coffee shops for seven days.",
-              type: ChallengeType.individual,
-              status: ChallengeStatus.current,
-              progress: 0.55,
-              totalDays: 7,
-              daysLeft: 2,
-              xpReward: 90,
-              icon: "☕",
-              isAccepted: true,
-            ),
-            ChallengeModel(
-              id: "3",
-              title: "Save 25 JD this week",
-              description: "Build a small saving habit.",
-              type: ChallengeType.individual,
-              status: ChallengeStatus.available,
-              progress: 0,
-              totalDays: 7,
-              daysLeft: 7,
-              xpReward: 100,
-              icon: "💰",
-              isAccepted: false,
-            ),
-            ChallengeModel(
-              id: "4",
-              title: "Record expenses every day",
-              description: "Add at least one expense per day.",
-              type: ChallengeType.individual,
-              status: ChallengeStatus.completed,
-              progress: 1,
-              totalDays: 7,
-              daysLeft: 0,
-              xpReward: 80,
-              icon: "✅",
-              isAccepted: true,
-            ),
-          ],
-        );
+          if (data['available'] != null) {
+            _available.addAll((data['available'] as List)
+                .map((e) => ChallengeModel.fromJson(e)));
+          }
+          if (data['current'] != null) {
+            _current.addAll((data['current'] as List)
+                .map((e) => ChallengeModel.fromJson(e)));
+          }
+          if (data['completed'] != null) {
+            _completed.addAll((data['completed'] as List)
+                .map((e) => ChallengeModel.fromJson(e)));
+          }
+        }
+      } else {
+        _errorMessage = "Failed to load challenges";
+      }
     } catch (error) {
       _errorMessage = "Unable to load challenges";
     } finally {
@@ -119,67 +81,48 @@ class ChallengeProvider extends ChangeNotifier {
     }
   }
 
-  void selectType(
-    ChallengeType type,
-  ) {
+  void selectType(ChallengeType type) {
     _selectedType = type;
     notifyListeners();
   }
 
-  void selectStatus(
-    ChallengeStatus status,
-  ) {
+  void selectStatus(ChallengeStatus status) {
     _selectedStatus = status;
     notifyListeners();
   }
 
-  void acceptChallenge(
-    String challengeId,
-  ) {
-    final index = _challenges.indexWhere(
-      (challenge) => challenge.id == challengeId,
-    );
-
-    if (index == -1) return;
-
-    _challenges[index] = _challenges[index].copyWith(
-      isAccepted: true,
-      status: ChallengeStatus.current,
-    );
-
-    notifyListeners();
+  Future<void> acceptChallenge(String templateId) async {
+    try {
+      final response = await ApiService.post('/challenges/$templateId/accept', body: {});
+      if (ApiService.isSuccess(response)) {
+        final body = await ApiService.parseJson(response);
+        if (body['success'] == true && body['data'] != null) {
+          final newChallenge = ChallengeModel.fromJson(body['data']);
+          _available.removeWhere((c) => c.templateId == templateId || c.id == templateId);
+          _current.add(newChallenge);
+          notifyListeners();
+        }
+      } else {
+        throw Exception("Failed to accept challenge");
+      }
+    } catch (e) {
+      rethrow;
+    }
   }
 
-  void updateProgress({
-    required String challengeId,
-    required double progress,
-  }) {
-    final index = _challenges.indexWhere(
-      (challenge) => challenge.id == challengeId,
-    );
-
-    if (index == -1) return;
-
-    final safeProgress = progress.clamp(0.0, 1.0);
-
-    _challenges[index] = _challenges[index].copyWith(
-      progress: safeProgress,
-      status: safeProgress >= 1
-          ? ChallengeStatus.completed
-          : ChallengeStatus.current,
-      daysLeft: safeProgress >= 1 ? 0 : _challenges[index].daysLeft,
-    );
-
-    notifyListeners();
-  }
-
-  void removeChallenge(
-    String challengeId,
-  ) {
-    _challenges.removeWhere(
-      (challenge) => challenge.id == challengeId,
-    );
-
-    notifyListeners();
+  Future<void> cancelChallenge(String userChallengeId) async {
+    try {
+      final response = await ApiService.post('/challenges/$userChallengeId/cancel', body: {});
+      if (ApiService.isSuccess(response)) {
+        _current.removeWhere((c) => c.id == userChallengeId);
+        notifyListeners();
+        // optionally reload all challenges to get it back into available
+        await loadChallenges();
+      } else {
+        throw Exception("Failed to cancel challenge");
+      }
+    } catch (e) {
+      rethrow;
+    }
   }
 }

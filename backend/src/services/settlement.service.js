@@ -107,11 +107,14 @@ class SettlementService {
       }
     }
 
-    const rawSavings = await SettlementRepository.getConfirmedSavingsByCycle(connOrNull, userId, cycleId);
-    const actualSavings = this.normalizeDatabaseMoney(rawSavings, 'actual_savings');
+    const { SavingsAccountingService } = require('./savings-accounting.service');
+    const savingsActuals = await SavingsAccountingService.getCycleSavingsActuals(userId, cycleId);
+    const actualSavings = this.normalizeDatabaseMoney(savingsActuals.totalSavingsActual, 'actual_savings');
 
-    const rawOutflows = await SettlementRepository.getTotalConfirmedOutflowsByCycle(connOrNull, userId, cycleId);
-    const totalActualOutflows = this.normalizeDatabaseMoney(rawOutflows, 'total_actual_outflows');
+    // Total outflows for cycle settlement must strictly be the sum of verified cycle deductions.
+    // Includes: Needs, Wants, and all already-funded savings (goal contributions + unallocated savings + EF)
+    // Excludes: capital_expenses (since they are funded from previously saved goal balances)
+    const totalActualOutflows = actualNeeds + actualWants + actualSavings;
 
     const actualIncome = actualRecurringIncome + unexpectedIncome;
     const netCycleResult = actualIncome - totalActualOutflows;
@@ -364,6 +367,8 @@ class SettlementService {
       throw new AppError('Duplicate goalId in actions.', 422, 'DUPLICATE_GOAL_ID');
     }
 
+    const hasEmergencyFundAction = normalizedActions.some(a => a.actionType === 'emergency_fund');
+
     const conn = await db.getConnection();
     let transactionActive = false;
     try {
@@ -422,6 +427,21 @@ class SettlementService {
       }
 
       const goalUpdates = new Map();
+      let efGoal = null;
+      
+      if (hasEmergencyFundAction) {
+        const [efRows] = await conn.execute(
+          `SELECT id, user_id, target_amount, current_balance, status, ready_at
+           FROM goals WHERE user_id = ? AND goal_type = 'emergency_fund' AND is_system_managed = TRUE
+           FOR UPDATE`,
+          [userId]
+        );
+        if (efRows.length !== 1) {
+          throw new AppError('System-managed Emergency Fund not found or multiple exist.', 404, 'EF_NOT_FOUND');
+        }
+        efGoal = efRows[0];
+      }
+
       if (goalIds.length > 0) {
         const sortedGoalIds = [...goalIds].sort((a, b) => (BigInt(a) < BigInt(b) ? -1 : (BigInt(a) > BigInt(b) ? 1 : 0)));
         const lockedGoals = await SettlementRepository.lockGoalsForSettlement(conn, userId, sortedGoalIds);
@@ -459,6 +479,28 @@ class SettlementService {
               newStatus,
               readyAt
             });
+          } else if (action.actionType === 'emergency_fund') {
+            const currentBalance = this.normalizeDatabaseMoney(efGoal.current_balance, 'current_balance');
+            const targetAmount = this.normalizeDatabaseMoney(efGoal.target_amount, 'target_amount');
+            const remainingCapacity = Math.max(targetAmount - currentBalance, 0);
+
+            if (action.amount > remainingCapacity) {
+              throw new AppError('Emergency Fund allocation exceeds remaining capacity.', 422, 'EF_OVERFUNDING');
+            }
+
+            const newBalance = currentBalance + action.amount;
+            let newStatus = 'active';
+            let readyAt = efGoal.ready_at;
+            if (newBalance >= targetAmount) {
+              newStatus = 'ready';
+              readyAt = new Date();
+            }
+
+            goalUpdates.set(efGoal.id.toString(), {
+              newBalance,
+              newStatus,
+              readyAt
+            });
           }
         }
       }
@@ -473,24 +515,41 @@ class SettlementService {
         });
 
         if (action.actionType === 'goal_allocation') {
-          const gd = goalUpdates.get(action.goalId);
+          const gd = goalUpdates.get(action.goalId.toString());
           await SettlementRepository.createGoalTransaction(conn, {
             userId,
             goalId: action.goalId,
             amount: action.amount,
-            description: action.description || 'Cycle settlement allocation'
+            description: action.description || 'Cycle settlement allocation',
+            cycleId,
+            sourceType: 'settlement_goal_allocation',
+            settlementId: settlement.id
           });
           const affected = await SettlementRepository.updateGoalBalanceAndStatus(conn, userId, action.goalId, gd.newBalance, gd.newStatus, gd.readyAt);
           if (affected !== 1) {
             throw new AppError('Failed to update goal balance.', 500, 'GOAL_UPDATE_FAILED');
           }
-        } else if (action.actionType === 'emergency_fund' || action.actionType === 'unallocated_savings') {
-          const defaultDesc = action.actionType === 'emergency_fund' ? 'Emergency fund from cycle settlement' : 'Unallocated savings from cycle settlement';
+        } else if (action.actionType === 'emergency_fund') {
+          const gd = goalUpdates.get(efGoal.id.toString());
+          await SettlementRepository.createGoalTransaction(conn, {
+            userId,
+            goalId: efGoal.id,
+            amount: action.amount,
+            description: action.description || 'Emergency fund from cycle settlement',
+            cycleId,
+            sourceType: 'settlement_emergency_fund',
+            settlementId: settlement.id
+          });
+          const affected = await SettlementRepository.updateGoalBalanceAndStatus(conn, userId, efGoal.id, gd.newBalance, gd.newStatus, gd.readyAt);
+          if (affected !== 1) {
+            throw new AppError('Failed to update Emergency Fund balance.', 500, 'EF_UPDATE_FAILED');
+          }
+        } else if (action.actionType === 'unallocated_savings') {
           await SettlementRepository.createSavingsTransaction(conn, {
             userId,
             cycleId,
             amount: action.amount,
-            description: action.description || defaultDesc
+            description: action.description || 'Unallocated savings from cycle settlement'
           });
         }
       }
@@ -507,6 +566,11 @@ class SettlementService {
 
       await conn.commit();
       transactionActive = false;
+
+      const { ChallengeEngineService } = require('./challenge-engine.service');
+      ChallengeEngineService.evaluateForSettlement(userId, cycleId).catch(err => {
+        console.error('Async challenge evaluation failed (settlement):', err.message);
+      });
 
       return {
         settlementId: settlement.id,

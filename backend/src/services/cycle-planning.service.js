@@ -103,21 +103,9 @@ class CyclePlanningService {
       throw new AppError('userId must not be provided in request payload', 400, 'INVALID_PAYLOAD');
     }
 
-    const savingsAmount = Number(savingsData.savingsAmount);
-    const emergencyFundAmount = Number(savingsData.emergencyFundAmount);
-    const totalGoalAllocations = Number(savingsData.totalGoalAllocations);
-    const unallocatedSavingsAmount = Number(savingsData.unallocatedSavingsAmount);
-    const emergencyFundRate = Number(savingsData.emergencyFundRate);
-
-    if (!Number.isSafeInteger(savingsAmount) || savingsAmount < 0 ||
-        !Number.isSafeInteger(emergencyFundAmount) || emergencyFundAmount < 0 ||
-        !Number.isSafeInteger(totalGoalAllocations) || totalGoalAllocations < 0 ||
-        !Number.isSafeInteger(unallocatedSavingsAmount) || unallocatedSavingsAmount < 0) {
-      throw new AppError('Amounts must be non-negative safe integers', 422, 'INVALID_AMOUNT');
-    }
-    
-    if (isNaN(emergencyFundRate) || emergencyFundRate < 0) {
-      throw new AppError('Invalid emergency fund rate', 422, 'INVALID_RATE');
+    const emergencyFundPercentage = savingsData.emergencyFundPercentage !== undefined ? Number(savingsData.emergencyFundPercentage) : 10;
+    if (isNaN(emergencyFundPercentage) || emergencyFundPercentage < 0 || emergencyFundPercentage > 100) {
+      throw new AppError('Invalid emergency fund percentage', 422, 'INVALID_PERCENTAGE');
     }
 
     const conn = await db.getConnection();
@@ -138,29 +126,35 @@ class CyclePlanningService {
         throw new AppError('Cycle savings allocation already exists.', 409, 'CYCLE_SAVINGS_ALLOCATION_EXISTS');
       }
 
-      const actualGoalAllocationsTotal = await CyclePlanningRepository.getGoalCycleAllocationsTotal(conn, userId, cycleId);
-      if (totalGoalAllocations !== undefined && actualGoalAllocationsTotal !== totalGoalAllocations) {
-        throw new AppError(`Goal allocation total mismatch. Expected ${actualGoalAllocationsTotal}`, 422, 'GOAL_ALLOCATION_TOTAL_MISMATCH');
-      }
-
-      const calculatedTotal = emergencyFundAmount + actualGoalAllocationsTotal + unallocatedSavingsAmount;
-      if (calculatedTotal !== savingsAmount) {
-        throw new AppError(
-          'Savings allocation invariant violation: emergency_fund_amount + total_goal_allocations + unallocated_savings_amount must equal savings_amount',
-          422,
-          'SAVINGS_INVARIANT_VIOLATION'
-        );
-      }
-
+      // Fetch snapshot to get planned savings
       const snapshot = await CycleRepository.findSnapshotByCycleId(conn, userId, cycleId);
-      if (snapshot && Number(snapshot.savings_target) !== savingsAmount) {
-        // TODO: Enforce savingsAmount == savings_target based on strict domain rules if required.
+      if (!snapshot) {
+        throw new AppError('Cycle allocation snapshot not found.', 404, 'SNAPSHOT_NOT_FOUND');
       }
+      const plannedSavings = Number(snapshot.savings_target);
+
+      // Goal allocations
+      const actualGoalAllocationsTotal = await CyclePlanningRepository.getGoalCycleAllocationsTotal(conn, userId, cycleId);
+
+      // System EF Capacity
+      const { SavingsAccountingService } = require('./savings-accounting.service');
+      const { emergencyFundBalance, emergencyFundTarget } = await SavingsAccountingService.getEmergencyFundBalance(userId);
+      const remainingEmergencyCapacity = Math.max(emergencyFundTarget - emergencyFundBalance, 0);
+
+      // Calculation
+      const calculatedEmergencyFundAmount = Math.round(plannedSavings * (emergencyFundPercentage / 100));
+      const effectiveEmergencyFundAmount = Math.min(calculatedEmergencyFundAmount, remainingEmergencyCapacity);
+
+      if (effectiveEmergencyFundAmount + actualGoalAllocationsTotal > plannedSavings) {
+        throw new AppError('Emergency Fund and goal allocations exceed planned savings.', 422, 'SAVINGS_EXCEEDED');
+      }
+
+      const unallocatedSavingsAmount = plannedSavings - effectiveEmergencyFundAmount - actualGoalAllocationsTotal;
 
       const normalizedData = {
-        savingsAmount,
-        emergencyFundAmount,
-        emergencyFundRate,
+        savingsAmount: plannedSavings,
+        emergencyFundAmount: effectiveEmergencyFundAmount,
+        emergencyFundRate: emergencyFundPercentage,
         totalGoalAllocations: actualGoalAllocationsTotal,
         unallocatedSavingsAmount
       };
@@ -169,7 +163,17 @@ class CyclePlanningService {
 
       await conn.commit();
       transactionCommitted = true;
-      return { success: true, message: 'Savings allocation linked successfully' };
+      
+      return { 
+        plannedSavings,
+        emergencyFundPercentage,
+        emergencyFundAmount: effectiveEmergencyFundAmount,
+        plannedGoalAllocations: actualGoalAllocationsTotal,
+        unallocatedSavingsAmount,
+        emergencyFundBalance,
+        emergencyFundTarget,
+        remainingEmergencyCapacity
+      };
     } catch (err) {
       if (!transactionCommitted) {
         await conn.rollback();
@@ -194,8 +198,19 @@ class CyclePlanningService {
       CyclePlanningRepository.getCycleSavingsAllocation(null, userId, cycleId)
     ]);
 
+    const snapshot = await CycleRepository.findSnapshotByCycleId(null, userId, cycleId);
+    const plannedSavings = snapshot ? Number(snapshot.savings_target) : 0;
+
+    const { SavingsAccountingService } = require('./savings-accounting.service');
+    const { emergencyFundBalance, emergencyFundTarget } = await SavingsAccountingService.getEmergencyFundBalance(userId);
+    const remainingEmergencyCapacity = Math.max(emergencyFundTarget - emergencyFundBalance, 0);
+
     return {
       cycleId,
+      plannedSavings,
+      emergencyFundBalance,
+      emergencyFundTarget,
+      remainingEmergencyCapacity,
       goalAllocations,
       savingsAllocation
     };

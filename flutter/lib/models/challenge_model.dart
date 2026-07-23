@@ -11,6 +11,7 @@ enum ChallengeStatus {
 
 class ChallengeModel {
   final String id;
+  final String? templateId;
   final String title;
   final String description;
 
@@ -29,6 +30,7 @@ class ChallengeModel {
 
   const ChallengeModel({
     required this.id,
+    this.templateId,
     required this.title,
     required this.description,
     required this.type,
@@ -40,6 +42,30 @@ class ChallengeModel {
     required this.icon,
     required this.isAccepted,
   });
+
+  factory ChallengeModel.fromJson(Map<String, dynamic> json) {
+    ChallengeType parsedType = ChallengeType.individual;
+    if (json['type'] == 'team') parsedType = ChallengeType.team;
+
+    ChallengeStatus parsedStatus = ChallengeStatus.available;
+    if (json['status'] == 'current') parsedStatus = ChallengeStatus.current;
+    if (json['status'] == 'completed') parsedStatus = ChallengeStatus.completed;
+
+    return ChallengeModel(
+      id: json['id']?.toString() ?? '',
+      templateId: json['templateId']?.toString(),
+      title: json['title'] ?? '',
+      description: json['description'] ?? '',
+      type: parsedType,
+      status: parsedStatus,
+      progress: (json['progress'] ?? 0.0).toDouble(),
+      totalDays: json['totalDays'] ?? 0,
+      daysLeft: json['daysLeft'] ?? 0,
+      xpReward: json['xpReward'] ?? 0,
+      icon: json['icon'] ?? 'star',
+      isAccepted: json['isAccepted'] ?? false,
+    );
+  }
 
   int get progressPercentage {
     return (progress.clamp(0.0, 1.0) * 100).round();
