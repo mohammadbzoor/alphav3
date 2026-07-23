@@ -132,7 +132,7 @@ describe('ChatRepository', () => {
   });
 
   it('8. Cross-user message reads prevented', async () => {
-    const recent = await ChatRepository.getRecentConversationMessages(conv1Id, user2Id, 10);
+    const recent = await ChatRepository.getRecentConversationMessages(conv1Id, user2Id, { limit: 10 });
     expect(recent.length).toBe(0);
   });
 
@@ -145,7 +145,7 @@ describe('ChatRepository', () => {
 
   it('19. Recent messages are returned chronologically', async () => {
     msg3Id = await ChatRepository.createMessage(conv1Id, { role: 'user', content: 'third' });
-    const recent = await ChatRepository.getRecentConversationMessages(conv1Id, user1Id, 2);
+    const recent = await ChatRepository.getRecentConversationMessages(conv1Id, user1Id, { limit: 2 });
     expect(recent.length).toBe(2);
     expect(recent[0].id).toBe(msg2Id);
     expect(recent[1].id).toBe(msg3Id);
