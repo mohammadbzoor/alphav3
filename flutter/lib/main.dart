@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:alpha_app/providers/auth_provider.dart';
 import 'package:alpha_app/providers/challenge_provider.dart';
 import 'package:alpha_app/providers/chatbot_provider.dart';
@@ -41,8 +42,18 @@ import 'package:provider/provider.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
+class MyHttpOverrides extends HttpOverrides {
+  @override
+  HttpClient createHttpClient(SecurityContext? context) {
+    return super.createHttpClient(context)
+      ..badCertificateCallback =
+          (X509Certificate cert, String host, int port) => true;
+  }
+}
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  HttpOverrides.global = MyHttpOverrides();
   // API Config handles environment setup now
   await EasyLocalization.ensureInitialized();
 
