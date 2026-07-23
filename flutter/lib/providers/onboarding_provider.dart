@@ -88,7 +88,9 @@ class OnboardingProvider extends ChangeNotifier {
       }
       _errorMessage = parsed['message'] ?? 'Unknown error';
       return false;
-    } catch (e) {
+    } catch (e, stack) {
+      debugPrint('ONBOARDING_ERROR: $e');
+      debugPrint('ONBOARDING_STACK: $stack');
       _errorMessage = e.toString();
       return false;
     } finally {
