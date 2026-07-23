@@ -21,7 +21,7 @@ class ApiConfig {
   }
 
   static const String localServerUrl = 'http://192.168.1.21:3000';
-  static const String productionServerUrl = 'https://YOUR-RENDER-SERVICE.onrender.com';
+  static const String productionServerUrl = 'https://alphav3-r707.onrender.com';
 
   static String get serverUrl {
     switch (_effectiveEnvironment) {
