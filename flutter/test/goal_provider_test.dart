@@ -1,55 +1,112 @@
+import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:alpha_app/providers/goal_provider.dart';
-
-// Since this is a simple provider unit test, we just want to ensure it parses 
-// the server ID correctly. However, ApiService is static. 
-// For this task, we will just simulate what happens if we feed it a mocked response
-// if ApiService can be mocked, but since it's static we can't easily inject it.
-// We'll write a simple test that at least checks double-submit protection.
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
-  group('GoalProvider', () {
+  late HttpServer server;
+  late String baseUrl;
+  Map<String, dynamic> nextResponse = {};
+  int nextStatusCode = 200;
+
+  setUpAll(() async {
+    server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+    baseUrl = 'http://${server.address.host}:${server.port}/api/v1';
+    
+    // We need shared preferences to avoid ApiService crashing on token read
+    SharedPreferences.setMockInitialValues({'access_token': 'fake_token'});
+    
+    try {
+      await dotenv.load();
+    } catch (_) {}
+    dotenv.env['API_BASE_URL'] = baseUrl;
+    
+    server.listen((HttpRequest request) async {
+      request.response.statusCode = nextStatusCode;
+      request.response.headers.contentType = ContentType.json;
+      request.response.write(jsonEncode(nextResponse));
+      await request.response.close();
+    });
+  });
+
+  tearDownAll(() async {
+    await server.close();
+  });
+
+  group('GoalProvider Server-ID Parsing and State Synchronization', () {
     late GoalProvider provider;
 
     setUp(() {
       provider = GoalProvider();
+      dotenv.env['API_BASE_URL'] = baseUrl;
     });
 
-    test('isSaving flag prevents double submission', () async {
+    Future<void> simulateForm() async {
       provider.setCategory('Other');
       provider.customNameController.text = 'Test Goal';
       provider.amountController.text = '500';
       provider.setDate(DateTime.now().add(const Duration(days: 30)));
-      
-      expect(provider.isValid, isTrue);
-      
-      // We simulate setting isSaving manually or check logic
-      // In Dart, since saveCurrentGoal awaits ApiService, calling it twice 
-      // without mocking will hit the real network if not mocked.
-      // But we can check that if isSaving is true, it returns false.
-      
-      // Reflection/access is limited, but we can verify double-submission fails
+    }
+
+    test('isSaving flag prevents double submission', () async {
+      await simulateForm();
+      nextResponse = {'success': true, 'data': {'goalId': 123}};
+      nextStatusCode = 200;
+
       final Future<bool> first = provider.saveCurrentGoal();
       final Future<bool> second = provider.saveCurrentGoal();
       
-      // The second one should immediately return false because isSaving is true
-      expect(await second, isFalse);
-      
-      try {
-        await first;
-      } catch (_) {}
+      expect(await second, isFalse, reason: 'Second call should abort immediately because _isSaving is true');
+      expect(await first, isTrue, reason: 'First call should succeed');
     });
 
-    test('addGoal prevents double submission', () async {
-      final goal = provider.currentGoal;
-      final Future<bool> first = provider.addGoal(goal);
-      final Future<bool> second = provider.addGoal(goal);
+    test('Valid backend response sets actual ID', () async {
+      await simulateForm();
+      nextResponse = {'success': true, 'data': {'goalId': 456}};
+      nextStatusCode = 200;
+
+      final result = await provider.saveCurrentGoal();
+      expect(result, isTrue);
+      expect(provider.goals.length, 1);
+      expect(provider.goals.first.id, '456', reason: 'Must use real ID, not timestamp fallback');
+    });
+
+    test('Response missing goalId produces failure and no phantom goal', () async {
+      await simulateForm();
+      nextResponse = {'success': true, 'data': {}};
+      nextStatusCode = 200;
+
+      final result = await provider.saveCurrentGoal();
+      expect(result, isFalse);
+      expect(provider.goals.length, 0, reason: 'Phantom goal must not be added');
+      expect(provider.errorMessage, contains('Invalid server response'));
+    });
+
+    test('Response with invalid formats (zero, negative, text) are rejected', () async {
+      await simulateForm();
       
-      expect(await second, isFalse);
-      
-      try {
-        await first;
-      } catch (_) {}
+      nextResponse = {'success': true, 'data': {'goalId': 0}};
+      expect(await provider.saveCurrentGoal(), isFalse);
+      expect(provider.goals.length, 0);
+
+      nextResponse = {'success': true, 'data': {'goalId': -15}};
+      expect(await provider.saveCurrentGoal(), isFalse);
+
+      nextResponse = {'success': true, 'data': {'goalId': 'abc'}};
+      expect(await provider.saveCurrentGoal(), isFalse);
+    });
+
+    test('HTTP 400 or 500 do not append phantom goal', () async {
+      await simulateForm();
+      nextResponse = {'success': false};
+      nextStatusCode = 400;
+
+      final result = await provider.saveCurrentGoal();
+      expect(result, isFalse);
+      expect(provider.goals.length, 0);
     });
   });
 }

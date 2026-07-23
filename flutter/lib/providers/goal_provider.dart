@@ -331,8 +331,7 @@ class GoalProvider extends ChangeNotifier {
         'goalType': newGoal.category == 'Other'
             ? 'custom'
             : newGoal.category.toLowerCase().replaceAll(' ', '_'),
-        'targetAmount': newGoal
-            .monthlySaving, // UI currently sets targetAmount via monthlySaving amountController
+        'targetAmount': newGoal.monthlySaving,
         'planningMode': newGoal.targetDate != null
             ? 'deadline_based'
             : 'contribution_based',
@@ -344,30 +343,33 @@ class GoalProvider extends ChangeNotifier {
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
         final body = await ApiService.parseJson(response);
-        final newId = body['data']?['goalId']?.toString();
-
-        if (newId == null || newId.isEmpty) {
+        final newIdStr = body['data']?['goalId']?.toString();
+        
+        if (newIdStr == null || newIdStr.isEmpty) {
           _errorMessage = 'Failed to create goal: Invalid server response';
-          _isSaving = false;
-          notifyListeners();
+          return false;
+        }
+        
+        final parsedId = int.tryParse(newIdStr);
+        if (parsedId == null || parsedId <= 0) {
+          _errorMessage = 'Failed to create goal: Invalid ID format';
           return false;
         }
 
-        _goals.add(newGoal.copyWith(id: newId));
+        _goals.add(newGoal.copyWith(id: newIdStr));
 
         clearForm(notify: false);
-        _isSaving = false;
-        notifyListeners();
         return true;
       }
 
       _errorMessage = 'Failed to create goal on backend';
     } catch (e) {
       _errorMessage = _cleanError(e);
+    } finally {
+      _isSaving = false;
+      notifyListeners();
     }
 
-    _isSaving = false;
-    notifyListeners();
     return false;
   }
 
@@ -391,9 +393,7 @@ class GoalProvider extends ChangeNotifier {
     return true;
   }
 
-  Future<bool> addGoal(
-    Goal goal,
-  ) async {
+  Future<bool> addGoal(Goal goal) async {
     if (_isSaving) return false;
 
     _isSaving = true;
@@ -415,26 +415,29 @@ class GoalProvider extends ChangeNotifier {
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
         final body = await ApiService.parseJson(response);
-        final newId = body['data']?['goalId']?.toString();
+        final newIdStr = body['data']?['goalId']?.toString();
 
-        if (newId == null || newId.isEmpty) {
+        if (newIdStr == null || newIdStr.isEmpty) {
           _errorMessage = 'Failed to create goal: Invalid server response';
-          _isSaving = false;
-          notifyListeners();
+          return false;
+        }
+        
+        final parsedId = int.tryParse(newIdStr);
+        if (parsedId == null || parsedId <= 0) {
+          _errorMessage = 'Failed to create goal: Invalid ID format';
           return false;
         }
 
-        _goals.add(goal.copyWith(id: newId));
-        _isSaving = false;
-        notifyListeners();
+        _goals.add(goal.copyWith(id: newIdStr));
         return true;
       }
     } catch (e) {
       _errorMessage = _cleanError(e);
+    } finally {
+      _isSaving = false;
+      notifyListeners();
     }
 
-    _isSaving = false;
-    notifyListeners();
     return false;
   }
 
