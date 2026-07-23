@@ -38,6 +38,7 @@ class _ReceiptInputScreenState extends State<ReceiptInputScreen>
   bool _isCapturing = false;
   bool _isPickingGallery = false;
   bool _isAnalyzing = false;
+  File? _capturedImage;
 
   final ImagePicker _picker = ImagePicker();
 
@@ -46,6 +47,7 @@ class _ReceiptInputScreenState extends State<ReceiptInputScreen>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     if (widget.initialImage != null) {
+      _capturedImage = widget.initialImage;
       _analyzeImage(widget.initialImage!.path);
     } else {
       _initializeCamera();
@@ -168,6 +170,19 @@ class _ReceiptInputScreenState extends State<ReceiptInputScreen>
 
     try {
       final XFile photo = await controller.takePicture();
+      final imageFile = File(photo.path);
+      final exists = await imageFile.exists();
+      final length = exists ? await imageFile.length() : 0;
+
+      if (!exists || length <= 0) {
+        if (mounted) _showError('Failed to capture photo.');
+        return;
+      }
+
+      if (mounted) {
+        setState(() => _capturedImage = imageFile);
+      }
+
       debugPrint('CAMERA captureCompleted');
       await _analyzeImage(photo.path);
     } catch (e) {
@@ -194,6 +209,7 @@ class _ReceiptInputScreenState extends State<ReceiptInputScreen>
       if (!mounted) return;
       if (picked == null) return;
 
+      setState(() => _capturedImage = File(picked.path));
       await _analyzeImage(picked.path);
     } catch (e) {
       if (!mounted) return;
@@ -242,6 +258,7 @@ class _ReceiptInputScreenState extends State<ReceiptInputScreen>
         if (mounted) {
           setState(() {
             _isAnalyzing = false;
+            _capturedImage = null;
           });
         }
         await Future<void>.delayed(Duration.zero);
@@ -254,6 +271,7 @@ class _ReceiptInputScreenState extends State<ReceiptInputScreen>
       if (mounted) {
         setState(() {
           _isAnalyzing = false;
+          _capturedImage = null;
         });
       }
       debugPrint('RECEIPT loadingStopped=true');
@@ -283,6 +301,7 @@ class _ReceiptInputScreenState extends State<ReceiptInputScreen>
       if (mounted) {
         setState(() {
           _isAnalyzing = false;
+          _capturedImage = null;
         });
       }
 
@@ -467,6 +486,16 @@ class _ReceiptInputScreenState extends State<ReceiptInputScreen>
             ],
           ),
         ),
+      );
+    }
+
+    final capturedImage = _capturedImage;
+    if (capturedImage != null) {
+      return Image.file(
+        capturedImage,
+        fit: BoxFit.cover,
+        width: double.infinity,
+        height: double.infinity,
       );
     }
 

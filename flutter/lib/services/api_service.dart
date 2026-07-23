@@ -555,6 +555,30 @@ class ApiService {
     };
   }
 
+  static bool isSuccess(
+    http.Response response,
+  ) {
+    return response.statusCode >= 200 && response.statusCode < 300;
+  }
+
+  static Map<String, dynamic> decodeResponse(
+    http.Response response,
+  ) {
+    if (response.body.trim().isEmpty) {
+      return <String, dynamic>{};
+    }
+
+    final dynamic decoded = jsonDecode(response.body);
+
+    if (decoded is Map) {
+      return Map<String, dynamic>.from(decoded);
+    }
+
+    return <String, dynamic>{
+      'data': decoded,
+    };
+  }
+
   // =====================================================
   // RESPONSE ERROR MESSAGE
   // =====================================================

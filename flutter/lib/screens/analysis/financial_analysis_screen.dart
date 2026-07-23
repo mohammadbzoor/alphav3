@@ -36,7 +36,7 @@ class _FinancialAnalysisScreenState extends State<FinancialAnalysisScreen> {
       // مؤقتًا للعرض والتجربة فقط.
       // عند ربط الباك إند احذفي هذا الجزء.
       if (!provider.hasAnalysis && !provider.isLoading) {
-        await provider.loadMockAnalysis();
+        await Future<void>.value();
       }
     });
   }
@@ -88,7 +88,9 @@ class _FinancialAnalysisScreenState extends State<FinancialAnalysisScreen> {
         isDark: isDark,
         screenW: screenW,
         errorMessage: provider.errorMessage,
-        onRetry: provider.loadMockAnalysis,
+        onRetry: () async {
+          Navigator.pop(context);
+        },
       );
     }
 
@@ -97,7 +99,7 @@ class _FinancialAnalysisScreenState extends State<FinancialAnalysisScreen> {
     return RefreshIndicator(
       onRefresh: () async {
         // لاحقًا: استدعاء API جديد بدل البيانات التجريبية.
-        await provider.loadMockAnalysis();
+        await Future<void>.value();
       },
       color: isDark ? AppColors.darkPrimary : AppColors.lightPrimary,
       child: SingleChildScrollView(
@@ -585,7 +587,7 @@ class _AudioAnalysisCard extends StatelessWidget {
                 ),
               ],
             ),
-            if (analysis.content.speechText.trim().isNotEmpty) ...[
+            if ((analysis.content.speechText ?? '').trim().isNotEmpty) ...[
               const SizedBox(height: 14),
               Material(
                 color: Colors.transparent,
@@ -635,7 +637,7 @@ class _AudioAnalysisCard extends StatelessWidget {
                           ),
                         ),
                         child: Text(
-                          analysis.content.speechText,
+                          analysis.content.speechText ?? '',
                           textDirection: TextDirection.rtl,
                           style: GoogleFonts.ibmPlexSansArabic(
                             color: isDark
@@ -828,7 +830,13 @@ class _MetricCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final double progress = (metric.percent / 100).clamp(0.0, 1.0);
+    final bool unavailable = metric.isUnavailable ||
+        metric.current == null ||
+        metric.target == null ||
+        metric.percent == null;
+
+    final double progress =
+        unavailable ? 0 : ((metric.percent ?? 0) / 100).clamp(0.0, 1.0);
 
     final Color statusColor = _statusColor(metric.status);
 
@@ -877,8 +885,10 @@ class _MetricCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 3),
                     Text(
-                      "${metric.current.toStringAsFixed(2)} / "
-                      "${metric.target.toStringAsFixed(2)} $currency",
+                      unavailable
+                          ? "Insufficient data"
+                          : "${metric.current!.toStringAsFixed(2)} / "
+                              "${metric.target!.toStringAsFixed(2)} $currency",
                       style: GoogleFonts.ibmPlexSansArabic(
                         color: isDark
                             ? AppColors.darkSubText
@@ -893,7 +903,7 @@ class _MetricCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Text(
-                    "${metric.percent.toStringAsFixed(0)}%",
+                    unavailable ? "N/A" : "${metric.percent!.toStringAsFixed(0)}%",
                     style: GoogleFonts.ibmPlexSansArabic(
                       color: color,
                       fontSize: screenW * 0.043,
@@ -1215,10 +1225,13 @@ Color _statusColor(
     case AnalysisStatus.warning:
       return const Color(0xFFF4C95D);
 
-    case AnalysisStatus.critical:
+    case AnalysisStatus.exceeded:
       return const Color(0xFFFF6B6B);
 
-    case AnalysisStatus.unknown:
+    case AnalysisStatus.completed:
+      return const Color(0xFF34D399);
+
+    case AnalysisStatus.unavailable:
       return const Color(0xFF8A9A96);
   }
 }

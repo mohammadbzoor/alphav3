@@ -148,13 +148,16 @@ class _NewExpenseScreenState extends State<NewExpenseScreen> {
                               title: "Receipt",
                               isSelected: false,
                               isDark: isDark,
-                              onTap: () {
-                                Navigator.push(
+                              onTap: () async {
+                                final result = await Navigator.push(
                                   context,
                                   MaterialPageRoute(
                                       builder: (_) =>
                                           const ReceiptInputScreen()),
                                 );
+                                if (result == DashboardActionResult.created && mounted) {
+                                  Navigator.pop(context, DashboardActionResult.created);
+                                }
                               },
                             ),
                           ),
@@ -165,13 +168,16 @@ class _NewExpenseScreenState extends State<NewExpenseScreen> {
                               title: "Voice",
                               isSelected: false,
                               isDark: isDark,
-                              onTap: () {
-                                Navigator.push(
+                              onTap: () async {
+                                final result = await Navigator.push(
                                   context,
                                   MaterialPageRoute(
                                       builder: (_) =>
                                           const VoiceRecordScreen()),
                                 );
+                                if (result == DashboardActionResult.created && mounted) {
+                                  Navigator.pop(context, DashboardActionResult.created);
+                                }
                               },
                             ),
                           ),

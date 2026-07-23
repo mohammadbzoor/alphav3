@@ -290,7 +290,9 @@ describe('ChatContextService Integration', () => {
   });
 
   it('7. User with no active cycle', async () => {
-    const [uRes] = await db.execute(`INSERT INTO users (full_name, email, password_hash, is_onboarded, account_status) VALUES ('No Cycle', 'nocycle@test.com', 'hash', 1, 'active')`);
+    const email = `nocycle_${Date.now()}@test.com`;
+    const phone = `+96279333${Date.now().toString().slice(-4)}`;
+    const [uRes] = await db.execute(`INSERT INTO users (full_name, email, phone, password_hash) VALUES (?, ?, ?, ?)`, ['No Cycle User', email, phone, 'hash']);
     const noCycleUserId = uRes.insertId;
     await db.execute(`INSERT INTO financial_profiles (user_id, currency, expected_monthly_income, timezone, onboarding_status) VALUES (?, 'JOD', 800, 'Asia/Amman', 'completed')`, [noCycleUserId]);
     

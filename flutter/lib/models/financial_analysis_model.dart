@@ -1,126 +1,141 @@
+class FinancialAnalysisListItem {
+  final int id;
+  final String analysisId;
+  final String status;
+  final String summaryPreview;
+  final String scope;
+  final DateTime? analysisAsOfDate;
+  final DateTime? generatedAt;
+  final int insightCount;
+  final bool hasAudio;
+
+  const FinancialAnalysisListItem({
+    required this.id,
+    required this.analysisId,
+    required this.status,
+    required this.summaryPreview,
+    required this.scope,
+    required this.analysisAsOfDate,
+    required this.generatedAt,
+    required this.insightCount,
+    required this.hasAudio,
+  });
+
+  factory FinancialAnalysisListItem.fromJson(Map<String, dynamic> json) {
+    return FinancialAnalysisListItem(
+      id: _toInt(json['id']),
+      analysisId: json['analysisId']?.toString() ?? '',
+      status: json['status']?.toString() ?? '',
+      summaryPreview: json['summaryPreview']?.toString() ?? '',
+      scope: json['scope']?.toString() ?? '',
+      analysisAsOfDate: DateTime.tryParse(json['analysisAsOfDate']?.toString() ?? ''),
+      generatedAt: DateTime.tryParse(json['generatedAt']?.toString() ?? ''),
+      insightCount: _toInt(json['insightCount']),
+      hasAudio: json['hasAudio'] == true,
+    );
+  }
+}
+
 class FinancialAnalysisModel {
+  final int id;
+  final String analysisId;
+  final String status;
+  final String scope;
   final AnalysisUser user;
   final AnalysisContent content;
   final AnalysisMetrics metrics;
   final AnalysisAudio audio;
   final AnalysisMetadata metadata;
+  final AnalysisDataQuality dataQuality;
 
   const FinancialAnalysisModel({
+    required this.id,
+    required this.analysisId,
+    required this.status,
+    required this.scope,
     required this.user,
     required this.content,
     required this.metrics,
     required this.audio,
     required this.metadata,
+    required this.dataQuality,
   });
 
-  factory FinancialAnalysisModel.fromJson(
-    Map<String, dynamic> json,
-  ) {
-    final data = Map<String, dynamic>.from(
-      json['data'] ?? {},
-    );
+  factory FinancialAnalysisModel.fromJson(Map<String, dynamic> json) {
+    final uiMetrics = Map<String, dynamic>.from(json['uiMetrics'] ?? {});
+    final audio = Map<String, dynamic>.from(json['audio'] ?? {});
+    final dataQuality = Map<String, dynamic>.from(json['dataQuality'] ?? {});
+
+    final contentBlock = json['content'] != null && json['content'] is Map 
+        ? Map<String, dynamic>.from(json['content']) 
+        : json;
 
     return FinancialAnalysisModel(
-      user: AnalysisUser.fromJson(
-        Map<String, dynamic>.from(
-          json['User'] ?? {},
-        ),
+      id: _toInt(json['id']),
+      analysisId: json['analysisId']?.toString() ?? '',
+      status: json['status']?.toString() ?? '',
+      scope: json['scope']?.toString() ?? '',
+      user: const AnalysisUser(
+        currency: 'JOD',
+        language: 'ar',
+        locale: 'ar-JO',
+        timezone: 'Asia/Amman',
       ),
-      content: AnalysisContent.fromJson(
-        Map<String, dynamic>.from(
-          data['content'] ?? {},
-        ),
+      content: AnalysisContent(
+        summary: contentBlock['summary']?.toString() ?? '',
+        insights: _stringList(contentBlock['insights']),
+        recommendations: _stringList(contentBlock['recommendations']),
+        speechText: contentBlock['speechText']?.toString(),
       ),
-      metrics: AnalysisMetrics.fromJson(
-        Map<String, dynamic>.from(
-          data['uiMetrics'] ?? {},
-        ),
+      metrics: AnalysisMetrics.fromJson(uiMetrics),
+      audio: AnalysisAudio.fromJson(audio),
+      metadata: AnalysisMetadata(
+        requestId: json['analysisId']?.toString() ?? '',
+        analysisAsOfDate: DateTime.tryParse(json['asOfDate']?.toString() ?? ''),
+        generatedAt: DateTime.tryParse(json['generatedAt']?.toString() ?? ''),
       ),
-      audio: AnalysisAudio.fromJson(
-        Map<String, dynamic>.from(
-          data['audio'] ?? {},
-        ),
-      ),
-      metadata: AnalysisMetadata.fromJson(
-        Map<String, dynamic>.from(
-          json['metadata'] ?? {},
-        ),
-      ),
+      dataQuality: AnalysisDataQuality.fromJson(dataQuality),
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
-      'User': user.toJson(),
-      'data': {
-        'content': content.toJson(),
-        'uiMetrics': metrics.toJson(),
-        'audio': audio.toJson(),
-      },
-      'metadata': metadata.toJson(),
+      'id': id,
+      'analysisId': analysisId,
+      'status': status,
+      'generatedAt': metadata.generatedAt?.toIso8601String(),
+      'asOfDate': metadata.analysisAsOfDate?.toIso8601String(),
+      'scope': scope,
+      'summary': content.summary,
+      'insights': content.insights,
+      'recommendations': content.recommendations,
+      'speechText': content.speechText,
+      'uiMetrics': metrics.toJson(),
+      'audio': audio.toJson(),
+      'dataQuality': dataQuality.toJson(),
     };
   }
 }
 
-// =====================================================
-// USER
-// =====================================================
-
 class AnalysisUser {
-  final String userId;
-  final String name;
-  final String displayName;
   final String language;
   final String locale;
   final String currency;
   final String timezone;
 
   const AnalysisUser({
-    required this.userId,
-    required this.name,
-    required this.displayName,
     required this.language,
     required this.locale,
     required this.currency,
     required this.timezone,
   });
-
-  factory AnalysisUser.fromJson(
-    Map<String, dynamic> json,
-  ) {
-    return AnalysisUser(
-      userId: json['userId']?.toString() ?? '',
-      name: json['name']?.toString() ?? '',
-      displayName: json['displayName']?.toString() ?? '',
-      language: json['language']?.toString() ?? 'ar',
-      locale: json['locale']?.toString() ?? 'ar-JO',
-      currency: json['currency']?.toString() ?? 'JOD',
-      timezone: json['timezone']?.toString() ?? 'Asia/Amman',
-    );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'userId': userId,
-      'name': name,
-      'displayName': displayName,
-      'language': language,
-      'locale': locale,
-      'currency': currency,
-      'timezone': timezone,
-    };
-  }
 }
-
-// =====================================================
-// CONTENT
-// =====================================================
 
 class AnalysisContent {
   final String summary;
   final List<String> insights;
   final List<String> recommendations;
-  final String speechText;
+  final String? speechText;
 
   const AnalysisContent({
     required this.summary,
@@ -128,35 +143,7 @@ class AnalysisContent {
     required this.recommendations,
     required this.speechText,
   });
-
-  factory AnalysisContent.fromJson(
-    Map<String, dynamic> json,
-  ) {
-    return AnalysisContent(
-      summary: json['summary']?.toString() ?? '',
-      insights: _stringList(
-        json['insights'],
-      ),
-      recommendations: _stringList(
-        json['recommendations'],
-      ),
-      speechText: json['speechText']?.toString() ?? '',
-    );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'summary': summary,
-      'insights': insights,
-      'recommendations': recommendations,
-      'speechText': speechText,
-    };
-  }
 }
-
-// =====================================================
-// METRICS
-// =====================================================
 
 class AnalysisMetrics {
   final AnalysisMetric savings;
@@ -169,25 +156,11 @@ class AnalysisMetrics {
     required this.wants,
   });
 
-  factory AnalysisMetrics.fromJson(
-    Map<String, dynamic> json,
-  ) {
+  factory AnalysisMetrics.fromJson(Map<String, dynamic> json) {
     return AnalysisMetrics(
-      savings: AnalysisMetric.fromJson(
-        Map<String, dynamic>.from(
-          json['savings'] ?? {},
-        ),
-      ),
-      needs: AnalysisMetric.fromJson(
-        Map<String, dynamic>.from(
-          json['needs'] ?? {},
-        ),
-      ),
-      wants: AnalysisMetric.fromJson(
-        Map<String, dynamic>.from(
-          json['wants'] ?? {},
-        ),
-      ),
+      savings: AnalysisMetric.fromJson(Map<String, dynamic>.from(json['savings'] ?? {})),
+      needs: AnalysisMetric.fromJson(Map<String, dynamic>.from(json['needs'] ?? {})),
+      wants: AnalysisMetric.fromJson(Map<String, dynamic>.from(json['wants'] ?? {})),
     );
   }
 
@@ -201,9 +174,9 @@ class AnalysisMetrics {
 }
 
 class AnalysisMetric {
-  final double current;
-  final double target;
-  final double percent;
+  final double? current;
+  final double? target;
+  final double? percent;
   final AnalysisStatus status;
 
   const AnalysisMetric({
@@ -213,22 +186,15 @@ class AnalysisMetric {
     required this.status,
   });
 
-  factory AnalysisMetric.fromJson(
-    Map<String, dynamic> json,
-  ) {
+  bool get isUnavailable => status == AnalysisStatus.unavailable;
+
+  factory AnalysisMetric.fromJson(Map<String, dynamic> json) {
+    final status = AnalysisStatusX.fromString(json['status']?.toString());
     return AnalysisMetric(
-      current: _toDouble(
-        json['current'],
-      ),
-      target: _toDouble(
-        json['target'],
-      ),
-      percent: _toDouble(
-        json['percent'],
-      ),
-      status: AnalysisStatusX.fromString(
-        json['status']?.toString(),
-      ),
+      current: status == AnalysisStatus.unavailable ? null : _toNullableDouble(json['current']),
+      target: status == AnalysisStatus.unavailable ? null : _toNullableDouble(json['target']),
+      percent: status == AnalysisStatus.unavailable ? null : _toNullableDouble(json['percent']),
+      status: status,
     );
   }
 
@@ -237,34 +203,47 @@ class AnalysisMetric {
       'current': current,
       'target': target,
       'percent': percent,
-      'status': status.name,
+      'status': status.apiValue,
     };
   }
 }
 
 enum AnalysisStatus {
+  unavailable,
   onTrack,
   warning,
-  critical,
-  unknown,
+  exceeded,
+  completed,
 }
 
 extension AnalysisStatusX on AnalysisStatus {
-  static AnalysisStatus fromString(
-    String? value,
-  ) {
+  static AnalysisStatus fromString(String? value) {
     switch (value) {
       case 'on_track':
         return AnalysisStatus.onTrack;
-
       case 'warning':
         return AnalysisStatus.warning;
-
-      case 'critical':
-        return AnalysisStatus.critical;
-
+      case 'exceeded':
+        return AnalysisStatus.exceeded;
+      case 'completed':
+        return AnalysisStatus.completed;
       default:
-        return AnalysisStatus.unknown;
+        return AnalysisStatus.unavailable;
+    }
+  }
+
+  String get apiValue {
+    switch (this) {
+      case AnalysisStatus.onTrack:
+        return 'on_track';
+      case AnalysisStatus.warning:
+        return 'warning';
+      case AnalysisStatus.exceeded:
+        return 'exceeded';
+      case AnalysisStatus.completed:
+        return 'completed';
+      case AnalysisStatus.unavailable:
+        return 'unavailable';
     }
   }
 
@@ -272,42 +251,33 @@ extension AnalysisStatusX on AnalysisStatus {
     switch (this) {
       case AnalysisStatus.onTrack:
         return 'On track';
-
       case AnalysisStatus.warning:
         return 'Warning';
-
-      case AnalysisStatus.critical:
-        return 'Critical';
-
-      case AnalysisStatus.unknown:
-        return 'Unknown';
+      case AnalysisStatus.exceeded:
+        return 'Exceeded';
+      case AnalysisStatus.completed:
+        return 'Completed';
+      case AnalysisStatus.unavailable:
+        return 'Unavailable';
     }
   }
 }
 
-// =====================================================
-// AUDIO
-// =====================================================
-
 class AnalysisAudio {
-  final String url;
-  final double duration;
+  final String? url;
+  final double? duration;
 
   const AnalysisAudio({
     required this.url,
     required this.duration,
   });
 
-  bool get hasAudio => url.trim().isNotEmpty;
+  bool get hasAudio => url?.trim().isNotEmpty == true;
 
-  factory AnalysisAudio.fromJson(
-    Map<String, dynamic> json,
-  ) {
+  factory AnalysisAudio.fromJson(Map<String, dynamic> json) {
     return AnalysisAudio(
-      url: json['url']?.toString() ?? '',
-      duration: _toDouble(
-        json['duration'],
-      ),
+      url: json['url']?.toString(),
+      duration: _toNullableDouble(json['duration']),
     );
   }
 
@@ -319,10 +289,6 @@ class AnalysisAudio {
   }
 }
 
-// =====================================================
-// METADATA
-// =====================================================
-
 class AnalysisMetadata {
   final String requestId;
   final DateTime? analysisAsOfDate;
@@ -333,60 +299,53 @@ class AnalysisMetadata {
     required this.analysisAsOfDate,
     required this.generatedAt,
   });
+}
 
-  factory AnalysisMetadata.fromJson(
-    Map<String, dynamic> json,
-  ) {
-    return AnalysisMetadata(
-      requestId: json['requestId']?.toString() ?? '',
-      analysisAsOfDate: DateTime.tryParse(
-        json['analysisAsOfDate']?.toString() ?? '',
-      ),
-      generatedAt: DateTime.tryParse(
-        json['generatedAt']?.toString() ?? '',
-      ),
+class AnalysisDataQuality {
+  final bool isPartialCycle;
+  final bool hasCurrentCycle;
+  final List<String> missingFields;
+
+  const AnalysisDataQuality({
+    required this.isPartialCycle,
+    required this.hasCurrentCycle,
+    required this.missingFields,
+  });
+
+  bool get shouldShowNotice => isPartialCycle || !hasCurrentCycle || missingFields.isNotEmpty;
+
+  factory AnalysisDataQuality.fromJson(Map<String, dynamic> json) {
+    return AnalysisDataQuality(
+      isPartialCycle: json['isPartialCycle'] == true,
+      hasCurrentCycle: json['hasCurrentCycle'] != false,
+      missingFields: _stringList(json['missingFields']),
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
-      'requestId': requestId,
-      'analysisAsOfDate': analysisAsOfDate?.toIso8601String(),
-      'generatedAt': generatedAt?.toIso8601String(),
+      'isPartialCycle': isPartialCycle,
+      'hasCurrentCycle': hasCurrentCycle,
+      'missingFields': missingFields,
     };
   }
 }
 
-// =====================================================
-// HELPERS
-// =====================================================
-
-double _toDouble(
-  dynamic value,
-) {
-  if (value is num) {
-    return value.toDouble();
-  }
-
-  return double.tryParse(
-        value?.toString() ?? '',
-      ) ??
-      0;
+int _toInt(dynamic value) {
+  if (value is int) return value;
+  return int.tryParse(value?.toString() ?? '') ?? 0;
 }
 
-List<String> _stringList(
-  dynamic value,
-) {
-  if (value is! List) {
-    return const [];
-  }
+double? _toNullableDouble(dynamic value) {
+  if (value == null) return null;
+  if (value is num) return value.toDouble();
+  return double.tryParse(value.toString());
+}
 
+List<String> _stringList(dynamic value) {
+  if (value is! List) return const [];
   return value
-      .map(
-        (item) => item.toString(),
-      )
-      .where(
-        (item) => item.trim().isNotEmpty,
-      )
+      .map((item) => item.toString().trim())
+      .where((item) => item.isNotEmpty)
       .toList();
 }

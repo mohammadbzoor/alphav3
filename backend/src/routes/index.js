@@ -8,6 +8,7 @@ const receiptsRoutes = require('./receipts.routes');
 const voiceRoutes = require('./voice.routes');
 const cycleRoutes = require('./cycle.routes');
 const chatRoutes = require('./chat.routes');
+const analysisRoutes = require('./analysis.routes');
 
 const router = Router();
 
@@ -20,5 +21,6 @@ router.use('/receipts', receiptsRoutes);
 router.use('/voice', voiceRoutes);
 router.use('/financial-cycles', cycleRoutes);
 router.use('/chat', chatRoutes);
+router.use('/financial-analysis', analysisRoutes);
 
 module.exports = router;

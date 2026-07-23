@@ -4,8 +4,9 @@ import 'package:alpha_app/models/home_model.dart';
 import 'package:alpha_app/providers/home_provider.dart';
 import 'package:alpha_app/providers/profile_provider.dart';
 import 'package:alpha_app/providers/themeprovider.dart';
+import 'package:alpha_app/providers/expense_provider.dart';
 import 'package:alpha_app/screens/ai_assistant/chat_screen.dart';
-import 'package:alpha_app/screens/analysis/financial_analysis_screen.dart';
+import 'package:alpha_app/screens/analysis/financial_analysis_center_screen.dart';
 import 'package:alpha_app/screens/challenges/chanllenges_screen.dart';
 import 'package:alpha_app/screens/expenses/new_expense_screen.dart';
 import 'package:alpha_app/screens/goals/goal_history.dart';
@@ -132,6 +133,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }) {
     final cycleProvider = context.watch<CycleProvider>();
     final onboardingProvider = context.watch<OnboardingProvider>();
+    final profileProvider = context.watch<ProfileProvider>();
 
     // 1. Onboarding Loading
     if (onboardingProvider.isLoading) {
@@ -162,9 +164,13 @@ class _HomeScreenState extends State<HomeScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _HomeHeader(
-                userName: context.watch<ProfileProvider>().displayName,
+                userName: profileProvider.displayName,
                 isDark: isDark,
                 onNotificationTap: () {}),
+            _BirthdayGreetingCard(
+              isDark: isDark,
+              profileProvider: profileProvider,
+            ),
             SizedBox(height: screenHeight * 0.03),
             CompleteProfileCard(isDark: isDark),
           ],
@@ -183,9 +189,13 @@ class _HomeScreenState extends State<HomeScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _HomeHeader(
-                userName: context.watch<ProfileProvider>().displayName,
+                userName: profileProvider.displayName,
                 isDark: isDark,
                 onNotificationTap: () {}),
+            _BirthdayGreetingCard(
+              isDark: isDark,
+              profileProvider: profileProvider,
+            ),
             SizedBox(height: screenHeight * 0.03),
             _FinancialProfileNeedsAttentionCard(
               isDark: isDark,
@@ -230,9 +240,13 @@ class _HomeScreenState extends State<HomeScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _HomeHeader(
-                userName: context.watch<ProfileProvider>().displayName,
+                userName: profileProvider.displayName,
                 isDark: isDark,
                 onNotificationTap: () {}),
+            _BirthdayGreetingCard(
+              isDark: isDark,
+              profileProvider: profileProvider,
+            ),
             SizedBox(height: screenHeight * 0.03),
             _StartCycleCard(
               isDark: isDark,
@@ -310,9 +324,13 @@ class _HomeScreenState extends State<HomeScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _HomeHeader(
-              userName: context.watch<ProfileProvider>().displayName,
+              userName: profileProvider.displayName,
               isDark: isDark,
               onNotificationTap: () {}),
+          _BirthdayGreetingCard(
+            isDark: isDark,
+            profileProvider: profileProvider,
+          ),
           SizedBox(height: screenHeight * 0.03),
           // 1. Warnings
           DashboardWarningsWidget(warnings: homeData.warnings, isDark: isDark),
@@ -387,6 +405,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               );
               if (result == DashboardActionResult.created && context.mounted) {
+                context.read<ExpenseProvider>().loadExpenses();
                 context.read<HomeProvider>().refreshHomeData();
               }
             },
@@ -395,7 +414,7 @@ class _HomeScreenState extends State<HomeScreen> {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (_) => const FinancialAnalysisScreen(),
+                  builder: (_) => const FinancialAnalysisCenterScreen(),
                 ),
               );
             },
@@ -412,6 +431,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               );
               if (result == DashboardActionResult.created && context.mounted) {
+                context.read<ExpenseProvider>().loadExpenses();
                 context.read<HomeProvider>().refreshHomeData();
               }
             },
@@ -443,6 +463,7 @@ class _HomeScreenState extends State<HomeScreen> {
         await context.read<CycleProvider>().loadCurrentCycle();
         if (context.read<CycleProvider>().hasActiveCycle) {
           await context.read<HomeProvider>().refreshHomeData();
+          await context.read<ExpenseProvider>().loadExpenses();
         }
       },
       child: SingleChildScrollView(
@@ -569,6 +590,101 @@ class _StartCycleCard extends StatelessWidget {
 // =====================================================
 // HEADER
 // =====================================================
+
+class _BirthdayGreetingCard extends StatelessWidget {
+  final bool isDark;
+  final ProfileProvider profileProvider;
+
+  const _BirthdayGreetingCard({
+    required this.isDark,
+    required this.profileProvider,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (!profileProvider.isBirthdayToday) {
+      return const SizedBox.shrink();
+    }
+
+    final name = profileProvider.firstName.isEmpty
+        ? 'صديقنا'
+        : profileProvider.firstName;
+
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(top: 18),
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: isDark
+              ? const [
+                  Color(0xFF243424),
+                  Color(0xFF493A18),
+                ]
+              : const [
+                  Color(0xFFFFFBEB),
+                  Color(0xFFEFFDF5),
+                ],
+        ),
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(
+          color: isDark
+              ? AppColors.darkAccent.withOpacity(0.5)
+              : AppColors.lightAccent.withOpacity(0.45),
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: isDark
+                  ? AppColors.darkAccent.withOpacity(0.16)
+                  : AppColors.lightAccent.withOpacity(0.14),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Icon(
+              Icons.cake_rounded,
+              color: isDark ? AppColors.darkAccent : AppColors.lightAccent,
+              size: 27,
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'عيد ميلاد سعيد يا $name',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.ibmPlexSansArabic(
+                    color: isDark ? AppColors.darkText : AppColors.lightText,
+                    fontSize: 17,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'نتمنى لك سنة جميلة ومليانة راحة ونجاحات صغيرة تكبر مع الوقت.',
+                  style: GoogleFonts.ibmPlexSansArabic(
+                    color:
+                        isDark ? AppColors.darkSubText : AppColors.lightSubText,
+                    fontSize: 12.5,
+                    height: 1.45,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
 
 class _HomeHeader extends StatelessWidget {
   final String userName;

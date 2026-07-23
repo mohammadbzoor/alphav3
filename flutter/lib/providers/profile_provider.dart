@@ -49,6 +49,28 @@ class ProfileProvider extends ChangeNotifier {
     return value.isEmpty ? 'Not available' : value;
   }
 
+  String get firstName {
+    final name = displayName.trim();
+    if (name.isEmpty || name == 'Not available') {
+      return '';
+    }
+    return name.split(RegExp(r'\s+')).first;
+  }
+
+  DateTime? get birthDate {
+    return _profile?.birthDate;
+  }
+
+  bool get isBirthdayToday {
+    final date = birthDate;
+    if (date == null) {
+      return false;
+    }
+
+    final now = DateTime.now();
+    return date.month == now.month && date.day == now.day;
+  }
+
   String get email {
     return (_profile?.email ?? '').isEmpty ? 'Not available' : _profile!.email;
   }
@@ -83,6 +105,9 @@ class ProfileProvider extends ChangeNotifier {
           id: user['id']?.toString(),
           name: user['fullName']?.toString() ?? '',
           email: user['email']?.toString() ?? '',
+          birthDate: user['birthDate'] != null
+              ? DateTime.tryParse(user['birthDate'].toString())
+              : null,
           joinedAt: user['memberSince'] != null
               ? DateTime.parse(user['memberSince'])
               : null,

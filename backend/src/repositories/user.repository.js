@@ -177,7 +177,7 @@ class UserRepository {
 
   static async getProfileSummary(userId) {
     const [userRows] = await db.execute(
-      `SELECT id, full_name, email, created_at, is_verified FROM users WHERE id = ? LIMIT 1`,
+      `SELECT id, full_name, email, birth_date, created_at, is_verified FROM users WHERE id = ? LIMIT 1`,
       [userId]
     );
     if (userRows.length === 0) return null;

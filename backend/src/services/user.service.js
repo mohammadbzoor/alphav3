@@ -193,6 +193,7 @@ class UserService {
         id: data.user.id,
         fullName: data.user.full_name,
         email: data.user.email,
+        birthDate: data.user.birth_date,
         avatarUrl: null,
         memberSince: data.user.created_at
       },

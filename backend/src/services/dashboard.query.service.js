@@ -126,7 +126,7 @@ class DashboardQueryService {
 
     // 5. Bucket Targets
     const [allocations] = await db.execute(
-      `SELECT needs_target, wants_target, savings_target 
+      `SELECT needs_target, wants_target, savings_target, needs_bps, wants_bps, savings_bps
        FROM cycle_allocation_snapshots 
        WHERE cycle_id = ? LIMIT 1`,
       [cycleId]
@@ -135,11 +135,17 @@ class DashboardQueryService {
     let needsTarget = 0;
     let wantsTarget = 0;
     let savingsTarget = 0;
+    let needsBps = null;
+    let wantsBps = null;
+    let savingsBps = null;
 
     if (allocations.length > 0) {
       needsTarget = Number(allocations[0].needs_target);
       wantsTarget = Number(allocations[0].wants_target);
       savingsTarget = Number(allocations[0].savings_target);
+      needsBps = allocations[0].needs_bps !== null ? Number(allocations[0].needs_bps) : null;
+      wantsBps = allocations[0].wants_bps !== null ? Number(allocations[0].wants_bps) : null;
+      savingsBps = allocations[0].savings_bps !== null ? Number(allocations[0].savings_bps) : null;
     }
 
     // Savings actual
@@ -153,17 +159,19 @@ class DashboardQueryService {
 
     // Planned savings from cycle-linked allocation
     const [savingsAlloc] = await db.execute(
-      `SELECT emergency_fund_amount, total_goal_allocations, unallocated_savings_amount, status
+      `SELECT emergency_fund_amount, emergency_fund_rate, total_goal_allocations, unallocated_savings_amount, status
        FROM cycle_savings_allocations
        WHERE cycle_id = ?`,
       [cycleId]
     );
     let plannedEmergencyFund = 0;
+    let plannedEmergencyFundRate = null;
     let plannedGoalAllocations = 0;
     let unallocatedSavings = 0;
 
     if (savingsAlloc.length > 0) {
       plannedEmergencyFund = Number(savingsAlloc[0].emergency_fund_amount);
+      plannedEmergencyFundRate = savingsAlloc[0].emergency_fund_rate !== null ? Number(savingsAlloc[0].emergency_fund_rate) : null;
       plannedGoalAllocations = Number(savingsAlloc[0].total_goal_allocations);
       unallocatedSavings = Number(savingsAlloc[0].unallocated_savings_amount);
     }
@@ -227,6 +235,7 @@ class DashboardQueryService {
       buckets: {
         needs: {
             target: needsTarget,
+            targetBps: needsBps,
             actual: needsActual,
             reserved: reservedNeeds,
             availableVariable: availableVariableNeeds,
@@ -236,6 +245,7 @@ class DashboardQueryService {
           },
           wants: {
             target: wantsTarget,
+            targetBps: wantsBps,
             actual: wantsActual,
             remaining: wantsTarget - wantsActual,
             usagePercent: wantsTarget > 0 ? (wantsActual / wantsTarget) * 100 : null,
@@ -243,8 +253,10 @@ class DashboardQueryService {
           },
           savings: {
             target: savingsTarget,
+            targetBps: savingsBps,
             actual: savingsActual,
             plannedEmergencyFund: plannedEmergencyFund,
+            plannedEmergencyFundRate: plannedEmergencyFundRate,
             plannedGoalAllocations: plannedGoalAllocations,
             unallocatedSavings: unallocatedSavings,
             remaining: savingsTarget - savingsActual,

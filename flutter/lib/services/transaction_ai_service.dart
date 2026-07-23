@@ -83,6 +83,7 @@ class TransactionAiService {
         '/receipts/analyze',
         fileField: 'receipt',
         filePath: imagePath,
+        contentType: _imageContentType(imagePath),
       );
 
       if (response.statusCode == 200 || response.statusCode == 201) {
@@ -153,6 +154,25 @@ class TransactionAiService {
         message: 'The receipt analysis response could not be processed.',
         code: 'PARSE_ERROR',
       );
+    }
+  }
+
+  static MediaType _imageContentType(String imagePath) {
+    final extension = imagePath.split('.').last.toLowerCase();
+
+    switch (extension) {
+      case 'png':
+        return MediaType('image', 'png');
+      case 'webp':
+        return MediaType('image', 'webp');
+      case 'heic':
+        return MediaType('image', 'heic');
+      case 'heif':
+        return MediaType('image', 'heif');
+      case 'jpg':
+      case 'jpeg':
+      default:
+        return MediaType('image', 'jpeg');
     }
   }
 }

@@ -13,6 +13,8 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
+import 'package:alpha_app/providers/home_provider.dart';
+import 'package:alpha_app/core/utils/dashboard_action_result.dart';
 
 enum _AnalyticsType {
   payment,
@@ -195,15 +197,20 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
 
   void _openNewExpenseScreen(
     BuildContext context,
-  ) {
+  ) async {
     if (!requireOnboarding(context)) return;
 
-    Navigator.push(
+    final result = await Navigator.push(
       context,
       MaterialPageRoute(
         builder: (_) => const NewExpenseScreen(),
       ),
     );
+
+    if (result == DashboardActionResult.created && context.mounted) {
+      context.read<ExpenseProvider>().loadExpenses();
+      context.read<HomeProvider>().refreshHomeData();
+    }
   }
 }
 
