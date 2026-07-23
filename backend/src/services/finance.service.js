@@ -383,8 +383,16 @@ class FinanceService {
       if (dateObj > sevenYearsFromNow) {
         throw new AppError('Target date cannot be more than 7 years ahead', 400, 'INVALID_TARGET_DATE');
       }
+      
+      if (data.plannedContribution !== undefined && data.plannedContribution !== null && data.plannedContribution !== '') {
+        plannedContribution = this.normalizeMoney(data.plannedContribution, 'plannedContribution');
+      }
     } else {
       throw new AppError('Invalid planning mode', 400, 'INVALID_PLANNING_MODE');
+    }
+    
+    if (plannedContribution > targetAmount) {
+      throw new AppError('Planned contribution cannot exceed target amount', 400, 'INVALID_PLANNED_CONTRIBUTION');
     }
 
     const customName = data.customName ? String(data.customName).trim() : null;

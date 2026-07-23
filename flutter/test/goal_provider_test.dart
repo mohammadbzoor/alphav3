@@ -47,8 +47,9 @@ void main() {
     Future<void> simulateForm() async {
       provider.setCategory('Other');
       provider.customNameController.text = 'Test Goal';
-      provider.amountController.text = '500';
+      provider.amountController.text = '6000'; // Target 6000
       provider.setDate(DateTime.now().add(const Duration(days: 30)));
+      // Auto suggestion should calculate 6000 / 1 month = 6000, or let's say 2 months = 3000
     }
 
     test('isSaving flag prevents double submission', () async {
@@ -107,6 +108,63 @@ void main() {
       final result = await provider.saveCurrentGoal();
       expect(result, isFalse);
       expect(provider.goals.length, 0);
+    });
+  });
+
+  group('GoalProvider G2 Task: Target Amount vs Planned Contribution', () {
+    late GoalProvider provider;
+
+    setUp(() {
+      provider = GoalProvider();
+      dotenv.env['API_BASE_URL'] = baseUrl;
+    });
+
+    test('Total target and monthly contribution have separate state', () {
+      provider.amountController.text = '5000';
+      provider.contributionController.text = '500';
+      
+      expect(provider.targetAmountValue, 5000);
+      expect(provider.plannedContributionValue, 500);
+    });
+
+    test('Automatic suggestion is calculated deterministically', () {
+      provider.amountController.text = '1200';
+      
+      final targetDate = DateTime.now().add(const Duration(days: 60)); // ~2 months ahead
+      provider.setDate(targetDate);
+
+      // It should have calculated suggestion
+      expect(provider.plannedContributionValue, greaterThan(0));
+      expect(provider.isContributionManuallyEdited, isFalse);
+    });
+
+    test('Manual override is preserved', () {
+      provider.amountController.text = '1200';
+      provider.setDate(DateTime.now().add(const Duration(days: 60)));
+      
+      // User types manually
+      provider.contributionController.text = '150';
+      provider.onContributionEdited();
+
+      expect(provider.isContributionManuallyEdited, isTrue);
+
+      // Date changes
+      provider.setDate(DateTime.now().add(const Duration(days: 120)));
+
+      // Suggestion should NOT have overridden the manual value
+      expect(provider.plannedContributionValue, 150);
+    });
+
+    test('Recalculate/reset restores the suggestion', () {
+      provider.amountController.text = '1200';
+      provider.setDate(DateTime.now().add(const Duration(days: 30))); // 1 month
+      
+      provider.contributionController.text = '150';
+      provider.onContributionEdited();
+
+      provider.resetContributionToSuggestion();
+      expect(provider.isContributionManuallyEdited, isFalse);
+      expect(provider.plannedContributionValue, 1200); // 1200 / 1
     });
   });
 }

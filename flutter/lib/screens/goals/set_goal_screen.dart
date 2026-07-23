@@ -163,7 +163,7 @@ class SetGoalScreen extends StatelessWidget {
               ),
 
               Text(
-                "Monthly saving amount",
+                "إجمالي قيمة الهدف",
                 style: TextStyle(
                     fontSize: screenW * 0.04,
                     color: themeProvider.isDark
@@ -182,7 +182,7 @@ class SetGoalScreen extends StatelessWidget {
                   child: Text("JOD"),
                 ),
                 controller: provider.amountController,
-                hint: "Amount per month",
+                hint: "Target Cost (Total)",
                 type: TextFieldType.number,
                 icon: Icons.payments_outlined,
                 onChanged: (_) {
@@ -221,7 +221,7 @@ class SetGoalScreen extends StatelessWidget {
               SizedBox(height: screenH * 0.02),
 
               Text(
-                "Target date",
+                "التاريخ المستهدف",
                 style: TextStyle(
                     fontSize: screenW * 0.04,
                     color: themeProvider.isDark
@@ -253,6 +253,50 @@ class SetGoalScreen extends StatelessWidget {
                   if (date != null) {
                     provider.setDate(date);
                   }
+                },
+              ),
+
+              SizedBox(
+                height: screenH * 0.02,
+              ),
+
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    "المساهمة الشهرية المخططة",
+                    style: TextStyle(
+                        fontSize: screenW * 0.04,
+                        color: themeProvider.isDark
+                            ? AppColors.darkSubText
+                            : AppColors.lightSubText,
+                        fontWeight: FontWeight.bold),
+                  ),
+                  if (provider.isContributionManuallyEdited)
+                    IconButton(
+                      icon: Icon(Icons.refresh, color: themeProvider.isDark ? AppColors.darkPrimary : AppColors.lightPrimary),
+                      onPressed: () {
+                        provider.resetContributionToSuggestion();
+                      },
+                    ),
+                ],
+              ),
+
+              SizedBox(
+                height: screenH * 0.01,
+              ),
+
+              CustomTextfield(
+                suffix: const Padding(
+                  padding: EdgeInsets.all(12),
+                  child: Text("JOD"),
+                ),
+                controller: provider.contributionController,
+                hint: "Monthly Contribution",
+                type: TextFieldType.number,
+                icon: Icons.auto_graph,
+                onChanged: (_) {
+                  provider.onContributionEdited();
                 },
               ),
 

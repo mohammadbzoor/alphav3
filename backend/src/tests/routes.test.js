@@ -80,5 +80,48 @@ describe('Finance Routes Validation', () => {
     // The ID matches the actual row ID
     expect(Number(postGoals[0].id)).toBe(Number(goalId));
     expect(Number(postGoals[0].target_amount)).toBe(5000);
+    expect(Number(postGoals[0].planned_contribution)).toBe(500);
+    expect(Number(postGoals[0].current_balance)).toBe(0);
+    expect(Number(postGoals[0].cycle_allocation)).toBe(0);
+
+    // Verify no transactions were created
+    const [goalTxs] = await db.execute('SELECT * FROM goal_transactions WHERE goal_id = ?', [goalId]);
+    expect(goalTxs.length).toBe(0);
+    
+    const [finTxs] = await db.execute('SELECT * FROM transactions WHERE user_id = ?', [userId]);
+    expect(finTxs.length).toBe(0);
+  });
+
+  test('POST /api/v1/goals creates a deadline_based goal and persists distinct plannedContribution', async () => {
+    const [userRes] = await db.execute(
+      `INSERT INTO users (full_name, email, password_hash) VALUES ('Route Test User 2', CONCAT(UUID(), '@example.com'), 'hash')`
+    );
+    const userId = userRes.insertId;
+    const realToken = jwt.sign({ id: userId }, env.jwtAccessSecret || 'secret', { expiresIn: '1h' });
+
+    const target = new Date();
+    target.setFullYear(target.getFullYear() + 1);
+
+    const res = await request(app)
+      .post('/api/v1/goals')
+      .set('Authorization', `Bearer ${realToken}`)
+      .send({
+        goalType: 'laptop',
+        targetAmount: 8000,
+        planningMode: 'deadline_based',
+        targetDate: target.toISOString(),
+        plannedContribution: 800,
+        priority: 5
+      });
+
+    expect(res.status).toBe(201);
+    const goalId = res.body.data.goalId;
+
+    const [postGoals] = await db.execute('SELECT * FROM goals WHERE id = ?', [goalId]);
+    expect(postGoals.length).toBe(1);
+    
+    expect(Number(postGoals[0].target_amount)).toBe(8000);
+    expect(Number(postGoals[0].planned_contribution)).toBe(800);
+    expect(Number(postGoals[0].current_balance)).toBe(0);
   });
 });

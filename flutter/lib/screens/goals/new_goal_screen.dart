@@ -154,10 +154,10 @@ class _NewGoalScreenState extends State<NewGoalScreen> {
                       height: screenH * 0.025,
                     ),
 
-                    // ================= MONTHLY SAVING =================
+                    // ================= TOTAL TARGET COST =================
 
                     _SectionTitle(
-                      title: "Monthly saving amount",
+                      title: "إجمالي قيمة الهدف",
                       screenW: screenW,
                       isDark: isDark,
                     ),
@@ -168,7 +168,7 @@ class _NewGoalScreenState extends State<NewGoalScreen> {
 
                     CustomTextfield(
                       controller: provider.amountController,
-                      hint: "Amount per month",
+                      hint: "Target Cost (Total)",
                       type: TextFieldType.number,
                       icon: Icons.payments_outlined,
                       suffix: Padding(
@@ -224,7 +224,7 @@ class _NewGoalScreenState extends State<NewGoalScreen> {
                     // ================= TARGET DATE =================
 
                     _SectionTitle(
-                      title: "Target date",
+                      title: "التاريخ المستهدف",
                       screenW: screenW,
                       isDark: isDark,
                     ),
@@ -243,6 +243,58 @@ class _NewGoalScreenState extends State<NewGoalScreen> {
                         _selectGoalDate(
                           provider,
                         );
+                      },
+                    ),
+
+                    SizedBox(
+                      height: screenH * 0.025,
+                    ),
+
+                    // ================= PLANNED CONTRIBUTION =================
+
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        _SectionTitle(
+                          title: "المساهمة الشهرية المخططة",
+                          screenW: screenW,
+                          isDark: isDark,
+                        ),
+                        if (provider.isContributionManuallyEdited)
+                          IconButton(
+                            icon: Icon(Icons.refresh, color: isDark ? AppColors.darkPrimary : AppColors.lightPrimary),
+                            onPressed: () {
+                              provider.resetContributionToSuggestion();
+                            },
+                          ),
+                      ],
+                    ),
+
+                    SizedBox(
+                      height: screenH * 0.01,
+                    ),
+
+                    CustomTextfield(
+                      controller: provider.contributionController,
+                      hint: "Monthly Contribution",
+                      type: TextFieldType.number,
+                      icon: Icons.auto_graph,
+                      suffix: Padding(
+                        padding: const EdgeInsets.all(
+                          12,
+                        ),
+                        child: Text(
+                          "JOD",
+                          style: TextStyle(
+                            color: isDark
+                                ? AppColors.darkSubText
+                                : AppColors.lightSubText,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                      onChanged: (_) {
+                        provider.onContributionEdited();
                       },
                     ),
 
@@ -573,8 +625,12 @@ class _AlphaGoalPreviewCard extends StatelessWidget {
       return "Choose a goal to receive a personalized saving suggestion.";
     }
 
-    if (provider.monthlySaving <= 0) {
-      return "Enter a realistic monthly saving amount so Alpha can evaluate your plan.";
+    if (provider.targetAmountValue <= 0) {
+      return "Enter a realistic target cost so Alpha can evaluate your plan.";
+    }
+
+    if (provider.plannedContributionValue <= 0) {
+      return "Enter a realistic planned monthly contribution.";
     }
 
     if (provider.targetDate == null) {
@@ -585,8 +641,8 @@ class _AlphaGoalPreviewCard extends StatelessWidget {
       return "This is a high-priority goal. Alpha will give it more importance when analyzing your spending.";
     }
 
-    if (provider.monthlySaving < 20) {
-      return "Your monthly saving amount is relatively low. Reaching the goal may take more time.";
+    if (provider.plannedContributionValue < 20) {
+      return "Your planned monthly contribution is relatively low. Reaching the goal may take more time.";
     }
 
     return "Your goal setup looks realistic. Alpha will track your progress and help you stay consistent.";

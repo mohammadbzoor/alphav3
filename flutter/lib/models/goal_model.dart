@@ -3,30 +3,32 @@ class Goal {
   final String category;
   final String? customName;
 
-  /// القيمة التي يدخلها المستخدم في صفحة إنشاء الهدف.
-  final double monthlySaving;
+  /// المساهمة الشهرية المخططة.
+  final double plannedContribution;
 
   final int priority;
   final DateTime? targetDate;
 
-  /// هذه القيم يمكن أن ترجع لاحقًا من الباك إند.
   final double? savedAmount;
+  /// إجمالي قيمة الهدف
   final double? targetAmount;
   final double? recommendedMonthlySaving;
 
   final bool isActive;
+  final String planningMode;
 
   const Goal({
     this.id,
     required this.category,
     this.customName,
-    required this.monthlySaving,
+    required this.plannedContribution,
     required this.priority,
     this.targetDate,
     this.savedAmount,
     this.targetAmount,
     this.recommendedMonthlySaving,
     this.isActive = true,
+    this.planningMode = 'deadline_based',
   });
 
   // ================= DISPLAY NAME =================
@@ -107,8 +109,11 @@ class Goal {
   /// إذا الباك إند لم يرسل توصية بعد،
   /// يتم عرض القيمة التي أدخلها المستخدم.
   double get displayedMonthlyRecommendation {
-    return recommendedMonthlySaving ?? monthlySaving;
+    return recommendedMonthlySaving ?? plannedContribution;
   }
+  
+  // Backward compatibility alias for UI elements expecting monthlySaving
+  double get monthlySaving => plannedContribution;
 
   // ================= JSON =================
 
@@ -117,32 +122,34 @@ class Goal {
       if (id != null) "id": id,
       "category": category,
       "custom_name": customName,
-      "monthly_saving": monthlySaving,
+      "planned_contribution": plannedContribution,
       "priority": priority,
       "target_date": targetDate?.toIso8601String(),
-      if (savedAmount != null) "saved_amount": savedAmount,
+      if (savedAmount != null) "current_balance": savedAmount,
       if (targetAmount != null) "target_amount": targetAmount,
       if (recommendedMonthlySaving != null)
         "recommended_monthly_saving": recommendedMonthlySaving,
       "is_active": isActive,
+      "planning_mode": planningMode,
     };
   }
 
   factory Goal.fromJson(Map<String, dynamic> json) {
     return Goal(
       id: json["id"]?.toString(),
-      category: json["category"]?.toString() ?? "",
+      category: json["category"]?.toString() ?? json["goal_type"]?.toString() ?? "",
       customName: json["custom_name"]?.toString(),
-      monthlySaving: (json["monthly_saving"] as num?)?.toDouble() ?? 0,
+      plannedContribution: (json["planned_contribution"] as num?)?.toDouble() ?? (json["monthly_saving"] as num?)?.toDouble() ?? 0,
       priority: (json["priority"] as num?)?.toInt() ?? 5,
       targetDate: json["target_date"] != null
           ? DateTime.tryParse(json["target_date"].toString())
           : null,
-      savedAmount: (json["saved_amount"] as num?)?.toDouble(),
+      savedAmount: (json["current_balance"] as num?)?.toDouble() ?? (json["saved_amount"] as num?)?.toDouble(),
       targetAmount: (json["target_amount"] as num?)?.toDouble(),
       recommendedMonthlySaving:
           (json["recommended_monthly_saving"] as num?)?.toDouble(),
-      isActive: json["is_active"] as bool? ?? true,
+      isActive: json["status"] == "active" || json["status"] == "draft" || json["is_active"] == true,
+      planningMode: json["planning_mode"]?.toString() ?? 'deadline_based',
     );
   }
 
@@ -152,19 +159,20 @@ class Goal {
     String? id,
     String? category,
     String? customName,
-    double? monthlySaving,
+    double? plannedContribution,
     int? priority,
     DateTime? targetDate,
     double? savedAmount,
     double? targetAmount,
     double? recommendedMonthlySaving,
     bool? isActive,
+    String? planningMode,
   }) {
     return Goal(
       id: id ?? this.id,
       category: category ?? this.category,
       customName: customName ?? this.customName,
-      monthlySaving: monthlySaving ?? this.monthlySaving,
+      plannedContribution: plannedContribution ?? this.plannedContribution,
       priority: priority ?? this.priority,
       targetDate: targetDate ?? this.targetDate,
       savedAmount: savedAmount ?? this.savedAmount,
@@ -172,6 +180,7 @@ class Goal {
       recommendedMonthlySaving:
           recommendedMonthlySaving ?? this.recommendedMonthlySaving,
       isActive: isActive ?? this.isActive,
+      planningMode: planningMode ?? this.planningMode,
     );
   }
 }

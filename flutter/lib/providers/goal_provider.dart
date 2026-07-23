@@ -14,7 +14,8 @@ class GoalProvider extends ChangeNotifier {
 
   final TextEditingController customNameController = TextEditingController();
 
-  final TextEditingController amountController = TextEditingController();
+  final TextEditingController amountController = TextEditingController(); // Total Target Cost
+  final TextEditingController contributionController = TextEditingController(); // Planned Monthly Contribution
 
   final TextEditingController targetDateController = TextEditingController();
 
@@ -43,6 +44,9 @@ class GoalProvider extends ChangeNotifier {
   String? _errorMessage;
 
   String? get errorMessage => _errorMessage;
+
+  bool _isContributionManuallyEdited = false;
+  bool get isContributionManuallyEdited => _isContributionManuallyEdited;
 
   // ================= GOALS =================
 
@@ -136,13 +140,13 @@ class GoalProvider extends ChangeNotifier {
                   id: map['id']?.toString(),
                   category: map['name']?.toString() ?? 'Other',
                   customName: map['name']?.toString(),
-                  monthlySaving: (map['monthlyContribution'] ?? 0).toDouble(),
+                  plannedContribution: (map['plannedContribution'] ?? map['planned_contribution'] ?? 0).toDouble(),
                   priority: (map['priority'] ?? 5).toInt(),
-                  targetDate:
-                      null, // Backend does not return targetDate in getGoals
-                  savedAmount: (map['currentBalance'] ?? 0).toDouble(),
-                  targetAmount: (map['targetAmount'] ?? 0).toDouble(),
+                  targetDate: map['targetDate'] != null ? DateTime.tryParse(map['targetDate']) : (map['target_date'] != null ? DateTime.tryParse(map['target_date']) : null),
+                  savedAmount: (map['currentBalance'] ?? map['current_balance'] ?? 0).toDouble(),
+                  targetAmount: (map['targetAmount'] ?? map['target_amount'] ?? 0).toDouble(),
                   isActive: map['status'] == 'active',
+                  planningMode: map['planningMode'] ?? map['planning_mode'] ?? 'deadline_based',
                 );
               })
               .where((g) => g.id != null && g.id!.isNotEmpty)
@@ -159,11 +163,17 @@ class GoalProvider extends ChangeNotifier {
 
   // ================= VALUES =================
 
-  double get monthlySaving {
+  double get targetAmountValue {
     final value = amountController.text.trim().replaceAll(",", "");
-
     return double.tryParse(value) ?? 0;
   }
+
+  double get plannedContributionValue {
+    final value = contributionController.text.trim().replaceAll(",", "");
+    return double.tryParse(value) ?? 0;
+  }
+
+  double get monthlySaving => plannedContributionValue; // Legacy backwards compat
 
   String get goalName {
     if (selectedCategory == "Other") {
@@ -214,12 +224,49 @@ class GoalProvider extends ChangeNotifier {
 
     _errorMessage = null;
 
+    _recalculateContribution();
     notifyListeners();
   }
 
   void refresh() {
     _errorMessage = null;
+    _recalculateContribution();
     notifyListeners();
+  }
+
+  void onContributionEdited() {
+    _isContributionManuallyEdited = true;
+    _errorMessage = null;
+    notifyListeners();
+  }
+
+  void resetContributionToSuggestion() {
+    _isContributionManuallyEdited = false;
+    _recalculateContribution();
+    _errorMessage = null;
+    notifyListeners();
+  }
+
+  void _recalculateContribution() {
+    if (_isContributionManuallyEdited) return;
+
+    final target = targetAmountValue;
+    if (target <= 0) {
+      if (contributionController.text.isNotEmpty) contributionController.clear();
+      return;
+    }
+
+    int months = 1;
+    if (targetDate != null) {
+      final now = DateTime.now();
+      if (targetDate!.isAfter(now)) {
+        months = (targetDate!.year - now.year) * 12 + targetDate!.month - now.month;
+        if (months <= 0) months = 1;
+      }
+    }
+
+    final suggestion = (target / months).ceilToDouble();
+    contributionController.text = suggestion.toInt().toString();
   }
 
   // ================= VALIDATION =================
@@ -230,11 +277,12 @@ class GoalProvider extends ChangeNotifier {
     final customNameValid = selectedCategory != "Other" ||
         customNameController.text.trim().isNotEmpty;
 
-    final amountValid = monthlySaving > 0;
+    final amountValid = targetAmountValue > 0;
+    final contributionValid = plannedContributionValue > 0;
 
     final targetDateValid = targetDate != null;
 
-    return categoryValid && customNameValid && amountValid && targetDateValid;
+    return categoryValid && customNameValid && amountValid && contributionValid && targetDateValid;
   }
 
   String? get validationMessage {
@@ -247,8 +295,16 @@ class GoalProvider extends ChangeNotifier {
       return "Please enter the goal name";
     }
 
-    if (monthlySaving <= 0) {
+    if (targetAmountValue <= 0) {
+      return "Please enter a valid target amount";
+    }
+
+    if (plannedContributionValue <= 0) {
       return "Please enter a valid monthly saving amount";
+    }
+
+    if (plannedContributionValue > targetAmountValue) {
+      return "Monthly contribution cannot exceed target amount";
     }
 
     if (targetDate == null) {
@@ -274,7 +330,7 @@ class GoalProvider extends ChangeNotifier {
       completedSteps++;
     }
 
-    if (monthlySaving > 0) {
+    if (targetAmountValue > 0 && plannedContributionValue > 0) {
       completedSteps++;
     }
 
@@ -298,13 +354,14 @@ class GoalProvider extends ChangeNotifier {
       category: selectedCategory ?? "",
       customName:
           selectedCategory == "Other" ? customNameController.text.trim() : null,
-      monthlySaving: monthlySaving,
+      plannedContribution: plannedContributionValue,
       priority: priority,
       targetDate: targetDate,
       savedAmount: null,
-      targetAmount: null,
+      targetAmount: targetAmountValue,
       recommendedMonthlySaving: null,
       isActive: true,
+      planningMode: targetDate != null ? 'deadline_based' : 'contribution_based',
     );
   }
 
@@ -331,11 +388,9 @@ class GoalProvider extends ChangeNotifier {
         'goalType': newGoal.category == 'Other'
             ? 'custom'
             : newGoal.category.toLowerCase().replaceAll(' ', '_'),
-        'targetAmount': newGoal.monthlySaving,
-        'planningMode': newGoal.targetDate != null
-            ? 'deadline_based'
-            : 'contribution_based',
-        'plannedContribution': newGoal.monthlySaving,
+        'targetAmount': newGoal.targetAmount,
+        'planningMode': newGoal.planningMode,
+        'plannedContribution': newGoal.plannedContribution,
         'targetDate': newGoal.targetDate?.toIso8601String(),
         'priority': newGoal.priority,
         'customName': newGoal.customName,
@@ -404,10 +459,9 @@ class GoalProvider extends ChangeNotifier {
         'goalType': goal.category == 'Other'
             ? 'custom'
             : goal.category.toLowerCase().replaceAll(' ', '_'),
-        'targetAmount': goal.monthlySaving,
-        'planningMode':
-            goal.targetDate != null ? 'deadline_based' : 'contribution_based',
-        'plannedContribution': goal.monthlySaving,
+        'targetAmount': goal.targetAmount,
+        'planningMode': goal.planningMode,
+        'plannedContribution': goal.plannedContribution,
         'targetDate': goal.targetDate?.toIso8601String(),
         'priority': goal.priority,
         'customName': goal.customName,
@@ -484,11 +538,9 @@ class GoalProvider extends ChangeNotifier {
         'goalType': updatedGoal.category == 'Other'
             ? 'custom'
             : updatedGoal.category.toLowerCase().replaceAll(' ', '_'),
-        'targetAmount': updatedGoal.monthlySaving,
-        'planningMode': updatedGoal.targetDate != null
-            ? 'deadline_based'
-            : 'contribution_based',
-        'plannedContribution': updatedGoal.monthlySaving,
+        'targetAmount': updatedGoal.targetAmount,
+        'planningMode': updatedGoal.planningMode,
+        'plannedContribution': updatedGoal.plannedContribution,
         'targetDate': updatedGoal.targetDate?.toIso8601String(),
         'priority': updatedGoal.priority,
         'customName': updatedGoal.customName,
@@ -758,6 +810,7 @@ class GoalProvider extends ChangeNotifier {
   }) {
     customNameController.clear();
     amountController.clear();
+    contributionController.clear();
     targetDateController.clear();
 
     selectedCategory = null;
@@ -765,6 +818,7 @@ class GoalProvider extends ChangeNotifier {
     priority = 5;
     emergencyPercentage = 10;
     _errorMessage = null;
+    _isContributionManuallyEdited = false;
 
     if (notify) {
       notifyListeners();
