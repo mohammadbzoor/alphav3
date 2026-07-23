@@ -1,3 +1,4 @@
+import 'package:alpha_app/config/api_config.dart';
 import 'package:alpha_app/core/utils/app_colors.dart';
 import 'package:alpha_app/core/utils/device.dart';
 import 'package:alpha_app/core/utils/session_state_cleaner.dart';
@@ -927,7 +928,7 @@ class _ProfileHeader extends StatelessWidget {
     }
 
     return Image.network(
-      value,
+      ApiConfig.resolveBackendUrl(value),
       fit: BoxFit.cover,
       errorBuilder: (
         context,
